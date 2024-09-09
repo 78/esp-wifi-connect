@@ -4,6 +4,12 @@ This component helps with WiFi connection for the device.
 
 It first tries to connect to a WiFi network using the credentials stored in the flash. If this fails, it starts an access point and a web server to allow the user to connect to a WiFi network.
 
+The URL to access the web server is `http://192.168.4.1`.
+
+Here is a screenshot of the web server:
+
+![Access Point Configuration](assets/ap.png)
+
 ## Configuration
 
 The WiFi credentials are stored in the flash under the "wifi" namespace. The keys are "ssid" and "password".
