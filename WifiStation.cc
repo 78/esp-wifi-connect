@@ -12,7 +12,7 @@
 #define TAG "wifi"
 #define WIFI_EVENT_CONNECTED BIT0
 #define WIFI_EVENT_FAILED BIT1
-#define MAX_RECONNECT_COUNT 5
+#define MAX_RECONNECT_COUNT 3
 
 WifiStation& WifiStation::GetInstance() {
     static WifiStation instance;
@@ -20,9 +20,22 @@ WifiStation& WifiStation::GetInstance() {
 }
 
 WifiStation::WifiStation() {
+    // Create the event group
+    event_group_ = xEventGroupCreate();
+}
+
+WifiStation::~WifiStation() {
+    vEventGroupDelete(event_group_);
+}
+
+void WifiStation::Start() {
     // Get ssid and password from NVS
     nvs_handle_t nvs_handle;
-    ESP_ERROR_CHECK(nvs_open("wifi", NVS_READONLY, &nvs_handle));
+    auto ret = nvs_open("wifi", NVS_READONLY, &nvs_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGI(TAG, "WifiStation not configured");
+        return;
+    }
     char ssid[32], password[64];
     size_t length = sizeof(ssid);
     ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "ssid", ssid, &length));
@@ -33,45 +46,21 @@ WifiStation::WifiStation() {
     ssid_ = std::string(ssid);
     password_ = std::string(password);
 
-    // Create the event group
-    event_group_ = xEventGroupCreate();
-
-    // Register event handler
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
-        [](void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-        auto this_ = static_cast<WifiStation*>(event_handler_arg);
-        if (event_id == WIFI_EVENT_STA_START) {
-            esp_wifi_connect();
-        } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
-            xEventGroupClearBits(this_->event_group_, WIFI_EVENT_CONNECTED);
-            if (this_->reconnect_count_ < MAX_RECONNECT_COUNT) {
-                esp_wifi_connect();
-                this_->reconnect_count_++;
-                ESP_LOGI(TAG, "Reconnecting to WiFi (attempt %d)", this_->reconnect_count_);
-            } else {
-                xEventGroupSetBits(this_->event_group_, WIFI_EVENT_FAILED);
-                ESP_LOGI(TAG, "Failed to connect to WiFi");
-            }
-        }
-    }, this));
-
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
-        [](void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-        auto this_ = static_cast<WifiStation*>(event_handler_arg);
-        auto event = static_cast<ip_event_got_ip_t*>(event_data);
-
-        char ip_address[16];
-        esp_ip4addr_ntoa(&event->ip_info.ip, ip_address, sizeof(ip_address));
-        this_->ip_address_ = ip_address;
-        ESP_LOGI(TAG, "Got IP: %s", this_->ip_address_.c_str());
-        xEventGroupSetBits(this_->event_group_, WIFI_EVENT_CONNECTED);
-    }, this));
-}
-
-
-void WifiStation::Start() {
     // Initialize the TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_init());
+
+    esp_event_handler_instance_t instance_any_id;
+    esp_event_handler_instance_t instance_got_ip;
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &WifiStation::WifiEventHandler,
+                                                        this,
+                                                        &instance_any_id));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                        IP_EVENT_STA_GOT_IP,
+                                                        &WifiStation::IpEventHandler,
+                                                        this,
+                                                        &instance_got_ip));
 
     // Create the default event loop
     esp_netif_create_default_wifi_sta();
@@ -94,10 +83,18 @@ void WifiStation::Start() {
     // Wait for the WiFi stack to start
     auto bits = xEventGroupWaitBits(event_group_, WIFI_EVENT_CONNECTED | WIFI_EVENT_FAILED, pdFALSE, pdFALSE, portMAX_DELAY);
     if (bits & WIFI_EVENT_FAILED) {
-        ESP_LOGE(TAG, "WifiStation start failed");
-    } else {
-        ESP_LOGI(TAG, "WifiStation started");
+        ESP_LOGE(TAG, "WifiStation failed");
+        // Reset the WiFi stack
+        ESP_ERROR_CHECK(esp_wifi_stop());
+        ESP_ERROR_CHECK(esp_wifi_deinit());
+        
+        // 取消注册事件处理程序
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+        ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
+        return;
     }
+
+    ESP_LOGI(TAG, "WifiStation started");
 
     // Get station info
     wifi_ap_record_t ap_info;
@@ -109,4 +106,33 @@ void WifiStation::Start() {
 
 bool WifiStation::IsConnected() {
     return xEventGroupGetBits(event_group_) & WIFI_EVENT_CONNECTED;
+}
+
+// Static event handler functions
+void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    auto* this_ = static_cast<WifiStation*>(arg);
+    if (event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        xEventGroupClearBits(this_->event_group_, WIFI_EVENT_CONNECTED);
+        if (this_->reconnect_count_ < MAX_RECONNECT_COUNT) {
+            esp_wifi_connect();
+            this_->reconnect_count_++;
+            ESP_LOGI(TAG, "Reconnecting WiFi (attempt %d)", this_->reconnect_count_);
+        } else {
+            xEventGroupSetBits(this_->event_group_, WIFI_EVENT_FAILED);
+            ESP_LOGI(TAG, "WiFi connection failed");
+        }
+    }
+}
+
+void WifiStation::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    auto* this_ = static_cast<WifiStation*>(arg);
+    auto* event = static_cast<ip_event_got_ip_t*>(event_data);
+
+    char ip_address[16];
+    esp_ip4addr_ntoa(&event->ip_info.ip, ip_address, sizeof(ip_address));
+    this_->ip_address_ = ip_address;
+    ESP_LOGI(TAG, "Got IP: %s", this_->ip_address_.c_str());
+    xEventGroupSetBits(this_->event_group_, WIFI_EVENT_CONNECTED);
 }

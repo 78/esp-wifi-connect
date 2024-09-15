@@ -14,11 +14,10 @@
 
 #define TAG "WifiConfigurationAp"
 
-extern const char index_html_start[] asm("_binary_wifi_configuration_ap_html_start");
-
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+extern const char index_html_start[] asm("_binary_wifi_configuration_ap_html_start");
 
 WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
     static WifiConfigurationAp instance;
@@ -28,6 +27,40 @@ WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
 WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
+}
+
+WifiConfigurationAp::~WifiConfigurationAp()
+{
+    if (event_group_) {
+        vEventGroupDelete(event_group_);
+    }
+    // Unregister event handlers if they were registered
+    if (instance_any_id_) {
+        esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id_);
+    }
+    if (instance_got_ip_) {
+        esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
+    }
+}
+
+void WifiConfigurationAp::Start(const std::string ssid_prefix)
+{
+    ssid_prefix_ = ssid_prefix;
+
+    // Register event handlers
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &WifiConfigurationAp::WifiEventHandler,
+                                                        this,
+                                                        &instance_any_id_));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                        IP_EVENT_STA_GOT_IP,
+                                                        &WifiConfigurationAp::IpEventHandler,
+                                                        this,
+                                                        &instance_got_ip_));
+
+    StartAccessPoint();
+    StartWebServer();
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -44,22 +77,6 @@ void WifiConfigurationAp::StartAccessPoint()
 {
     // Get the SSID
     std::string ssid = GetSsid();
-
-    // Register the WiFi event handler
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
-        [](void *ctx, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-        if (event_id == WIFI_EVENT_AP_STACONNECTED) {
-            wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *)event_data;
-            ESP_LOGI(TAG, "Station connected: " MACSTR, MAC2STR(event->mac));
-        } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
-            wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t *)event_data;
-            ESP_LOGI(TAG, "Station disconnected: " MACSTR, MAC2STR(event->mac));
-        } else if (event_id == WIFI_EVENT_STA_CONNECTED) {
-            xEventGroupSetBits(static_cast<WifiConfigurationAp *>(ctx)->event_group_, WIFI_CONNECTED_BIT);
-        } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
-            xEventGroupSetBits(static_cast<WifiConfigurationAp *>(ctx)->event_group_, WIFI_FAIL_BIT);
-        }
-    }, this));
 
     // Initialize the TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_init());
@@ -223,14 +240,6 @@ std::string WifiConfigurationAp::UrlDecode(const std::string &url)
     return decoded;
 }
 
-
-void WifiConfigurationAp::Start(const std::string ssid_prefix)
-{
-    ssid_prefix_ = ssid_prefix;
-    StartAccessPoint();
-    StartWebServer();
-}
-
 bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::string &password)
 {
     // auto esp_netif = esp_netif_create_default_wifi_sta();
@@ -284,4 +293,30 @@ void WifiConfigurationAp::Save(const std::string &ssid, const std::string &passw
         vTaskDelay(pdMS_TO_TICKS(3000));
         esp_restart();
     }, "restart_task", 4096, NULL, 5, NULL);
+}
+
+void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+{
+    WifiConfigurationAp* self = static_cast<WifiConfigurationAp*>(arg);
+    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+        ESP_LOGI(TAG, "Station " MACSTR " joined, AID=%d", MAC2STR(event->mac), event->aid);
+    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "Station " MACSTR " left, AID=%d", MAC2STR(event->mac), event->aid);
+    } else if (event_id == WIFI_EVENT_STA_CONNECTED) {
+        xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
+    } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        xEventGroupSetBits(self->event_group_, WIFI_FAIL_BIT);
+    } 
+}
+
+void WifiConfigurationAp::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+{
+    WifiConfigurationAp* self = static_cast<WifiConfigurationAp*>(arg);
+    if (event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
+        xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
+    }
 }

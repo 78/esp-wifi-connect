@@ -4,8 +4,9 @@ description: ESP32 WiFi Configuration
 files:
   exclude:
   - .git
+  - dist
 license: MIT
 maintainer: Terrence <terrence@tenclass.com>
 repository: git://github.com/78/esp-wifi-connect.git
 url: https://github.com/78/esp-wifi-connect.git
-version: 1.0.0
+version: 1.0.1

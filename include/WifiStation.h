@@ -16,7 +16,7 @@ public:
 
 private:
     WifiStation();
-    ~WifiStation() = default;
+    ~WifiStation();
     WifiStation(const WifiStation&) = delete;
     WifiStation& operator=(const WifiStation&) = delete;
 
@@ -27,6 +27,9 @@ private:
     uint8_t rssi_ = 0;
     uint8_t channel_ = 0;
     int reconnect_count_ = 0;
+
+    static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+    static void IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 };
 
 #endif // _WIFI_STATION_H_
