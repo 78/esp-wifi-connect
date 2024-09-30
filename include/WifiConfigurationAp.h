@@ -8,7 +8,11 @@
 class WifiConfigurationAp {
 public:
     static WifiConfigurationAp& GetInstance();
-    void Start(const std::string ssid_prefix);
+    void SetSsidPrefix(const std::string &&ssid_prefix);
+    void Start();
+
+    std::string GetSsid();
+    std::string GetWebServerUrl();
 
     // Delete copy constructor and assignment operator
     WifiConfigurationAp(const WifiConfigurationAp&) = delete;
@@ -24,8 +28,6 @@ private:
     std::string ssid_prefix_;
     esp_event_handler_instance_t instance_any_id_;
     esp_event_handler_instance_t instance_got_ip_;
-
-    std::string GetSsid();
     void StartAccessPoint();
     void StartWebServer();
     bool ConnectToWifi(const std::string &ssid, const std::string &password);

@@ -43,10 +43,13 @@ WifiConfigurationAp::~WifiConfigurationAp()
     }
 }
 
-void WifiConfigurationAp::Start(const std::string ssid_prefix)
+void WifiConfigurationAp::SetSsidPrefix(const std::string &&ssid_prefix)
 {
     ssid_prefix_ = ssid_prefix;
+}
 
+void WifiConfigurationAp::Start()
+{
     // Register event handlers
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
@@ -71,6 +74,12 @@ std::string WifiConfigurationAp::GetSsid()
     char ssid[32];
     snprintf(ssid, sizeof(ssid), "%s-%02X%02X%02X", ssid_prefix_.c_str(), mac[3], mac[4], mac[5]);
     return std::string(ssid);
+}
+
+std::string WifiConfigurationAp::GetWebServerUrl()
+{
+    // http://192.168.4.1
+    return "http://192.168.4.1";
 }
 
 void WifiConfigurationAp::StartAccessPoint()

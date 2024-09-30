@@ -22,6 +22,21 @@ WifiStation& WifiStation::GetInstance() {
 WifiStation::WifiStation() {
     // Create the event group
     event_group_ = xEventGroupCreate();
+
+    // Get ssid and password from NVS
+    nvs_handle_t nvs_handle;
+    auto ret = nvs_open("wifi", NVS_READONLY, &nvs_handle);
+    if (ret == ESP_OK) {
+        char ssid[32], password[64];
+        size_t length = sizeof(ssid);
+        ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "ssid", ssid, &length));
+        length = sizeof(password);
+        ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "password", password, &length));
+        nvs_close(nvs_handle);
+
+        ssid_ = std::string(ssid);
+        password_ = std::string(password);
+    }
 }
 
 WifiStation::~WifiStation() {
@@ -29,22 +44,9 @@ WifiStation::~WifiStation() {
 }
 
 void WifiStation::Start() {
-    // Get ssid and password from NVS
-    nvs_handle_t nvs_handle;
-    auto ret = nvs_open("wifi", NVS_READONLY, &nvs_handle);
-    if (ret != ESP_OK) {
-        ESP_LOGI(TAG, "WifiStation not configured");
+    if (ssid_.empty()) {
         return;
     }
-    char ssid[32], password[64];
-    size_t length = sizeof(ssid);
-    ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "ssid", ssid, &length));
-    length = sizeof(password);
-    ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "password", password, &length));
-    nvs_close(nvs_handle);
-
-    ssid_ = std::string(ssid);
-    password_ = std::string(password);
 
     // Initialize the TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_init());
@@ -94,14 +96,21 @@ void WifiStation::Start() {
         return;
     }
 
-    ESP_LOGI(TAG, "WifiStation started");
+    ESP_LOGI(TAG, "Connected to %s rssi=%d channel=%d", ssid_.c_str(), GetRssi(), GetChannel());
+}
 
+int8_t WifiStation::GetRssi() {
     // Get station info
     wifi_ap_record_t ap_info;
     ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&ap_info));
-    ESP_LOGI(TAG, "Connected to %s rssi=%d channel=%d", ap_info.ssid, ap_info.rssi, ap_info.primary);
-    rssi_ = ap_info.rssi;
-    channel_ = ap_info.primary;
+    return ap_info.rssi;
+}
+
+uint8_t WifiStation::GetChannel() {
+    // Get station info
+    wifi_ap_record_t ap_info;
+    ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&ap_info));
+    return ap_info.primary;
 }
 
 bool WifiStation::IsConnected() {
