@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "WifiConfigurationAp.cc"
         "WifiStation.cc"
+        "my_dns_server.c"
     INCLUDE_DIRS
         "include"
     EMBED_TXTFILES
