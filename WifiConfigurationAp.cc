@@ -11,7 +11,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "freertos/task.h"
-
+#include "my_dns_server.h"
 #define TAG "WifiConfigurationAp"
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -63,6 +63,7 @@ void WifiConfigurationAp::Start()
                                                         &instance_got_ip_));
 
     StartAccessPoint();
+    dns_server_start();
     StartWebServer();
 }
 
@@ -130,7 +131,7 @@ void WifiConfigurationAp::StartWebServer()
 
     // Register the index.html file
     httpd_uri_t index_html = {
-        .uri = "/",
+        .uri = "/generate_204",
         .method = HTTP_GET,
         .handler = [](httpd_req_t *req) -> esp_err_t {
             httpd_resp_send(req, index_html_start, strlen(index_html_start));
@@ -139,6 +140,17 @@ void WifiConfigurationAp::StartWebServer()
         .user_ctx = NULL
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &index_html));
+
+        httpd_uri_t index_html1 = {
+        .uri = "/",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            httpd_resp_send(req, index_html_start, strlen(index_html_start));
+            return ESP_OK;
+        },
+        .user_ctx = NULL
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &index_html1));
 
     // Register the /scan URI
     httpd_uri_t scan = {
