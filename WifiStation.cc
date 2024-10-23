@@ -12,7 +12,7 @@
 #define TAG "wifi"
 #define WIFI_EVENT_CONNECTED BIT0
 #define WIFI_EVENT_FAILED BIT1
-#define MAX_RECONNECT_COUNT 3
+#define MAX_RECONNECT_COUNT 5
 
 WifiStation& WifiStation::GetInstance() {
     static WifiStation instance;
@@ -41,6 +41,11 @@ WifiStation::WifiStation() {
 
 WifiStation::~WifiStation() {
     vEventGroupDelete(event_group_);
+}
+
+void WifiStation::SetAuth(const std::string &&ssid, const std::string &&password) {
+    ssid_ = ssid;
+    password_ = password;
 }
 
 void WifiStation::Start() {

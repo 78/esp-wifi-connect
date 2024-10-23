@@ -7,6 +7,7 @@
 class WifiStation {
 public:
     static WifiStation& GetInstance();
+    void SetAuth(const std::string &&ssid, const std::string &&password);
     void Start();
     bool IsConnected();
     int8_t GetRssi();
