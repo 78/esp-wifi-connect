@@ -1,13 +1,14 @@
-#include "WifiStation.h"
+#include "wifi_station.h"
 #include <cstring>
 
-#include "esp_log.h"
-#include "esp_wifi.h"
-#include "nvs.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <esp_log.h>
+#include <esp_wifi.h>
+#include <nvs.h>
 #include "nvs_flash.h"
-#include "esp_netif.h"
-#include "esp_system.h"
-
+#include <esp_netif.h>
+#include <esp_system.h>
 
 #define TAG "wifi"
 #define WIFI_EVENT_CONNECTED BIT0
