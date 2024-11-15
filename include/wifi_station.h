@@ -14,6 +14,7 @@ public:
     std::string GetSsid() const { return ssid_; }
     std::string GetIpAddress() const { return ip_address_; }
     uint8_t GetChannel();
+    void SetPowerSaveMode(bool enabled);
 
 private:
     WifiStation();

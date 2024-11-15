@@ -123,6 +123,10 @@ bool WifiStation::IsConnected() {
     return xEventGroupGetBits(event_group_) & WIFI_EVENT_CONNECTED;
 }
 
+void WifiStation::SetPowerSaveMode(bool enabled) {
+    ESP_ERROR_CHECK(esp_wifi_set_ps(enabled ? WIFI_PS_MIN_MODEM : WIFI_PS_NONE));
+}
+
 // Static event handler functions
 void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     auto* this_ = static_cast<WifiStation*>(arg);
