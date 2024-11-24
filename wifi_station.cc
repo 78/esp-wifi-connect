@@ -30,13 +30,14 @@ WifiStation::WifiStation() {
     if (ret == ESP_OK) {
         char ssid[32], password[64];
         size_t length = sizeof(ssid);
-        ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "ssid", ssid, &length));
+        if (nvs_get_str(nvs_handle, "ssid", ssid, &length) == ESP_OK) {
+            ssid_ = std::string(ssid);
+        }
         length = sizeof(password);
-        ESP_ERROR_CHECK(nvs_get_str(nvs_handle, "password", password, &length));
+        if (nvs_get_str(nvs_handle, "password", password, &length) == ESP_OK) {
+            password_ = std::string(password);
+        }
         nvs_close(nvs_handle);
-
-        ssid_ = std::string(ssid);
-        password_ = std::string(password);
     }
 }
 
