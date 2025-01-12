@@ -238,4 +238,5 @@ void WifiStation::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t
         this_->on_connected_(this_->ssid_);
     }
     this_->connect_queue_.clear();
+    this_->reconnect_count_ = 0;
 }
