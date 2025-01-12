@@ -8,11 +8,20 @@ The URL to access the web server is `http://192.168.4.1`.
 
 Here is a screenshot of the web server:
 
-![Access Point Configuration](assets/ap.png)
+![Access Point Configuration](assets/ap_v2.png)
+
+## Changelog: v2.0.0
+
+- Add support for multiple WiFi SSID management.
+- Auto switch to the best WiFi network.
+- Captive portal for WiFi configuration.
+- Support for multiple languages (English, Chinese).
 
 ## Configuration
 
-The WiFi credentials are stored in the flash under the "wifi" namespace. The keys are "ssid" and "password".
+The WiFi credentials are stored in the flash under the "wifi" namespace.
+
+The keys are "ssid", "ssid1", "ssid2" ... "ssid9", "password", "password1", "password2" ... "password9".
 
 ## Usage
 
@@ -29,22 +38,15 @@ if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
 ESP_ERROR_CHECK(ret);
 
 // Get the WiFi configuration
-nvs_handle_t nvs_handle;
-ret = nvs_open("wifi", NVS_READONLY, &nvs_handle);
-
-// If the WiFi configuration is not found, launch the WiFi configuration AP
-if (ret != ESP_OK) {
-    // Blink blue LED to indicate that the device is in configuration mode
-    auto& builtin_led = BuiltinLed::GetInstance();
-    builtin_led.SetBlue();
-    builtin_led.Blink(1000, 500);
-
+auto& ssid_list = SsidManager::GetInstance().GetSsidList();
+if (ssid_list.empty()) {
     // Start the WiFi configuration AP
-    WifiConfigurationAp::GetInstance().Start("ESP32");
+    auto& ap = WifiConfigurationAp::GetInstance();
+    ap.SetSsidPrefix("ESP32");
+    ap.Start();
     return;
 }
-nvs_close(nvs_handle);
-    
+
 // Otherwise, connect to the WiFi network
 WifiStation::GetInstance().Start();
 ```
