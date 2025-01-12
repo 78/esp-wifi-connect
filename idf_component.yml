@@ -6,7 +6,6 @@ files:
   - .git
   - dist
 license: MIT
-maintainer: Terrence <terrence@tenclass.com>
 repository: git://github.com/78/esp-wifi-connect.git
 url: https://github.com/78/esp-wifi-connect.git
-version: 1.4.1
+version: 2.0.0

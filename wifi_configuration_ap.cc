@@ -12,13 +12,15 @@
 #include <lwip/ip_addr.h>
 #include <nvs.h>
 #include <nvs_flash.h>
+#include "ssid_manager.h"
 
 #define TAG "WifiConfigurationAp"
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
-extern const char index_html_start[] asm("_binary_wifi_configuration_ap_html_start");
+extern const char index_html_start[] asm("_binary_wifi_configuration_html_start");
+extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_start");
 
 WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
     static WifiConfigurationAp instance;
@@ -102,6 +104,8 @@ void WifiConfigurationAp::StartAccessPoint()
     esp_netif_dhcps_stop(netif);
     esp_netif_set_ip_info(netif, &ip_info);
     esp_netif_dhcps_start(netif);
+    // Start the DNS server
+    dns_server_.Start(ip_info.gw);
 
     // Initialize the WiFi stack in Access Point mode
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -127,6 +131,7 @@ void WifiConfigurationAp::StartWebServer()
 {
     // Start the web server
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = 16;
     config.uri_match_fn = httpd_uri_match_wildcard;
     ESP_ERROR_CHECK(httpd_start(&server_, &config));
 
@@ -141,6 +146,70 @@ void WifiConfigurationAp::StartWebServer()
         .user_ctx = NULL
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &index_html));
+
+    // Register the /saved/list URI
+    httpd_uri_t saved_list = {
+        .uri = "/saved/list",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            auto ssid_list = SsidManager::GetInstance().GetSsidList();
+            std::string json_str = "[";
+            for (const auto& ssid : ssid_list) {
+                json_str += "\"" + ssid.ssid + "\",";
+            }
+            if (json_str.length() > 1) {
+                json_str.pop_back(); // Remove the last comma
+            }
+            json_str += "]";
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, json_str.c_str(), HTTPD_RESP_USE_STRLEN);
+            return ESP_OK;
+        },
+        .user_ctx = NULL
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_list));
+
+    // Register the /saved/set_default URI
+    httpd_uri_t saved_set_default = {
+        .uri = "/saved/set_default",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            std::string uri = req->uri;
+            auto pos = uri.find("?index=");
+            if (pos != std::string::npos) {
+                int index = std::stoi(uri.substr(pos + 7));
+                ESP_LOGI(TAG, "Set default item %d", index);
+                SsidManager::GetInstance().SetDefaultSsid(index);
+            }
+            // send {}
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
+            return ESP_OK;
+        },
+        .user_ctx = NULL
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_set_default));
+
+    // Register the /saved/delete URI
+    httpd_uri_t saved_delete = {
+        .uri = "/saved/delete",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            std::string uri = req->uri;
+            auto pos = uri.find("?index=");
+            if (pos != std::string::npos) {
+                int index = std::stoi(uri.substr(pos + 7));
+                ESP_LOGI(TAG, "Delete saved list item %d", index);
+                SsidManager::GetInstance().RemoveSsid(index);
+            }
+            // send {}
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
+            return ESP_OK;
+        },
+        .user_ctx = NULL
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_delete));
 
     // Register the /scan URI
     httpd_uri_t scan = {
@@ -218,7 +287,7 @@ void WifiConfigurationAp::StartWebServer()
             // Set HTML response
             httpd_resp_set_status(req, "200 OK");
             httpd_resp_set_type(req, "text/html");
-            httpd_resp_send(req, "<h1>Done!</h1>", -1);
+            httpd_resp_send(req, done_html_start, HTTPD_RESP_USE_STRLEN);
 
             this_->Save(ssid, password);
             return ESP_OK;
@@ -226,6 +295,41 @@ void WifiConfigurationAp::StartWebServer()
         .user_ctx = this
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &form_submit));
+
+    auto captive_portal_handler = [](httpd_req_t *req) -> esp_err_t {
+        auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+        std::string url = this_->GetWebServerUrl() + "/";
+        // Set content type to prevent browser warnings
+        httpd_resp_set_type(req, "text/html");
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", url.c_str());
+        httpd_resp_send(req, NULL, 0);
+        return ESP_OK;
+    };
+
+    // Register all common captive portal detection endpoints
+    const char* captive_portal_urls[] = {
+        "/hotspot-detect.html",    // Apple
+        "/generate_204",           // Android
+        "/mobile/status.php",      // Android
+        "/check_network_status.txt", // Windows
+        "/ncsi.txt",              // Windows
+        "/fwlink/",               // Microsoft
+        "/connectivity-check.html", // Firefox
+        "/success.txt",           // Various
+        "/portal.html",           // Various
+        "/library/test/success.html" // Apple
+    };
+
+    for (const auto& url : captive_portal_urls) {
+        httpd_uri_t redirect_uri = {
+            .uri = url,
+            .method = HTTP_GET,
+            .handler = captive_portal_handler,
+            .user_ctx = this
+        };
+        ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &redirect_uri));
+    }
 
     ESP_LOGI(TAG, "Web server started");
 }
@@ -283,21 +387,8 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
 
 void WifiConfigurationAp::Save(const std::string &ssid, const std::string &password)
 {
-    // Open the NVS flash
-    nvs_handle_t nvs_handle;
-    ESP_ERROR_CHECK(nvs_open("wifi", NVS_READWRITE, &nvs_handle));
-
-    // Write the SSID and password to the NVS flash
-    ESP_ERROR_CHECK(nvs_set_str(nvs_handle, "ssid", ssid.c_str()));
-    ESP_ERROR_CHECK(nvs_set_str(nvs_handle, "password", password.c_str()));
-
-    // Commit the changes
-    ESP_ERROR_CHECK(nvs_commit(nvs_handle));
-
-    // Close the NVS flash
-    nvs_close(nvs_handle);
-
-    ESP_LOGI(TAG, "WiFi configuration saved");
+    ESP_LOGI(TAG, "Save SSID %s %d", ssid.c_str(), ssid.length());
+    SsidManager::GetInstance().AddSsid(ssid, password);
     // Use xTaskCreate to create a new task that restarts the ESP32
     xTaskCreate([](void *ctx) {
         ESP_LOGI(TAG, "Restarting the ESP32 in 3 second");

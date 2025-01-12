@@ -4,6 +4,7 @@
 #include <string>
 #include "esp_http_server.h"
 #include "esp_event.h"
+#include "dns_server.h"
 
 class WifiConfigurationAp {
 public:
@@ -23,6 +24,7 @@ private:
     WifiConfigurationAp();
     ~WifiConfigurationAp();
 
+    DnsServer dns_server_;
     httpd_handle_t server_ = NULL;
     EventGroupHandle_t event_group_;
     std::string ssid_prefix_;
