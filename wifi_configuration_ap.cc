@@ -266,9 +266,19 @@ void WifiConfigurationAp::StartWebServer()
 
             // Parse the form data
             char ssid[32], password[64];
-            if (sscanf(decoded.c_str(), "ssid=%32[^&]&password=%64s", ssid, password) != 2) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid form data");
+            password[0] = '\0';  // Initialize password as empty
+            
+            // First extract SSID
+            if (sscanf(decoded.c_str(), "ssid=%32[^&]", ssid) != 1) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid SSID");
                 return ESP_FAIL;
+            }
+            
+            // Then look for password if present
+            auto pwd_pos = decoded.find("&password=");
+            if (pwd_pos != std::string::npos) {
+                strncpy(password, decoded.c_str() + pwd_pos + 10, sizeof(password) - 1);
+                password[sizeof(password) - 1] = '\0';  // Ensure null termination
             }
 
             // Get this object from the user context
