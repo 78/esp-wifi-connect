@@ -2,8 +2,9 @@
 #define _WIFI_CONFIGURATION_AP_H_
 
 #include <string>
-#include "esp_http_server.h"
-#include "esp_event.h"
+#include <esp_http_server.h>
+#include <esp_event.h>
+#include <esp_timer.h>
 #include "dns_server.h"
 
 class WifiConfigurationAp {
@@ -30,11 +31,13 @@ private:
     std::string ssid_prefix_;
     esp_event_handler_instance_t instance_any_id_;
     esp_event_handler_instance_t instance_got_ip_;
+    esp_timer_handle_t scan_timer_ = nullptr;
+    bool is_connecting_ = false;
+
     void StartAccessPoint();
     void StartWebServer();
     bool ConnectToWifi(const std::string &ssid, const std::string &password);
     void Save(const std::string &ssid, const std::string &password);
-    static std::string UrlDecode(const std::string &url);
 
     // Event handlers
     static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);

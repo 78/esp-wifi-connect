@@ -1,6 +1,6 @@
 #include "wifi_configuration_ap.h"
 #include <cstdio>
-
+#include <memory>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <esp_err.h>
@@ -12,6 +12,7 @@
 #include <lwip/ip_addr.h>
 #include <nvs.h>
 #include <nvs_flash.h>
+#include <cJSON.h>
 #include "ssid_manager.h"
 
 #define TAG "WifiConfigurationAp"
@@ -34,6 +35,10 @@ WifiConfigurationAp::WifiConfigurationAp()
 
 WifiConfigurationAp::~WifiConfigurationAp()
 {
+    if (scan_timer_) {
+        esp_timer_stop(scan_timer_);
+        esp_timer_delete(scan_timer_);
+    }
     if (event_group_) {
         vEventGroupDelete(event_group_);
     }
@@ -67,6 +72,25 @@ void WifiConfigurationAp::Start()
 
     StartAccessPoint();
     StartWebServer();
+
+    // Start scan immediately
+    esp_wifi_scan_start(nullptr, false);
+    // Setup periodic WiFi scan timer
+    esp_timer_create_args_t timer_args = {
+        .callback = [](void* arg) {
+            auto* self = static_cast<WifiConfigurationAp*>(arg);
+            if (!self->is_connecting_) {
+                esp_wifi_scan_start(nullptr, false);
+            }
+        },
+        .arg = this,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "wifi_scan_timer",
+        .skip_unhandled_events = true
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
+    // Start scanning every 10 seconds
+    ESP_ERROR_CHECK(esp_timer_start_periodic(scan_timer_, 10000000));
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -131,7 +155,7 @@ void WifiConfigurationAp::StartWebServer()
 {
     // Start the web server
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 16;
+    config.max_uri_handlers = 20;
     config.uri_match_fn = httpd_uri_match_wildcard;
     ESP_ERROR_CHECK(httpd_start(&server_, &config));
 
@@ -216,11 +240,20 @@ void WifiConfigurationAp::StartWebServer()
         .uri = "/scan",
         .method = HTTP_GET,
         .handler = [](httpd_req_t *req) -> esp_err_t {
-            esp_wifi_scan_start(nullptr, true);
             uint16_t ap_num = 0;
             esp_wifi_scan_get_ap_num(&ap_num);
-            wifi_ap_record_t *ap_records = (wifi_ap_record_t *)malloc(ap_num * sizeof(wifi_ap_record_t));
-            esp_wifi_scan_get_ap_records(&ap_num, ap_records);
+
+            if (ap_num == 0) {
+                ESP_LOGI(TAG, "No APs found, scanning...");
+                esp_wifi_scan_start(nullptr, true);
+                esp_wifi_scan_get_ap_num(&ap_num);
+            }
+
+            auto ap_records = std::make_unique<wifi_ap_record_t[]>(ap_num);
+            if (!ap_records) {
+                return ESP_FAIL;
+            }
+            esp_wifi_scan_get_ap_records(&ap_num, ap_records.get());
 
             // Send the scan results as JSON
             httpd_resp_set_type(req, "application/json");
@@ -238,7 +271,6 @@ void WifiConfigurationAp::StartWebServer()
             }
             httpd_resp_sendstr_chunk(req, "]");
             httpd_resp_sendstr_chunk(req, NULL);
-            free(ap_records);
             return ESP_OK;
         },
         .user_ctx = NULL
@@ -250,61 +282,119 @@ void WifiConfigurationAp::StartWebServer()
         .uri = "/submit",
         .method = HTTP_POST,
         .handler = [](httpd_req_t *req) -> esp_err_t {
-            char buf[128];
-            int ret = httpd_req_recv(req, buf, sizeof(buf));
+            char *buf;
+            size_t buf_len = req->content_len;
+            if (buf_len > 1024) { // 限制最大请求体大小
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
+                return ESP_FAIL;
+            }
+
+            buf = (char *)malloc(buf_len + 1);
+            if (!buf) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to allocate memory");
+                return ESP_FAIL;
+            }
+
+            int ret = httpd_req_recv(req, buf, buf_len);
             if (ret <= 0) {
+                free(buf);
                 if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
                     httpd_resp_send_408(req);
+                } else {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive request");
                 }
                 return ESP_FAIL;
             }
             buf[ret] = '\0';
-            ESP_LOGI(TAG, "Received form data: %s", buf);
 
-            std::string decoded = UrlDecode(buf);
-            ESP_LOGI(TAG, "Decoded form data: %s", decoded.c_str());
-
-            // Parse the form data
-            char ssid[32], password[64];
-            password[0] = '\0';  // Initialize password as empty
-            
-            // First extract SSID
-            if (sscanf(decoded.c_str(), "ssid=%32[^&]", ssid) != 1) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid SSID");
+            // 解析 JSON 数据
+            cJSON *json = cJSON_Parse(buf);
+            free(buf);
+            if (!json) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
                 return ESP_FAIL;
             }
-            
-            // Then look for password if present
-            auto pwd_pos = decoded.find("&password=");
-            if (pwd_pos != std::string::npos) {
-                strncpy(password, decoded.c_str() + pwd_pos + 10, sizeof(password) - 1);
-                password[sizeof(password) - 1] = '\0';  // Ensure null termination
-            }
 
-            // Get this object from the user context
-            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
-            if (!this_->ConnectToWifi(ssid, password)) {
-                char error[] = "Failed to connect to WiFi";
-                char location[128];
-                snprintf(location, sizeof(location), "/?error=%s&ssid=%s", error, ssid);
-                
-                httpd_resp_set_status(req, "302 Found");
-                httpd_resp_set_hdr(req, "Location", location);
-                httpd_resp_send(req, NULL, 0);
+            cJSON *ssid_item = cJSON_GetObjectItemCaseSensitive(json, "ssid");
+            cJSON *password_item = cJSON_GetObjectItemCaseSensitive(json, "password");
+
+            if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL)) {
+                cJSON_Delete(json);
+                httpd_resp_send(req, "{\"success\":false,\"error\":\"无效的 SSID\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
             }
 
-            // Set HTML response
-            httpd_resp_set_status(req, "200 OK");
-            httpd_resp_set_type(req, "text/html");
-            httpd_resp_send(req, done_html_start, HTTPD_RESP_USE_STRLEN);
+            std::string ssid_str = ssid_item->valuestring;
+            std::string password_str = "";
+            if (cJSON_IsString(password_item) && (password_item->valuestring != NULL)) {
+                password_str = password_item->valuestring;
+            }
 
-            this_->Save(ssid, password);
+            // 获取当前对象
+            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+            if (!this_->ConnectToWifi(ssid_str, password_str)) {
+                cJSON_Delete(json);
+                httpd_resp_send(req, "{\"success\":false,\"error\":\"无法连接到 WiFi\"}", HTTPD_RESP_USE_STRLEN);
+                return ESP_OK;
+            }
+
+            this_->Save(ssid_str, password_str);
+            cJSON_Delete(json);
+            // 设置成功响应
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
         .user_ctx = this
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &form_submit));
+
+    // Register the done.html page
+    httpd_uri_t done_html = {
+        .uri = "/done.html",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            httpd_resp_send(req, done_html_start, strlen(done_html_start));
+            return ESP_OK;
+        },
+        .user_ctx = NULL
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &done_html));
+
+    // Register the reboot endpoint
+    httpd_uri_t reboot = {
+        .uri = "/reboot",
+        .method = HTTP_POST,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            auto* this_ = static_cast<WifiConfigurationAp*>(req->user_ctx);
+            
+            // 设置响应头，防止浏览器缓存
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+            // 发送响应
+            httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
+            
+            // 创建一个延迟重启任务
+            ESP_LOGI(TAG, "Rebooting...");
+            xTaskCreate([](void *ctx) {
+                // 等待200ms确保HTTP响应完全发送
+                vTaskDelay(pdMS_TO_TICKS(200));
+                // 停止Web服务器
+                auto* self = static_cast<WifiConfigurationAp*>(ctx);
+                if (self->server_) {
+                    httpd_stop(self->server_);
+                }
+                // 再等待100ms确保所有连接都已关闭
+                vTaskDelay(pdMS_TO_TICKS(100));
+                // 执行重启
+                esp_restart();
+            }, "reboot_task", 4096, this_, 5, NULL);
+            
+            return ESP_OK;
+        },
+        .user_ctx = this
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &reboot));
 
     auto captive_portal_handler = [](httpd_req_t *req) -> esp_err_t {
         auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
@@ -344,30 +434,21 @@ void WifiConfigurationAp::StartWebServer()
     ESP_LOGI(TAG, "Web server started");
 }
 
-std::string WifiConfigurationAp::UrlDecode(const std::string &url)
-{
-    std::string decoded;
-    for (size_t i = 0; i < url.length(); ++i) {
-        if (url[i] == '%') {
-            char hex[3];
-            hex[0] = url[i + 1];
-            hex[1] = url[i + 2];
-            hex[2] = '\0';
-            char ch = static_cast<char>(std::stoi(hex, nullptr, 16));
-            decoded += ch;
-            i += 2;
-        } else if (url[i] == '+') {
-            decoded += ' ';
-        } else {
-            decoded += url[i];
-        }
-    }
-    return decoded;
-}
-
 bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::string &password)
 {
-    // auto esp_netif = esp_netif_create_default_wifi_sta();
+    if (ssid.empty()) {
+        ESP_LOGE(TAG, "SSID cannot be empty");
+        return false;
+    }
+    
+    if (ssid.length() > 32) {  // WiFi SSID 最大长度
+        ESP_LOGE(TAG, "SSID too long");
+        return false;
+    }
+    
+    is_connecting_ = true;
+    esp_wifi_scan_stop();
+    xEventGroupClearBits(event_group_, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
 
     wifi_config_t wifi_config;
     bzero(&wifi_config, sizeof(wifi_config));
@@ -380,14 +461,18 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
     auto ret = esp_wifi_connect();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to connect to WiFi: %d", ret);
+        is_connecting_ = false;
         return false;
     }
     ESP_LOGI(TAG, "Connecting to WiFi %s", ssid.c_str());
 
     // Wait for the connection to complete for 5 seconds
     EventBits_t bits = xEventGroupWaitBits(event_group_, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10000));
+    is_connecting_ = false;
+
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to WiFi %s", ssid.c_str());
+        esp_wifi_disconnect();
         return true;
     } else {
         ESP_LOGE(TAG, "Failed to connect to WiFi %s", ssid.c_str());
@@ -399,12 +484,6 @@ void WifiConfigurationAp::Save(const std::string &ssid, const std::string &passw
 {
     ESP_LOGI(TAG, "Save SSID %s %d", ssid.c_str(), ssid.length());
     SsidManager::GetInstance().AddSsid(ssid, password);
-    // Use xTaskCreate to create a new task that restarts the ESP32
-    xTaskCreate([](void *ctx) {
-        ESP_LOGI(TAG, "Restarting the ESP32 in 3 second");
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        esp_restart();
-    }, "restart_task", 4096, NULL, 5, NULL);
 }
 
 void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)

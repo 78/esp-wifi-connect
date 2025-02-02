@@ -130,14 +130,19 @@ void WifiStation::HandleScanResult() {
             return strcmp((char *)ap_record.ssid, item.ssid.c_str()) == 0;
         });
         if (it != ssid_list.end()) {
-            ESP_LOGI(TAG, "Found AP: %s, RSSI: %d, Channel: %d, Authmode: %d",
-                (char *)ap_record.ssid, ap_record.rssi, ap_record.primary, ap_record.authmode);
-            connect_queue_.push_back({
+            ESP_LOGI(TAG, "Found AP: %s, BSSID: %02x:%02x:%02x:%02x:%02x:%02x, RSSI: %d, Channel: %d, Authmode: %d",
+                (char *)ap_record.ssid, 
+                ap_record.bssid[0], ap_record.bssid[1], ap_record.bssid[2],
+                ap_record.bssid[3], ap_record.bssid[4], ap_record.bssid[5],
+                ap_record.rssi, ap_record.primary, ap_record.authmode);
+            WifiApRecord record = {
                 .ssid = it->ssid,
                 .password = it->password,
                 .channel = ap_record.primary,
                 .authmode = ap_record.authmode
-            });
+            };
+            memcpy(record.bssid, ap_record.bssid, 6);
+            connect_queue_.push_back(record);
         }
     }
     free(ap_records);
@@ -166,6 +171,8 @@ void WifiStation::StartConnect() {
     strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
     strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
     wifi_config.sta.channel = ap_record.channel;
+    memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
+    wifi_config.sta.bssid_set = true;
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
     reconnect_count_ = 0;

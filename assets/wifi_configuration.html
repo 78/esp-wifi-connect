@@ -86,7 +86,7 @@
     </div>
     
     <h1 data-lang="title">WiFi 配置</h1>
-    <form action="/submit" method="post" onsubmit="button.disabled = true;">
+    <form action="/submit" method="post" onsubmit="submitForm(event)">
         <div id="saved_list_container" style="display: none;">
             <h3 data-lang="saved_wifi">已保存的 WiFi</h3>
             <ul id="saved_list">
@@ -119,13 +119,6 @@
         const button = document.getElementById('button');
         const error = document.getElementById('error');
         const ssid = document.getElementById('ssid');
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('error')) {
-            error.textContent = params.get('error');
-        }
-        if (params.has('ssid')) {
-            ssid.value = params.get('ssid');
-        }
 
         // Add language translations
         const translations = {
@@ -264,6 +257,51 @@
             loadSavedList();
             loadAPList();
         });
+
+        // 监听 pageshow 事件以处理浏览器返回键
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                loadSavedList();
+            } else {
+                // 正常加载时已处理
+            }
+        });
+
+        async function submitForm(event) {
+            event.preventDefault();
+            button.disabled = true;
+            error.textContent = '';
+
+            const ssidValue = ssid.value;
+            const passwordValue = document.getElementById('password').value;
+
+            const payload = {
+                ssid: ssidValue,
+                password: passwordValue
+            };
+
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || '连接失败');
+                }
+
+                // 连接成功，跳转到完成页面
+                button.disabled = false;
+                window.location.href = '/done.html';
+            } catch (err) {
+                error.textContent = err.message;
+                button.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

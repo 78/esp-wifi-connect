@@ -14,6 +14,7 @@ struct WifiApRecord {
     std::string password;
     int channel;
     wifi_auth_mode_t authmode;
+    uint8_t bssid[6];
 };
 
 class WifiStation {
