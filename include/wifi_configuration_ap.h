@@ -6,12 +6,14 @@
 #include <esp_event.h>
 #include <esp_timer.h>
 #include "dns_server.h"
+#include <esp_netif.h>
 
 class WifiConfigurationAp {
 public:
     static WifiConfigurationAp& GetInstance();
     void SetSsidPrefix(const std::string &&ssid_prefix);
     void Start();
+    void Stop();
 
     std::string GetSsid();
     std::string GetWebServerUrl();
@@ -33,15 +35,20 @@ private:
     esp_event_handler_instance_t instance_got_ip_;
     esp_timer_handle_t scan_timer_ = nullptr;
     bool is_connecting_ = false;
+    esp_netif_t* ap_netif_ = nullptr;
 
     void StartAccessPoint();
     void StartWebServer();
+    void StartSmartConfig();
     bool ConnectToWifi(const std::string &ssid, const std::string &password);
     void Save(const std::string &ssid, const std::string &password);
 
     // Event handlers
     static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+    static void SmartConfigEventHandler(void* arg, esp_event_base_t event_base, 
+                                      int32_t event_id, void* event_data);
+    esp_event_handler_instance_t sc_event_instance_ = nullptr;
 };
 
 #endif // _WIFI_CONFIGURATION_AP_H_
