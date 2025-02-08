@@ -121,16 +121,16 @@ void WifiConfigurationAp::StartAccessPoint()
     ESP_ERROR_CHECK(esp_netif_init());
 
     // Create the default event loop
-    auto netif = esp_netif_create_default_wifi_ap();
+    ap_netif_ = esp_netif_create_default_wifi_ap();
 
     // Set the router IP address to 192.168.4.1
     esp_netif_ip_info_t ip_info;
     IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);
     IP4_ADDR(&ip_info.gw, 192, 168, 4, 1);
     IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
-    esp_netif_dhcps_stop(netif);
-    esp_netif_set_ip_info(netif, &ip_info);
-    esp_netif_dhcps_start(netif);
+    esp_netif_dhcps_stop(ap_netif_);
+    esp_netif_set_ip_info(ap_netif_, &ip_info);
+    esp_netif_dhcps_start(ap_netif_);
     // Start the DNS server
     dns_server_.Start(ip_info.gw);
 
@@ -568,4 +568,52 @@ void WifiConfigurationAp::SmartConfigEventHandler(void *arg, esp_event_base_t ev
             break;
         }
     }
+}
+
+void WifiConfigurationAp::Stop() {
+    // 停止SmartConfig服务
+    if (sc_event_instance_) {
+        esp_event_handler_instance_unregister(SC_EVENT, ESP_EVENT_ANY_ID, sc_event_instance_);
+        sc_event_instance_ = nullptr;
+    }
+    esp_smartconfig_stop();
+
+    // 停止定时器
+    if (scan_timer_) {
+        esp_timer_stop(scan_timer_);
+        esp_timer_delete(scan_timer_);
+        scan_timer_ = nullptr;
+    }
+
+    // 停止Web服务器
+    if (server_) {
+        httpd_stop(server_);
+        server_ = nullptr;
+    }
+
+    // 停止DNS服务器
+    dns_server_.Stop();
+
+    // 释放网络接口资源
+    if (ap_netif_) {
+        esp_netif_destroy(ap_netif_);
+        ap_netif_ = nullptr;
+    }
+
+    // 停止WiFi并重置模式
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    esp_wifi_set_mode(WIFI_MODE_NULL);
+
+    // 注销事件处理器
+    if (instance_any_id_) {
+        esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id_);
+        instance_any_id_ = nullptr;
+    }
+    if (instance_got_ip_) {
+        esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
+        instance_got_ip_ = nullptr;
+    }
+
+    ESP_LOGI(TAG, "Wifi configuration AP stopped");
 }
