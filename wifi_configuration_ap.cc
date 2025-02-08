@@ -14,6 +14,7 @@
 #include <nvs_flash.h>
 #include <cJSON.h>
 #include "ssid_manager.h"
+#include "esp_smartconfig.h"
 
 #define TAG "WifiConfigurationAp"
 
@@ -72,7 +73,7 @@ void WifiConfigurationAp::Start()
 
     StartAccessPoint();
     StartWebServer();
-
+    
     // Start scan immediately
     esp_wifi_scan_start(nullptr, false);
     // Setup periodic WiFi scan timer
@@ -91,6 +92,8 @@ void WifiConfigurationAp::Start()
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
     // Start scanning every 10 seconds
     ESP_ERROR_CHECK(esp_timer_start_periodic(scan_timer_, 10000000));
+
+    StartSmartConfig();
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -509,5 +512,60 @@ void WifiConfigurationAp::IpEventHandler(void* arg, esp_event_base_t event_base,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
+    }
+}
+
+void WifiConfigurationAp::StartSmartConfig()
+{
+    // 注册SmartConfig事件处理器
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(SC_EVENT, ESP_EVENT_ANY_ID,
+                                                        &WifiConfigurationAp::SmartConfigEventHandler, this, &sc_event_instance_));
+
+    // 初始化SmartConfig配置
+    smartconfig_start_config_t cfg = SMARTCONFIG_START_CONFIG_DEFAULT();
+    // cfg.esp_touch_v2_enable_crypt = true;
+    // cfg.esp_touch_v2_key = "1234567890123456"; // 设置16字节加密密钥
+
+    // 启动SmartConfig服务
+    ESP_ERROR_CHECK(esp_smartconfig_start(&cfg));
+    ESP_LOGI(TAG, "SmartConfig started");
+}
+
+void WifiConfigurationAp::SmartConfigEventHandler(void *arg, esp_event_base_t event_base,
+                                                  int32_t event_id, void *event_data)
+{
+    WifiConfigurationAp *self = static_cast<WifiConfigurationAp *>(arg);
+
+    if (event_base == SC_EVENT){
+        switch (event_id){
+        case SC_EVENT_SCAN_DONE:
+            ESP_LOGI(TAG, "SmartConfig scan done");
+            break;
+        case SC_EVENT_FOUND_CHANNEL:
+            ESP_LOGI(TAG, "Found SmartConfig channel");
+            break;
+        case SC_EVENT_GOT_SSID_PSWD:{
+            ESP_LOGI(TAG, "Got SmartConfig credentials");
+            smartconfig_event_got_ssid_pswd_t *evt = (smartconfig_event_got_ssid_pswd_t *)event_data;
+
+            char ssid[32], password[64];
+            memcpy(ssid, evt->ssid, sizeof(evt->ssid));
+            memcpy(password, evt->password, sizeof(evt->password));
+            ESP_LOGI(TAG, "SmartConfig SSID: %s, Password: %s", ssid, password);
+            // 尝试连接WiFi会失败，故不连接
+            // if (self->ConnectToWifi(ssid, password)){
+            self->Save(ssid, password);
+            xTaskCreate([](void *ctx){
+                ESP_LOGI(TAG, "Restarting in 3 second");
+                vTaskDelay(pdMS_TO_TICKS(3000));
+                esp_restart(); }, "restart_task", 4096, NULL, 5, NULL);
+            // }
+            break;
+        }
+        case SC_EVENT_SEND_ACK_DONE:
+            ESP_LOGI(TAG, "SmartConfig ACK sent");
+            esp_smartconfig_stop();
+            break;
+        }
     }
 }

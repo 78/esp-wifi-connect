@@ -42,6 +42,10 @@ private:
     // Event handlers
     static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+    void StartSmartConfig();
+    static void SmartConfigEventHandler(void* arg, esp_event_base_t event_base, 
+                                      int32_t event_id, void* event_data);
+    esp_event_handler_instance_t sc_event_instance_ = nullptr;
 };
 
 #endif // _WIFI_CONFIGURATION_AP_H_

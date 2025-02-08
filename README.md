@@ -10,6 +10,14 @@ Here is a screenshot of the web server:
 
 ![Access Point Configuration](assets/ap_v2.png)
 
+## Changelog: v2.2.0
+
+- Add support for ESP32 SmartConfig(ESPTouch v2)
+
+## Changelog: v2.1.0
+
+- Improve WiFi connection logic.
+
 ## Changelog: v2.0.0
 
 - Add support for multiple WiFi SSID management.
