@@ -13,8 +13,8 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <cJSON.h>
+#include <esp_smartconfig.h>
 #include "ssid_manager.h"
-#include "esp_smartconfig.h"
 
 #define TAG "WifiConfigurationAp"
 
