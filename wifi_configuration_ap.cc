@@ -553,13 +553,12 @@ void WifiConfigurationAp::SmartConfigEventHandler(void *arg, esp_event_base_t ev
             memcpy(password, evt->password, sizeof(evt->password));
             ESP_LOGI(TAG, "SmartConfig SSID: %s, Password: %s", ssid, password);
             // 尝试连接WiFi会失败，故不连接
-            // if (self->ConnectToWifi(ssid, password)){
             self->Save(ssid, password);
             xTaskCreate([](void *ctx){
                 ESP_LOGI(TAG, "Restarting in 3 second");
                 vTaskDelay(pdMS_TO_TICKS(3000));
-                esp_restart(); }, "restart_task", 4096, NULL, 5, NULL);
-            // }
+                esp_restart();
+            }, "restart_task", 4096, NULL, 5, NULL);
             break;
         }
         case SC_EVENT_SEND_ACK_DONE:
