@@ -14,6 +14,7 @@ public:
     void SetSsidPrefix(const std::string &&ssid_prefix);
     void Start();
     void Stop();
+    void StartSmartConfig();
 
     std::string GetSsid();
     std::string GetWebServerUrl();
@@ -39,7 +40,6 @@ private:
 
     void StartAccessPoint();
     void StartWebServer();
-    void StartSmartConfig();
     bool ConnectToWifi(const std::string &ssid, const std::string &password);
     void Save(const std::string &ssid, const std::string &password);
 

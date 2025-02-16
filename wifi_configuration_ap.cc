@@ -92,8 +92,6 @@ void WifiConfigurationAp::Start()
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
     // Start scanning every 10 seconds
     ESP_ERROR_CHECK(esp_timer_start_periodic(scan_timer_, 10000000));
-
-    StartSmartConfig();
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -102,7 +100,7 @@ std::string WifiConfigurationAp::GetSsid()
     uint8_t mac[6];
     ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP));
     char ssid[32];
-    snprintf(ssid, sizeof(ssid), "%s-%02X%02X%02X", ssid_prefix_.c_str(), mac[3], mac[4], mac[5]);
+    snprintf(ssid, sizeof(ssid), "%s-%02X%02X", ssid_prefix_.c_str(), mac[4], mac[5]);
     return std::string(ssid);
 }
 
