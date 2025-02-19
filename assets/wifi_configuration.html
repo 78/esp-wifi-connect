@@ -80,8 +80,8 @@
 <body>
     <div class="language-switch">
         <select id="language" onchange="changeLanguage()">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
+            <option value="zh-CN">中文</option>
+            <option value="en-US">English</option>
         </select>
     </div>
     
@@ -122,7 +122,7 @@
 
         // Add language translations
         const translations = {
-            zh: {
+            'zh-CN': {
                 title: 'WiFi 配置',
                 saved_wifi: '已保存的 WiFi',
                 new_wifi: '新的 WiFi',
@@ -130,7 +130,7 @@
                 connect: '连接',
                 select_wifi: '从下面列表选择 2.4G WiFi:'
             },
-            en: {
+            'en-US': {
                 title: 'WiFi Configuration',
                 saved_wifi: 'Saved WiFi',
                 new_wifi: 'New WiFi',
@@ -142,6 +142,13 @@
 
         function changeLanguage() {
             const lang = document.getElementById('language').value;
+            // 检查语言值是否合法
+            if (!translations[lang]) {
+                console.warn(`不支持的语言: ${lang}，默认使用中文`);
+                document.getElementById('language').value = 'zh-CN';
+                return changeLanguage();
+            }
+            
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
                 element.textContent = translations[lang][key];
@@ -251,7 +258,12 @@
 
         // Set initial language
         document.addEventListener('DOMContentLoaded', () => {
-            const savedLang = localStorage.getItem('preferred_language') || 'zh';
+            // 从 URL 参数中获取语言设置
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            
+            // 优先使用 URL 参数的语言设置，其次是本地存储的设置，最后默认使用中文
+            const savedLang = langParam || localStorage.getItem('preferred_language') || 'zh-CN';
             document.getElementById('language').value = savedLang;
             changeLanguage();
             loadSavedList();

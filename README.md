@@ -10,6 +10,10 @@ Here is a screenshot of the web server:
 
 ![Access Point Configuration](assets/ap_v2.png)
 
+## Changelog: v2.3.0
+
+- Add support for language request.
+
 ## Changelog: v2.2.0
 
 - Add support for ESP32 SmartConfig(ESPTouch v2)

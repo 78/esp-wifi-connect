@@ -32,6 +32,7 @@ WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
 WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
+    language_ = "zh-CN";
 }
 
 WifiConfigurationAp::~WifiConfigurationAp()
@@ -50,6 +51,11 @@ WifiConfigurationAp::~WifiConfigurationAp()
     if (instance_got_ip_) {
         esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
     }
+}
+
+void WifiConfigurationAp::SetLanguage(const std::string &&language)
+{
+    language_ = language;
 }
 
 void WifiConfigurationAp::SetSsidPrefix(const std::string &&ssid_prefix)
@@ -399,7 +405,7 @@ void WifiConfigurationAp::StartWebServer()
 
     auto captive_portal_handler = [](httpd_req_t *req) -> esp_err_t {
         auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
-        std::string url = this_->GetWebServerUrl() + "/";
+        std::string url = this_->GetWebServerUrl() + "/?lang=" + this_->language_;
         // Set content type to prevent browser warnings
         httpd_resp_set_type(req, "text/html");
         httpd_resp_set_status(req, "302 Found");
