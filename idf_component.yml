@@ -8,4 +8,4 @@ files:
 license: MIT
 repository: git://github.com/78/esp-wifi-connect.git
 url: https://github.com/78/esp-wifi-connect.git
-version: 2.3.0
+version: 2.3.1
