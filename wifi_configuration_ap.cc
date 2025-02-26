@@ -155,6 +155,11 @@ void WifiConfigurationAp::StartAccessPoint()
     ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
     ESP_ERROR_CHECK(esp_wifi_start());
 
+#ifdef CONFIG_SOC_WIFI_SUPPORT_5G
+    // Temporarily use only 2.4G Wi-Fi.
+    ESP_ERROR_CHECK(esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY));
+#endif
+
     ESP_LOGI(TAG, "Access Point started with SSID %s", ssid.c_str());
 }
 
