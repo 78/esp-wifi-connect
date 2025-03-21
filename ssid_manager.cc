@@ -33,7 +33,7 @@ void SsidManager::LoadFromNvs() {
         ESP_LOGW(TAG, "NVS namespace %s doesn't exist", NVS_NAMESPACE);
         return;
     }
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < MAX_WIFI_SSID_COUNT; i++) {
         std::string ssid_key = "ssid";
         if (i > 0) {
             ssid_key += std::to_string(i);
@@ -61,7 +61,7 @@ void SsidManager::LoadFromNvs() {
 void SsidManager::SaveToNvs() {
     nvs_handle_t nvs_handle;
     ESP_ERROR_CHECK(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs_handle));
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < MAX_WIFI_SSID_COUNT; i++) {
         std::string ssid_key = "ssid";
         if (i > 0) {
             ssid_key += std::to_string(i);
