@@ -41,10 +41,6 @@ void WifiStation::Stop() {
         esp_timer_delete(timer_handle_);
         timer_handle_ = nullptr;
     }
-
-    // Reset the WiFi stack
-    ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_deinit());
     
     // 取消注册事件处理程序
     if (instance_any_id_ != nullptr) {
@@ -55,6 +51,10 @@ void WifiStation::Stop() {
         ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_));
         instance_got_ip_ = nullptr;
     }
+
+    // Reset the WiFi stack
+    ESP_ERROR_CHECK(esp_wifi_stop());
+    ESP_ERROR_CHECK(esp_wifi_deinit());
 }
 
 void WifiStation::OnScanBegin(std::function<void()> on_scan_begin) {
@@ -214,7 +214,7 @@ void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupClearBits(this_->event_group_, WIFI_EVENT_CONNECTED);
         if (this_->reconnect_count_ < MAX_RECONNECT_COUNT) {
-            ESP_ERROR_CHECK(esp_wifi_connect());
+            esp_wifi_connect();
             this_->reconnect_count_++;
             ESP_LOGI(TAG, "Reconnecting %s (attempt %d / %d)", this_->ssid_.c_str(), this_->reconnect_count_, MAX_RECONNECT_COUNT);
             return;
