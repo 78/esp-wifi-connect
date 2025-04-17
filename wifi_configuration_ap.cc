@@ -104,7 +104,11 @@ std::string WifiConfigurationAp::GetSsid()
 {
     // Get MAC and use it to generate a unique SSID
     uint8_t mac[6];
+#if CONFIG_IDF_TARGET_ESP32P4
+    esp_wifi_get_mac(WIFI_IF_AP, mac);
+#else
     ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP));
+#endif
     char ssid[32];
     snprintf(ssid, sizeof(ssid), "%s-%02X%02X", ssid_prefix_.c_str(), mac[4], mac[5]);
     return std::string(ssid);
@@ -118,9 +122,6 @@ std::string WifiConfigurationAp::GetWebServerUrl()
 
 void WifiConfigurationAp::StartAccessPoint()
 {
-    // Get the SSID
-    std::string ssid = GetSsid();
-
     // Initialize the TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_init());
 
@@ -141,6 +142,9 @@ void WifiConfigurationAp::StartAccessPoint()
     // Initialize the WiFi stack in Access Point mode
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    // Get the SSID
+    std::string ssid = GetSsid();
 
     // Set the WiFi configuration
     wifi_config_t wifi_config = {};
