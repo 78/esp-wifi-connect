@@ -1,87 +1,173 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WiFi Configuration</title>
+    <title>WiFi 配置</title>
     <meta charset="utf-8">
+    <!-- Add SVG icon -->
+    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 24 24'><path fill='currentColor' d='m9.25 22l-.4-3.2q-.325-.125-.612-.3t-.563-.375L4.7 19.375l-2.75-4.75l2.575-1.95Q4.5 12.5 4.5 12.338v-.675q0-.163.025-.338L1.95 9.375l2.75-4.75l2.975 1.25q.275-.2.575-.375t.6-.3l.4-3.2h5.5l.4 3.2q.325.125.613.3t.562.375l2.975-1.25l2.75 4.75l-2.575 1.95q.025.175.025.338v.674q0 .163-.05.338l2.575 1.95l-2.75 4.75l-2.95-1.25q-.275.2-.575.375t-.6.3l-.4 3.2zm2.8-6.5q1.45 0 2.475-1.025T15.55 12t-1.025-2.475T12.05 8.5q-1.475 0-2.488 1.025T8.55 12t1.013 2.475T12.05 15.5'/></svg>" type="image/svg+xml">
     <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <style type="text/css">
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
+            font-family: 'Segoe UI', Arial, sans-serif;
         }
+
         h1 {
             text-align: center;
+            color: #000;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            padding-top: 30px;
+            margin-bottom: 40px;
         }
+
         form {
-            width: 300px;
+            width: 90%;
+            max-width: 400px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
+
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
         }
+
         input {
             width: 100%;
-            padding: 5px;
+            padding: 12px;
+            margin-bottom: 15px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
         }
+
+        input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
+            outline: none;
+        }
+
         input[type="submit"] {
-            background-color: #007bff;
+            background: linear-gradient(135deg, #007bff, #0066cc);
             color: #fff;
             border: none;
-            border-radius: 3px;
-            padding: 10px;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
         }
+
         input[type="submit"]:hover {
-            background-color: #0056b3;
+            background: linear-gradient(135deg, #0066cc, #0052a3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
+
         input[type="submit"]:disabled {
-            background-color: #ccc;
+            background: #cccccc;
             cursor: not-allowed;
+            transform: none;
         }
 
         #ap_list {
-            margin-top: 20px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 15px;
         }
+
         #ap_list a {
             display: block;
-            margin-top: 5px;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 123, 255, 0.1);
+            border-radius: 8px;
             color: #007bff;
             text-decoration: none;
+            transition: all 0.2s ease;
         }
+
         #ap_list a:hover {
-            text-decoration: underline;
+            background: rgba(0, 123, 255, 0.2);
+            transform: translateX(5px);
         }
 
         .language-switch {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
         }
+
         .language-switch select {
-            padding: 5px;
-            border-radius: 3px;
-            border: 1px solid #ccc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+            color: #333;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #saved_list_container {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        #saved_list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+
+        #saved_list button {
+            padding: 6px 12px;
+            margin-left: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #saved_list button:hover {
+            transform: scale(1.1);
+            background: rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
     <div class="language-switch">
         <select id="language" onchange="changeLanguage()">
-            <option value="zh-CN">中文</option>
-            <option value="en-US">English</option>
+            <option value="zh">中文</option>
+            <option value="en">English</option>
         </select>
     </div>
     
@@ -97,7 +183,7 @@
         </div>
         <div>
             <h3 data-lang="new_wifi">新的 WiFi</h3>
-            <p class="error" style="color: red; text-align: center;" id="error">
+            <p class="error hidden" style="color: red; text-align: center;" id="error">
             </p>
             <p>
                 <label for="ssid">SSID:</label>
@@ -122,7 +208,7 @@
 
         // Add language translations
         const translations = {
-            'zh-CN': {
+            zh: {
                 title: 'WiFi 配置',
                 saved_wifi: '已保存的 WiFi',
                 new_wifi: '新的 WiFi',
@@ -130,25 +216,18 @@
                 connect: '连接',
                 select_wifi: '从下面列表选择 2.4G WiFi:'
             },
-            'en-US': {
+            en: {
                 title: 'WiFi Configuration',
                 saved_wifi: 'Saved WiFi',
                 new_wifi: 'New WiFi',
                 password: 'Password:',
                 connect: 'Connect',
-                select_wifi: 'Select an 2.4G WiFi from the list below:'
+                select_wif: 'Select an 2.4G WiFi from the list below:'
             }
         };
 
         function changeLanguage() {
             const lang = document.getElementById('language').value;
-            // 检查语言值是否合法
-            if (!translations[lang]) {
-                console.warn(`不支持的语言: ${lang}，默认使用中文`);
-                document.getElementById('language').value = 'zh-CN';
-                return changeLanguage();
-            }
-            
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
                 element.textContent = translations[lang][key];
@@ -157,6 +236,9 @@
                 const key = element.getAttribute('data-lang-value');
                 element.value = translations[lang][key];
             });
+            // Update the <title> element
+            const titleElement = document.querySelector('title');
+            titleElement.textContent = translations[lang].title;
             // Update AP list text
             const apList = document.getElementById('ap_list');
             if (apList.firstChild) {
@@ -258,12 +340,7 @@
 
         // Set initial language
         document.addEventListener('DOMContentLoaded', () => {
-            // 从 URL 参数中获取语言设置
-            const urlParams = new URLSearchParams(window.location.search);
-            const langParam = urlParams.get('lang');
-            
-            // 优先使用 URL 参数的语言设置，其次是本地存储的设置，最后默认使用中文
-            const savedLang = langParam || localStorage.getItem('preferred_language') || 'zh-CN';
+            const savedLang = localStorage.getItem('preferred_language') || 'zh';
             document.getElementById('language').value = savedLang;
             changeLanguage();
             loadSavedList();
@@ -283,6 +360,7 @@
             event.preventDefault();
             button.disabled = true;
             error.textContent = '';
+            error.classList.add('hidden'); 
 
             const ssidValue = ssid.value;
             const passwordValue = document.getElementById('password').value;
@@ -311,6 +389,7 @@
                 window.location.href = '/done.html';
             } catch (err) {
                 error.textContent = err.message;
+                error.classList.remove('hidden'); 
                 button.disabled = false;
             }
         }
