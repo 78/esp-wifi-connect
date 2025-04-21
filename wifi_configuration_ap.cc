@@ -96,8 +96,6 @@ void WifiConfigurationAp::Start()
         .skip_unhandled_events = true
     };
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
-    // Start scanning every 10 seconds
-    ESP_ERROR_CHECK(esp_timer_start_periodic(scan_timer_, 10000000));
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -165,13 +163,46 @@ void WifiConfigurationAp::StartAccessPoint()
 #endif
 
     ESP_LOGI(TAG, "Access Point started with SSID %s", ssid.c_str());
+
+    // 加载高级配置
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
+    if (err == ESP_OK) {
+        // 读取OTA URL
+        char ota_url[256] = {0};
+        size_t ota_url_size = sizeof(ota_url);
+        err = nvs_get_str(nvs, "ota_url", ota_url, &ota_url_size);
+        if (err == ESP_OK) {
+            ota_url_ = ota_url;
+        }
+
+        // 读取WiFi功率
+        err = nvs_get_i8(nvs, "max_tx_power", &max_tx_power_);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "WiFi max tx power from NVS: %d", max_tx_power_);
+            ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(max_tx_power_));
+        } else {
+            esp_wifi_get_max_tx_power(&max_tx_power_);
+        }
+
+        // 读取BSSID记忆设置
+        uint8_t remember_bssid = 0;
+        err = nvs_get_u8(nvs, "remember_bssid", &remember_bssid);
+        if (err == ESP_OK) {
+            remember_bssid_ = remember_bssid;
+        } else {
+            remember_bssid_ = true; // 默认值
+        }
+
+        nvs_close(nvs);
+    }
 }
 
 void WifiConfigurationAp::StartWebServer()
 {
     // Start the web server
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 20;
+    config.max_uri_handlers = 24;
     config.uri_match_fn = httpd_uri_match_wildcard;
     ESP_ERROR_CHECK(httpd_start(&server_, &config));
 
@@ -180,6 +211,7 @@ void WifiConfigurationAp::StartWebServer()
         .uri = "/",
         .method = HTTP_GET,
         .handler = [](httpd_req_t *req) -> esp_err_t {
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, index_html_start, strlen(index_html_start));
             return ESP_OK;
         },
@@ -202,6 +234,7 @@ void WifiConfigurationAp::StartWebServer()
             }
             json_str += "]";
             httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, json_str.c_str(), HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
@@ -223,6 +256,7 @@ void WifiConfigurationAp::StartWebServer()
             }
             // send {}
             httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
@@ -244,6 +278,7 @@ void WifiConfigurationAp::StartWebServer()
             }
             // send {}
             httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
@@ -256,32 +291,21 @@ void WifiConfigurationAp::StartWebServer()
         .uri = "/scan",
         .method = HTTP_GET,
         .handler = [](httpd_req_t *req) -> esp_err_t {
-            uint16_t ap_num = 0;
-            esp_wifi_scan_get_ap_num(&ap_num);
-
-            if (ap_num == 0) {
-                ESP_LOGI(TAG, "No APs found, scanning...");
-                esp_wifi_scan_start(nullptr, true);
-                esp_wifi_scan_get_ap_num(&ap_num);
-            }
-
-            auto ap_records = std::make_unique<wifi_ap_record_t[]>(ap_num);
-            if (!ap_records) {
-                return ESP_FAIL;
-            }
-            esp_wifi_scan_get_ap_records(&ap_num, ap_records.get());
+            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+            std::lock_guard<std::mutex> lock(this_->mutex_);
 
             // Send the scan results as JSON
             httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_sendstr_chunk(req, "[");
-            for (int i = 0; i < ap_num; i++) {
+            for (int i = 0; i < this_->ap_records_.size(); i++) {
                 ESP_LOGI(TAG, "SSID: %s, RSSI: %d, Authmode: %d",
-                    (char *)ap_records[i].ssid, ap_records[i].rssi, ap_records[i].authmode);
+                    (char *)this_->ap_records_[i].ssid, this_->ap_records_[i].rssi, this_->ap_records_[i].authmode);
                 char buf[128];
                 snprintf(buf, sizeof(buf), "{\"ssid\":\"%s\",\"rssi\":%d,\"authmode\":%d}",
-                    (char *)ap_records[i].ssid, ap_records[i].rssi, ap_records[i].authmode);
+                    (char *)this_->ap_records_[i].ssid, this_->ap_records_[i].rssi, this_->ap_records_[i].authmode);
                 httpd_resp_sendstr_chunk(req, buf);
-                if (i < ap_num - 1) {
+                if (i < this_->ap_records_.size() - 1) {
                     httpd_resp_sendstr_chunk(req, ",");
                 }
             }
@@ -289,7 +313,7 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_sendstr_chunk(req, NULL);
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = this
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &scan));
 
@@ -358,6 +382,7 @@ void WifiConfigurationAp::StartWebServer()
             cJSON_Delete(json);
             // 设置成功响应
             httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
@@ -370,6 +395,7 @@ void WifiConfigurationAp::StartWebServer()
         .uri = "/done.html",
         .method = HTTP_GET,
         .handler = [](httpd_req_t *req) -> esp_err_t {
+            httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, done_html_start, strlen(done_html_start));
             return ESP_OK;
         },
@@ -387,6 +413,7 @@ void WifiConfigurationAp::StartWebServer()
             // 设置响应头，防止浏览器缓存
             httpd_resp_set_type(req, "application/json");
             httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+            httpd_resp_set_hdr(req, "Connection", "close");
             // 发送响应
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
             
@@ -419,6 +446,7 @@ void WifiConfigurationAp::StartWebServer()
         httpd_resp_set_type(req, "text/html");
         httpd_resp_set_status(req, "302 Found");
         httpd_resp_set_hdr(req, "Location", url.c_str());
+        httpd_resp_set_hdr(req, "Connection", "close");
         httpd_resp_send(req, NULL, 0);
         return ESP_OK;
     };
@@ -446,6 +474,152 @@ void WifiConfigurationAp::StartWebServer()
         };
         ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &redirect_uri));
     }
+
+    // Register the /advanced/config URI
+    httpd_uri_t advanced_config = {
+        .uri = "/advanced/config",
+        .method = HTTP_GET,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            // 获取当前对象
+            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+            
+            // 创建JSON对象
+            cJSON *json = cJSON_CreateObject();
+            if (!json) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create JSON");
+                return ESP_FAIL;
+            }
+
+            // 添加配置项到JSON
+            if (!this_->ota_url_.empty()) {
+                cJSON_AddStringToObject(json, "ota_url", this_->ota_url_.c_str());
+            }
+            cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
+            cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
+
+            // 发送JSON响应
+            char *json_str = cJSON_PrintUnformatted(json);
+            cJSON_Delete(json);
+            if (!json_str) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to print JSON");
+                return ESP_FAIL;
+            }
+
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
+            httpd_resp_send(req, json_str, strlen(json_str));
+            free(json_str);
+            return ESP_OK;
+        },
+        .user_ctx = this
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_config));
+
+    // Register the /advanced/submit URI
+    httpd_uri_t advanced_submit = {
+        .uri = "/advanced/submit",
+        .method = HTTP_POST,
+        .handler = [](httpd_req_t *req) -> esp_err_t {
+            char *buf;
+            size_t buf_len = req->content_len;
+            if (buf_len > 1024) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
+                return ESP_FAIL;
+            }
+
+            buf = (char *)malloc(buf_len + 1);
+            if (!buf) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to allocate memory");
+                return ESP_FAIL;
+            }
+
+            int ret = httpd_req_recv(req, buf, buf_len);
+            if (ret <= 0) {
+                free(buf);
+                if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                    httpd_resp_send_408(req);
+                } else {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive request");
+                }
+                return ESP_FAIL;
+            }
+            buf[ret] = '\0';
+
+            // 解析JSON数据
+            cJSON *json = cJSON_Parse(buf);
+            free(buf);
+            if (!json) {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+                return ESP_FAIL;
+            }
+
+            // 获取当前对象
+            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+
+            // 打开NVS
+            nvs_handle_t nvs;
+            esp_err_t err = nvs_open("wifi", NVS_READWRITE, &nvs);
+            if (err != ESP_OK) {
+                cJSON_Delete(json);
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open NVS");
+                return ESP_FAIL;
+            }
+
+            // 保存OTA URL
+            cJSON *ota_url = cJSON_GetObjectItem(json, "ota_url");
+            if (cJSON_IsString(ota_url) && ota_url->valuestring) {
+                this_->ota_url_ = ota_url->valuestring;
+                err = nvs_set_str(nvs, "ota_url", this_->ota_url_.c_str());
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save OTA URL: %d", err);
+                }
+            }
+
+            // 保存WiFi功率
+            cJSON *max_tx_power = cJSON_GetObjectItem(json, "max_tx_power");
+            if (cJSON_IsNumber(max_tx_power)) {
+                this_->max_tx_power_ = max_tx_power->valueint;
+                err = esp_wifi_set_max_tx_power(this_->max_tx_power_);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to set WiFi power: %d", err);
+                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set WiFi power");
+                    return ESP_FAIL;
+                }
+                err = nvs_set_i8(nvs, "max_tx_power", this_->max_tx_power_);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save WiFi power: %d", err);
+                }
+            }
+
+            // 保存BSSID记忆设置
+            cJSON *remember_bssid = cJSON_GetObjectItem(json, "remember_bssid");
+            if (cJSON_IsBool(remember_bssid)) {
+                this_->remember_bssid_ = cJSON_IsTrue(remember_bssid);
+                err = nvs_set_u8(nvs, "remember_bssid", this_->remember_bssid_);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save remember_bssid: %d", err);
+                }
+            }
+
+            // 提交更改
+            err = nvs_commit(nvs);
+            nvs_close(nvs);
+            cJSON_Delete(json);
+
+            if (err != ESP_OK) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save configuration");
+                return ESP_FAIL;
+            }
+
+            // 发送成功响应
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_hdr(req, "Connection", "close");
+            httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
+            return ESP_OK;
+        },
+        .user_ctx = this
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_submit));
 
     ESP_LOGI(TAG, "Web server started");
 }
@@ -515,7 +689,17 @@ void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_bas
         xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupSetBits(self->event_group_, WIFI_FAIL_BIT);
-    } 
+    } else if (event_id == WIFI_EVENT_SCAN_DONE) {
+        std::lock_guard<std::mutex> lock(self->mutex_);
+        uint16_t ap_num = 0;
+        esp_wifi_scan_get_ap_num(&ap_num);
+
+        self->ap_records_.resize(ap_num);
+        esp_wifi_scan_get_ap_records(&ap_num, self->ap_records_.data());
+
+        // 扫描完成，等待10秒后再次扫描
+        esp_timer_start_once(self->scan_timer_, 10 * 1000000);
+    }
 }
 
 void WifiConfigurationAp::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -606,17 +790,6 @@ void WifiConfigurationAp::Stop() {
     // 停止DNS服务器
     dns_server_.Stop();
 
-    // 释放网络接口资源
-    if (ap_netif_) {
-        esp_netif_destroy(ap_netif_);
-        ap_netif_ = nullptr;
-    }
-
-    // 停止WiFi并重置模式
-    esp_wifi_stop();
-    esp_wifi_deinit();
-    esp_wifi_set_mode(WIFI_MODE_NULL);
-
     // 注销事件处理器
     if (instance_any_id_) {
         esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id_);
@@ -625,6 +798,17 @@ void WifiConfigurationAp::Stop() {
     if (instance_got_ip_) {
         esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
         instance_got_ip_ = nullptr;
+    }
+
+    // 停止WiFi并重置模式
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    esp_wifi_set_mode(WIFI_MODE_NULL);
+
+    // 释放网络接口资源
+    if (ap_netif_) {
+        esp_netif_destroy(ap_netif_);
+        ap_netif_ = nullptr;
     }
 
     ESP_LOGI(TAG, "Wifi configuration AP stopped");

@@ -24,6 +24,22 @@ WifiStation& WifiStation::GetInstance() {
 WifiStation::WifiStation() {
     // Create the event group
     event_group_ = xEventGroupCreate();
+
+    // 读取配置
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS: %d", err);
+    }
+    err = nvs_get_i8(nvs, "max_tx_power", &max_tx_power_);
+    if (err != ESP_OK) {
+        max_tx_power_ = 0;
+    }
+    err = nvs_get_u8(nvs, "remember_bssid", &remember_bssid_);
+    if (err != ESP_OK) {
+        remember_bssid_ = 0;
+    }
+    nvs_close(nvs);
 }
 
 WifiStation::~WifiStation() {
@@ -93,6 +109,10 @@ void WifiStation::Start() {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    if (max_tx_power_ != 0) {
+        ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(max_tx_power_));
+    }
 
     // Setup the timer to scan WiFi
     esp_timer_create_args_t timer_args = {
@@ -170,9 +190,11 @@ void WifiStation::StartConnect() {
     bzero(&wifi_config, sizeof(wifi_config));
     strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
     strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
-    wifi_config.sta.channel = ap_record.channel;
-    memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
-    wifi_config.sta.bssid_set = true;
+    if (remember_bssid_) {
+        wifi_config.sta.channel = ap_record.channel;
+        memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
+        wifi_config.sta.bssid_set = true;
+    }
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
     reconnect_count_ = 0;

@@ -48,6 +48,8 @@ private:
     std::string ssid_;
     std::string password_;
     std::string ip_address_;
+    int8_t max_tx_power_;
+    uint8_t remember_bssid_;
     int reconnect_count_ = 0;
     std::function<void(const std::string& ssid)> on_connect_;
     std::function<void(const std::string& ssid)> on_connected_;

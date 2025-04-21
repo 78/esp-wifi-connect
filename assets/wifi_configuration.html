@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WiFi Configuration</title>
+    <title>Network Configuration</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
@@ -11,17 +11,6 @@
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
-        }
-        h1 {
-            text-align: center;
-        }
-        form {
-            width: 300px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         label {
             display: block;
@@ -67,53 +56,160 @@
 
         .language-switch {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
         }
         .language-switch select {
             padding: 5px;
             border-radius: 3px;
             border: 1px solid #ccc;
         }
+
+        /* 标签页样式 */
+        .tabs {
+            display: flex;
+            margin-top: 20px;
+            margin-bottom: 0;
+            padding-left: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            background-color: #f0f0f0;
+            position: relative;
+            top: 1px;
+        }
+        .tab.active {
+            background-color: #fff;
+        }
+        .tab-content {
+            display: none;
+            border-top: none;
+            padding: 20px;
+            background-color: #fff;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        #remember_bssid {
+            width: auto;
+        }
+
+        /* 提示框样式 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            min-width: 200px;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
+    <div class="toast" id="toast"></div>
     <div class="language-switch">
         <select id="language" onchange="changeLanguage()">
-            <option value="zh-CN">中文</option>
             <option value="en-US">English</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="ja-JP">日本語</option>
         </select>
     </div>
     
-    <h1 data-lang="title">WiFi 配置</h1>
-    <form action="/submit" method="post" onsubmit="submitForm(event)">
-        <div id="saved_list_container" style="display: none;">
-            <h3 data-lang="saved_wifi">已保存的 WiFi</h3>
-            <ul id="saved_list">
-                <li>
-                    <span>SSID</span>
-                </li>
-            </ul>
-        </div>
-        <div>
-            <h3 data-lang="new_wifi">新的 WiFi</h3>
-            <p class="error" style="color: red; text-align: center;" id="error">
-            </p>
-            <p>
-                <label for="ssid">SSID:</label>
-                <input type="text" id="ssid" name="ssid" required>
-            </p>
-            <p>
-                <label for="password" data-lang="password">密码:</label>
-                <input type="password" id="password" name="password">
-            </p>
-            <p style="text-align: center;">
-                <input type="submit" value="连接" id="button" data-lang-value="connect">
-            </p>
-            <p id="ap_list">
-            </p>
-        </div>
-    </form>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('wifi')" data-lang="wifi_tab">WiFi 配置</div>
+        <div class="tab" onclick="switchTab('advanced')" data-lang="advanced_tab">高级选项</div>
+    </div>
+
+    <div id="wifi-tab" class="tab-content active">
+        <form action="/submit" method="post" onsubmit="submitForm(event)">
+            <div id="saved_list_container" style="display: none;">
+                <h3 data-lang="saved_wifi">已保存的 WiFi</h3>
+                <ul id="saved_list">
+                    <li>
+                        <span>SSID</span>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 data-lang="new_wifi">新的 WiFi</h3>
+                <p class="error" style="color: red; text-align: center;" id="error">
+                </p>
+                <p>
+                    <label for="ssid">SSID:</label>
+                    <input type="text" id="ssid" name="ssid" required>
+                </p>
+                <p>
+                    <label for="password" data-lang="password">密码:</label>
+                    <input type="password" id="password" name="password">
+                </p>
+                <p style="text-align: center;">
+                    <input type="submit" value="连接" id="button" data-lang-value="connect">
+                </p>
+                <p id="ap_list">
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <div id="advanced-tab" class="tab-content">
+        <form action="/advanced/submit" method="post" onsubmit="submitAdvancedForm(event)">
+            <div>
+                <h3 data-lang="advanced_tab">高级选项</h3>
+                <p class="error" style="color: red; text-align: center;" id="advanced_error"></p>
+                
+                <p>
+                    <label for="ota_url" data-lang="ota_url">OTA服务器地址:</label>
+                    <input type="text" id="ota_url" name="ota_url" required>
+                </p>
+
+                <p style="display: flex; align-items: center; gap: 10px;">
+                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Wi-Fi发射功率:</label>
+                    <select id="max_tx_power" name="max_tx_power">
+                        <option value="8">2 dBm</option>
+                        <option value="20">5 dBm</option>
+                        <option value="28">7 dBm</option>
+                        <option value="34">8 dBm</option>
+                        <option value="44">11 dBm</option>
+                        <option value="52">13 dBm</option>
+                        <option value="56">14 dBm</option>
+                        <option value="60">15 dBm</option>
+                        <option value="66">16 dBm</option>
+                        <option value="72">18 dBm</option>
+                        <option value="80">20 dBm</option>
+                    </select>
+                </p>
+
+                <p style="display: flex; align-items: center; gap: 10px;">
+                    <label for="remember_bssid" style="margin: 0;">
+                        <span data-lang="remember_bssid">连接 Wi-Fi 时记住 BSSID</span>
+                    </label>
+                    <input type="checkbox" id="remember_bssid" name="remember_bssid">
+                </p>
+
+                <p style="text-align: center;">
+                    <input type="submit" value="保存" id="advanced_button" data-lang-value="save">
+                </p>
+            </div>
+        </form>
+    </div>
 
     <script type="text/javascript">
         const button = document.getElementById('button');
@@ -123,20 +219,60 @@
         // Add language translations
         const translations = {
             'zh-CN': {
-                title: 'WiFi 配置',
-                saved_wifi: '已保存的 WiFi',
-                new_wifi: '新的 WiFi',
+                title: '网络配置',
+                saved_wifi: '已保存的 Wi-Fi',
+                new_wifi: '新的 Wi-Fi',
                 password: '密码:',
                 connect: '连接',
-                select_wifi: '从下面列表选择 2.4G WiFi:'
+                select_wifi: '从下面列表选择 2.4G Wi-Fi:',
+                wifi_tab: 'Wi-Fi 配置',
+                advanced_tab: '高级选项',
+                ota_url: 'OTA 服务器地址:',
+                max_tx_power: 'Wi-Fi 最大发射功率:',
+                remember_bssid: '连接 Wi-Fi 时记住 BSSID',
+                save: '保存'
+            },
+            'zh-TW': {
+                title: '網路設定',
+                saved_wifi: '已儲存的 Wi-Fi',
+                new_wifi: '新的 Wi-Fi',
+                password: '密碼:',
+                connect: '連接',
+                select_wifi: '從下方列表選擇 2.4G Wi-Fi:',
+                wifi_tab: 'Wi-Fi 設定',
+                advanced_tab: '進階選項',
+                ota_url: 'OTA 伺服器位址:',
+                max_tx_power: 'Wi-Fi 最大發射功率:',
+                remember_bssid: '連接 Wi-Fi 時記住 BSSID',
+                save: '儲存'
             },
             'en-US': {
-                title: 'WiFi Configuration',
-                saved_wifi: 'Saved WiFi',
-                new_wifi: 'New WiFi',
+                title: 'Network Configuration',
+                saved_wifi: 'Saved Wi-Fi',
+                new_wifi: 'New Wi-Fi',
                 password: 'Password:',
                 connect: 'Connect',
-                select_wifi: 'Select an 2.4G WiFi from the list below:'
+                select_wifi: 'Select an 2.4G Wi-Fi from the list below:',
+                wifi_tab: 'Wi-Fi Config',
+                advanced_tab: 'Advanced',
+                ota_url: 'OTA Server URL:',
+                max_tx_power: 'Wi-Fi Max TX Power:',
+                remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
+                save: 'Save'
+            },
+            'ja-JP': {
+                title: 'ネットワーク設定',
+                saved_wifi: '保存済みのWi-Fi',
+                new_wifi: '新しいWi-Fi',
+                password: 'パスワード:',
+                connect: '接続',
+                select_wifi: '以下のリストから2.4G Wi-Fiを選択してください:',
+                wifi_tab: 'Wi-Fi設定',
+                advanced_tab: '詳細設定',
+                ota_url: 'OTAサーバーURL:',
+                max_tx_power: 'Wi-Fi最大送信電力:',
+                remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
+                save: '保存'
             }
         };
 
@@ -148,7 +284,8 @@
                 document.getElementById('language').value = 'zh-CN';
                 return changeLanguage();
             }
-            
+            // Set page title
+            document.title = translations[lang].title;
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
                 element.textContent = translations[lang][key];
@@ -262,12 +399,49 @@
             const urlParams = new URLSearchParams(window.location.search);
             const langParam = urlParams.get('lang');
             
-            // 优先使用 URL 参数的语言设置，其次是本地存储的设置，最后默认使用中文
-            const savedLang = langParam || localStorage.getItem('preferred_language') || 'zh-CN';
+            // 获取浏览器语言
+            const browserLang = navigator.language || navigator.userLanguage;
+            
+            // 语言映射表，将浏览器语言代码映射到支持的语言代码
+            const languageMap = {
+                'zh': 'zh-CN',    // 简体中文
+                'zh-CN': 'zh-CN', // 简体中文
+                'zh-TW': 'zh-TW', // 繁体中文
+                'zh-HK': 'zh-TW', // 繁体中文（香港）
+                'ja': 'ja-JP',    // 日语
+                'ja-JP': 'ja-JP', // 日语
+                'en': 'en-US',    // 英语
+                'en-US': 'en-US', // 英语
+                'en-GB': 'en-US', // 英语（英国）
+                'en-CA': 'en-US', // 英语（加拿大）
+                'en-AU': 'en-US'  // 英语（澳大利亚）
+            };
+            
+            // 获取支持的语言代码
+            const getSupportedLanguage = (lang) => {
+                // 首先尝试完全匹配
+                if (languageMap[lang]) {
+                    return languageMap[lang];
+                }
+                // 然后尝试只匹配主语言代码（例如 'zh' 而不是 'zh-CN'）
+                const mainLang = lang.split('-')[0];
+                if (languageMap[mainLang]) {
+                    return languageMap[mainLang];
+                }
+                // 如果都不匹配，返回英语
+                return 'en-US';
+            };
+            
+            // 优先使用 URL 参数的语言设置，其次是本地存储的设置，最后是浏览器语言设置
+            const savedLang = langParam || 
+                             localStorage.getItem('preferred_language') || 
+                             getSupportedLanguage(browserLang);
+            
             document.getElementById('language').value = savedLang;
             changeLanguage();
             loadSavedList();
             loadAPList();
+            loadAdvancedConfig();
         });
 
         // 监听 pageshow 事件以处理浏览器返回键
@@ -312,6 +486,86 @@
             } catch (err) {
                 error.textContent = err.message;
                 button.disabled = false;
+            }
+        }
+
+        function switchTab(tabName) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // 移除所有标签页的active类
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // 显示选中的标签页内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            // 激活选中的标签
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        }
+
+        async function submitAdvancedForm(event) {
+            event.preventDefault();
+            const advancedButton = document.getElementById('advanced_button');
+            const advancedError = document.getElementById('advanced_error');
+            advancedButton.disabled = true;
+            advancedError.textContent = '';
+
+            const config = {
+                ota_url: document.getElementById('ota_url').value,
+                max_tx_power: parseInt(document.getElementById('max_tx_power').value),
+                remember_bssid: document.getElementById('remember_bssid').checked
+            };
+
+            try {
+                const response = await fetch('/advanced/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || '保存失败');
+                }
+
+                advancedButton.disabled = false;
+                showToast('配置已保存');
+            } catch (err) {
+                advancedError.textContent = err.message;
+                advancedButton.disabled = false;
+            }
+        }
+
+        // 显示提示框
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 加载高级配置
+        async function loadAdvancedConfig() {
+            try {
+                const response = await fetch('/advanced/config');
+                const data = await response.json();
+                
+                if (data.ota_url) {
+                    document.getElementById('ota_url').value = data.ota_url;
+                }
+                if (data.max_tx_power) {
+                    document.getElementById('max_tx_power').value = data.max_tx_power;
+                }
+                if (data.remember_bssid !== undefined) {
+                    document.getElementById('remember_bssid').checked = data.remember_bssid;
+                }
+            } catch (error) {
+                console.error('Error loading advanced config:', error);
             }
         }
     </script>
