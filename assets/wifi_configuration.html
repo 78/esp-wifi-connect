@@ -177,7 +177,10 @@
                 
                 <p>
                     <label for="ota_url" data-lang="ota_url">OTA服务器地址:</label>
-                    <input type="text" id="ota_url" name="ota_url" required>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
+                        <button type="button" onclick="clearOtaUrl()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; background-color: #f0f0f0; cursor: pointer;">❌</button>
+                    </div>
                 </p>
 
                 <p style="display: flex; align-items: center; gap: 10px;">
@@ -567,6 +570,11 @@
             } catch (error) {
                 console.error('Error loading advanced config:', error);
             }
+        }
+
+        // 清空OTA地址
+        function clearOtaUrl() {
+            document.getElementById('ota_url').value = '';
         }
     </script>
 </body>
