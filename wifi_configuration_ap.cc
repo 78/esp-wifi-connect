@@ -217,7 +217,8 @@ void WifiConfigurationAp::StartWebServer()
             std::string uri = req->uri;
             auto pos = uri.find("?index=");
             if (pos != std::string::npos) {
-                int index = std::stoi(uri.substr(pos + 7));
+                int index = -1;
+                sscanf(&req->uri[pos+7], "%d", &index);
                 ESP_LOGI(TAG, "Set default item %d", index);
                 SsidManager::GetInstance().SetDefaultSsid(index);
             }
@@ -238,7 +239,8 @@ void WifiConfigurationAp::StartWebServer()
             std::string uri = req->uri;
             auto pos = uri.find("?index=");
             if (pos != std::string::npos) {
-                int index = std::stoi(uri.substr(pos + 7));
+                int index = -1;
+                sscanf(&req->uri[pos+7], "%d", &index);
                 ESP_LOGI(TAG, "Delete saved list item %d", index);
                 SsidManager::GetInstance().RemoveSsid(index);
             }
@@ -334,7 +336,7 @@ void WifiConfigurationAp::StartWebServer()
             cJSON *ssid_item = cJSON_GetObjectItemCaseSensitive(json, "ssid");
             cJSON *password_item = cJSON_GetObjectItemCaseSensitive(json, "password");
 
-            if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL)) {
+            if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL) || (strlen(ssid_item->valuestring) >= 33)) 
                 cJSON_Delete(json);
                 httpd_resp_send(req, "{\"success\":false,\"error\":\"无效的 SSID\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
@@ -342,7 +344,7 @@ void WifiConfigurationAp::StartWebServer()
 
             std::string ssid_str = ssid_item->valuestring;
             std::string password_str = "";
-            if (cJSON_IsString(password_item) && (password_item->valuestring != NULL)) {
+            if (cJSON_IsString(password_item) && (password_item->valuestring != NULL) && (strlen(password_item->valuestring) < 65)) {
                 password_str = password_item->valuestring;
             }
 
@@ -461,6 +463,11 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
         ESP_LOGE(TAG, "SSID too long");
         return false;
     }
+
+    if (password.length() > 64) {
+        ESP_LOGE(TAG, "Password too long");
+        return false;
+    }
     
     is_connecting_ = true;
     esp_wifi_scan_stop();
@@ -468,8 +475,8 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
 
     wifi_config_t wifi_config;
     bzero(&wifi_config, sizeof(wifi_config));
-    strcpy((char *)wifi_config.sta.ssid, ssid.c_str());
-    strcpy((char *)wifi_config.sta.password, password.c_str());
+    strlcpy((char *)wifi_config.sta.ssid, ssid.c_str(), 32);
+    strlcpy((char *)wifi_config.sta.password, password.c_str(), 64);
     wifi_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     wifi_config.sta.failure_retry_cnt = 1;
     
