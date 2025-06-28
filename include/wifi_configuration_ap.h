@@ -21,6 +21,8 @@ public:
     void Start();
     void Stop();
     void StartSmartConfig();
+    bool ConnectToWifi(const std::string &ssid, const std::string &password);
+    void Save(const std::string &ssid, const std::string &password);
 
     std::string GetSsid();
     std::string GetWebServerUrl();
@@ -54,8 +56,6 @@ private:
 
     void StartAccessPoint();
     void StartWebServer();
-    bool ConnectToWifi(const std::string &ssid, const std::string &password);
-    void Save(const std::string &ssid, const std::string &password);
 
     // Event handlers
     static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
