@@ -97,7 +97,7 @@
             display: block;
         }
 
-        #remember_bssid {
+        #remember_bssid, #sleep_mode {
             width: auto;
         }
 
@@ -207,6 +207,13 @@
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
                 </p>
 
+                <p style="display: flex; align-items: center; gap: 10px;">
+                    <label for="sleep_mode" style="margin: 0;">
+                        <span data-lang="sleep_mode">启用睡眠模式</span>
+                    </label>
+                    <input type="checkbox" id="sleep_mode" name="sleep_mode">
+                </p>
+
                 <p style="text-align: center;">
                     <input type="submit" value="保存" id="advanced_button" data-lang-value="save">
                 </p>
@@ -233,6 +240,7 @@
                 ota_url: '自定义 OTA 地址:',
                 max_tx_power: 'Wi-Fi 最大发射功率:',
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
+                sleep_mode: '启用睡眠模式',
                 save: '保存'
             },
             'zh-TW': {
@@ -247,6 +255,7 @@
                 ota_url: '自定義 OTA 位址:',
                 max_tx_power: 'Wi-Fi 最大發射功率:',
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
+                sleep_mode: '啟用睡眠模式',
                 save: '儲存'
             },
             'en-US': {
@@ -261,6 +270,7 @@
                 ota_url: 'Custom OTA URL:',
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
+                sleep_mode: 'Enable Sleep Mode',
                 save: 'Save'
             },
             'ja-JP': {
@@ -275,6 +285,7 @@
                 ota_url: '自定義 OTA 位址:',
                 max_tx_power: 'Wi-Fi最大送信電力:',
                 remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
+                sleep_mode: 'スリープモードを有効にする',
                 save: '保存'
             }
         };
@@ -517,7 +528,8 @@
             const config = {
                 ota_url: document.getElementById('ota_url').value,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
-                remember_bssid: document.getElementById('remember_bssid').checked
+                remember_bssid: document.getElementById('remember_bssid').checked,
+                sleep_mode: document.getElementById('sleep_mode').checked
             };
 
             try {
@@ -566,6 +578,9 @@
                 }
                 if (data.remember_bssid !== undefined) {
                     document.getElementById('remember_bssid').checked = data.remember_bssid;
+                }
+                if (data.sleep_mode !== undefined) {
+                    document.getElementById('sleep_mode').checked = data.sleep_mode;
                 }
             } catch (error) {
                 console.error('Error loading advanced config:', error);

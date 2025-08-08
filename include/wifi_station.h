@@ -7,6 +7,7 @@
 
 #include <esp_event.h>
 #include <esp_timer.h>
+#include <esp_netif.h>
 #include <esp_wifi_types_generic.h>
 
 struct WifiApRecord {
@@ -45,6 +46,7 @@ private:
     esp_timer_handle_t timer_handle_ = nullptr;
     esp_event_handler_instance_t instance_any_id_ = nullptr;
     esp_event_handler_instance_t instance_got_ip_ = nullptr;
+    esp_netif_t* station_netif_ = nullptr;
     std::string ssid_;
     std::string password_;
     std::string ip_address_;

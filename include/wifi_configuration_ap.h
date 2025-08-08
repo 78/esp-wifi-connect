@@ -53,6 +53,7 @@ private:
     std::string ota_url_;
     int8_t max_tx_power_;
     bool remember_bssid_;
+    bool sleep_mode_;
 
     void StartAccessPoint();
     void StartWebServer();

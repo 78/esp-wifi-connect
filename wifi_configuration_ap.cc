@@ -33,6 +33,7 @@ WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
     language_ = "zh-CN";
+    sleep_mode_ = false;
 }
 
 WifiConfigurationAp::~WifiConfigurationAp()
@@ -189,9 +190,18 @@ void WifiConfigurationAp::StartAccessPoint()
         uint8_t remember_bssid = 0;
         err = nvs_get_u8(nvs, "remember_bssid", &remember_bssid);
         if (err == ESP_OK) {
-            remember_bssid_ = remember_bssid;
+            remember_bssid_ = remember_bssid != 0;
         } else {
-            remember_bssid_ = true; // 默认值
+            remember_bssid_ = false; // 默认值
+        }
+
+        // 读取睡眠模式设置
+        uint8_t sleep_mode = 0;
+        err = nvs_get_u8(nvs, "sleep_mode", &sleep_mode);
+        if (err == ESP_OK) {
+            sleep_mode_ = sleep_mode != 0;
+        } else {
+            sleep_mode_ = true; // 默认值
         }
 
         nvs_close(nvs);
@@ -360,7 +370,7 @@ void WifiConfigurationAp::StartWebServer()
             cJSON *ssid_item = cJSON_GetObjectItemCaseSensitive(json, "ssid");
             cJSON *password_item = cJSON_GetObjectItemCaseSensitive(json, "password");
 
-            if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL) || (strlen(ssid_item->valuestring) >= 33)) 
+            if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL) || (strlen(ssid_item->valuestring) >= 33)) {
                 cJSON_Delete(json);
                 httpd_resp_send(req, "{\"success\":false,\"error\":\"无效的 SSID\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
@@ -498,6 +508,7 @@ void WifiConfigurationAp::StartWebServer()
             }
             cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
             cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
+            cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
 
             // 发送JSON响应
             char *json_str = cJSON_PrintUnformatted(json);
@@ -597,9 +608,19 @@ void WifiConfigurationAp::StartWebServer()
             cJSON *remember_bssid = cJSON_GetObjectItem(json, "remember_bssid");
             if (cJSON_IsBool(remember_bssid)) {
                 this_->remember_bssid_ = cJSON_IsTrue(remember_bssid);
-                err = nvs_set_u8(nvs, "remember_bssid", this_->remember_bssid_);
+                err = nvs_set_u8(nvs, "remember_bssid", this_->remember_bssid_ ? 1 : 0);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to save remember_bssid: %d", err);
+                }
+            }
+
+            // 保存睡眠模式设置
+            cJSON *sleep_mode = cJSON_GetObjectItem(json, "sleep_mode");
+            if (cJSON_IsBool(sleep_mode)) {
+                this_->sleep_mode_ = cJSON_IsTrue(sleep_mode);
+                err = nvs_set_u8(nvs, "sleep_mode", this_->sleep_mode_ ? 1 : 0);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save sleep_mode: %d", err);
                 }
             }
 
@@ -617,6 +638,9 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_set_type(req, "application/json");
             httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
+
+            ESP_LOGI(TAG, "Saved settings: ota_url=%s, max_tx_power=%d, remember_bssid=%d, sleep_mode=%d",
+                this_->ota_url_.c_str(), this_->max_tx_power_, this_->remember_bssid_, this_->sleep_mode_);
             return ESP_OK;
         },
         .user_ctx = this

@@ -71,6 +71,11 @@ void WifiStation::Stop() {
     // Reset the WiFi stack
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_deinit());
+
+    if (station_netif_ != nullptr) {
+        esp_netif_destroy(station_netif_);
+        station_netif_ = nullptr;
+    }
 }
 
 void WifiStation::OnScanBegin(std::function<void()> on_scan_begin) {
@@ -101,7 +106,7 @@ void WifiStation::Start() {
                                                         &instance_got_ip_));
 
     // Create the default event loop
-    esp_netif_create_default_wifi_sta();
+    station_netif_ = esp_netif_create_default_wifi_sta();
 
     // Initialize the WiFi stack in station mode
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
