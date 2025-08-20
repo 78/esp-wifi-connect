@@ -466,7 +466,7 @@ void WifiConfigurationAp::StartWebServer()
     // Register all common captive portal detection endpoints
     const char* captive_portal_urls[] = {
         "/hotspot-detect.html",    // Apple
-        "/generate_204",           // Android
+        "/generate_204*",           // Android
         "/mobile/status.php",      // Android
         "/check_network_status.txt", // Windows
         "/ncsi.txt",              // Windows
