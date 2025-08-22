@@ -12,7 +12,7 @@
 #include <esp_system.h>
 #include "ssid_manager.h"
 
-#define TAG "wifi"
+#define TAG "WifiStation"
 #define WIFI_EVENT_CONNECTED BIT0
 #define MAX_RECONNECT_COUNT 5
 
@@ -57,6 +57,8 @@ void WifiStation::Stop() {
         esp_timer_delete(timer_handle_);
         timer_handle_ = nullptr;
     }
+
+    esp_wifi_scan_stop();
     
     // 取消注册事件处理程序
     if (instance_any_id_ != nullptr) {
@@ -73,7 +75,8 @@ void WifiStation::Stop() {
     ESP_ERROR_CHECK(esp_wifi_deinit());
 
     if (station_netif_ != nullptr) {
-        esp_netif_destroy(station_netif_);
+        // TODO: esp_netif_destroy will cause crash
+        // esp_netif_destroy(station_netif_);
         station_netif_ = nullptr;
     }
 }
