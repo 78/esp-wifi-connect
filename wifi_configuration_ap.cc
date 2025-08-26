@@ -36,6 +36,12 @@ WifiConfigurationAp::WifiConfigurationAp()
     sleep_mode_ = false;
 }
 
+std::vector<wifi_ap_record_t> WifiConfigurationAp::GetAccessPoints()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return ap_records_;
+}   
+
 WifiConfigurationAp::~WifiConfigurationAp()
 {
     if (scan_timer_) {

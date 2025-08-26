@@ -23,7 +23,7 @@ public:
     void StartSmartConfig();
     bool ConnectToWifi(const std::string &ssid, const std::string &password);
     void Save(const std::string &ssid, const std::string &password);
-
+    std::vector<wifi_ap_record_t> GetAccessPoints();
     std::string GetSsid();
     std::string GetWebServerUrl();
 
