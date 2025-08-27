@@ -378,7 +378,7 @@ void WifiConfigurationAp::StartWebServer()
 
             if (!cJSON_IsString(ssid_item) || (ssid_item->valuestring == NULL) || (strlen(ssid_item->valuestring) >= 33)) {
                 cJSON_Delete(json);
-                httpd_resp_send(req, "{\"success\":false,\"error\":\"无效的 SSID\"}", HTTPD_RESP_USE_STRLEN);
+                httpd_resp_send(req, "{\"success\":false,\"error\":\"Invalid SSID\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
             }
 
@@ -392,7 +392,7 @@ void WifiConfigurationAp::StartWebServer()
             auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
             if (!this_->ConnectToWifi(ssid_str, password_str)) {
                 cJSON_Delete(json);
-                httpd_resp_send(req, "{\"success\":false,\"error\":\"无法连接到 WiFi\"}", HTTPD_RESP_USE_STRLEN);
+                httpd_resp_send(req, "{\"success\":false,\"error\":\"Failed to connect to the Access Point\"}", HTTPD_RESP_USE_STRLEN);
                 return ESP_OK;
             }
 
