@@ -14,6 +14,10 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_advanced.png" width="320" alt="Advanced Configuration">
 
+## Changelog: v2.6.0
+
+- Add support for ESP32C5 5G mode.
+
 ## Changelog: v2.4.0
 
 - Add ja / zh-TW languages.
