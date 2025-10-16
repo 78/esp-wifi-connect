@@ -175,6 +175,7 @@
     </div>
     <div class="language-switch">
         <select id="language" onchange="changeLanguage()">
+            <option value="vi-VN">Việt Nam</option>
             <option value="de-DE">deutsch</option>
             <option value="en-US">English</option>
             <option value="zh-CN">简体中文</option>
@@ -279,6 +280,24 @@
 
         // Add language translations
         const translations = {
+            'vi-VN': {
+                title: 'Cấu hình mạng',
+                saved_wifi: 'Wi-Fi đã lưu',
+                new_wifi: 'Wi-Fi mới',
+                password: 'Mật khẩu:',
+                connect: 'Kết nối',
+                connecting: 'Đang kết nối...',
+                select_wifi: 'Chọn Wi-Fi 2.4G từ danh sách bên dưới:',
+                select_wifi_5g: 'Chọn Wi-Fi từ danh sách bên dưới:',
+                scanning: 'Đang quét...',
+                wifi_tab: 'Cấu hình Wi-Fi',
+                advanced_tab: 'Tùy chọn nâng cao',
+                ota_url: 'Địa chỉ OTA tùy chỉnh:',
+                max_tx_power: 'Công suất phát Wi-Fi Max:',
+                remember_bssid: 'Ghi nhớ BSSID khi kết nối với Wi-Fi',
+                sleep_mode: 'Bật chế độ ngủ',
+                save: 'Lưu'
+            },
             'zh-CN': {
                 title: '网络配置',
                 saved_wifi: '已保存的 Wi-Fi',
@@ -516,6 +535,7 @@
             
             // Language mapping table: maps browser language codes to supported language codes
             const languageMap = {
+                'vi': 'vi-VN',    // VietNam
                 'zh': 'zh-CN',    // Simplified Chinese
                 'zh-CN': 'zh-CN', // Simplified Chinese
                 'zh-TW': 'zh-TW', // Traditional Chinese
