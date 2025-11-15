@@ -78,6 +78,9 @@ void WifiStation::Stop() {
         esp_netif_destroy(station_netif_);
         station_netif_ = nullptr;
     }
+
+    // Clear event group bits to prevent WaitForConnected from returning prematurely on restart
+    xEventGroupClearBits(event_group_, WIFI_EVENT_CONNECTED);
 }
 
 void WifiStation::OnScanBegin(std::function<void()> on_scan_begin) {
