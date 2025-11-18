@@ -15,6 +15,7 @@
 #include <cJSON.h>
 #include <esp_smartconfig.h>
 #include "ssid_manager.h"
+#include "sdkconfig.h"
 
 #define TAG "WifiConfigurationAp"
 
@@ -706,7 +707,17 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
     ESP_LOGI(TAG, "Connecting to WiFi %s", ssid.c_str());
 
     // Wait for the connection to complete for 5 seconds
-    EventBits_t bits = xEventGroupWaitBits(event_group_, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10000));
+    EventBits_t bits = xEventGroupWaitBits(
+        event_group_,
+        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+        pdTRUE,
+        pdFALSE,
+#ifdef CONFIG_SOC_WIFI_SUPPORT_5G
+        pdMS_TO_TICKS(25000)
+#else
+        pdMS_TO_TICKS(10000)
+#endif
+    );
     is_connecting_ = false;
 
     if (bits & WIFI_CONNECTED_BIT) {
