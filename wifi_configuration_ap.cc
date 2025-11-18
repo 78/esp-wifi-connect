@@ -706,7 +706,7 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
     }
     ESP_LOGI(TAG, "Connecting to WiFi %s", ssid.c_str());
 
-    // Wait for the connection to complete for 5 seconds
+    // Wait for the connection to complete for 10 or 25 seconds
     EventBits_t bits = xEventGroupWaitBits(
         event_group_,
         WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
