@@ -1,4 +1,4 @@
-#include "wifi_station.h"
+﻿#include "wifi_station.h"
 #include <cstring>
 #include <algorithm>
 
@@ -75,7 +75,9 @@ void WifiStation::Stop() {
     ESP_ERROR_CHECK(esp_wifi_deinit());
 
     if (station_netif_ != nullptr) {
-        esp_netif_destroy(station_netif_);
+        // esp_netif_destroy(station_netif_);   // 在IDF 5.5.1中，使用这个API没有完全释放资源，后续AP连接会出现 Panic
+        esp_netif_destroy_default_wifi(station_netif_);
+        
         station_netif_ = nullptr;
     }
 
