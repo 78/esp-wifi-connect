@@ -25,16 +25,15 @@
 extern const char index_html_start[] asm("_binary_wifi_configuration_html_start");
 extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_start");
 
-WifiConfigurationAp& WifiConfigurationAp::GetInstance() {
-    static WifiConfigurationAp instance;
-    return instance;
-}
-
 WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
     language_ = "zh-CN";
     sleep_mode_ = false;
+    instance_any_id_ = nullptr;
+    instance_got_ip_ = nullptr;
+    max_tx_power_ = 0;
+    remember_bssid_ = false;
 }
 
 std::vector<wifi_ap_record_t> WifiConfigurationAp::GetAccessPoints()
@@ -45,19 +44,10 @@ std::vector<wifi_ap_record_t> WifiConfigurationAp::GetAccessPoints()
 
 WifiConfigurationAp::~WifiConfigurationAp()
 {
-    if (scan_timer_) {
-        esp_timer_stop(scan_timer_);
-        esp_timer_delete(scan_timer_);
-    }
+    Stop();
     if (event_group_) {
         vEventGroupDelete(event_group_);
-    }
-    // Unregister event handlers if they were registered
-    if (instance_any_id_) {
-        esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id_);
-    }
-    if (instance_got_ip_) {
-        esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
+        event_group_ = nullptr;
     }
 }
 
@@ -66,7 +56,17 @@ void WifiConfigurationAp::SetLanguage(const std::string &&language)
     language_ = language;
 }
 
+void WifiConfigurationAp::SetLanguage(const std::string &language)
+{
+    language_ = language;
+}
+
 void WifiConfigurationAp::SetSsidPrefix(const std::string &&ssid_prefix)
+{
+    ssid_prefix_ = ssid_prefix;
+}
+
+void WifiConfigurationAp::SetSsidPrefix(const std::string &ssid_prefix)
 {
     ssid_prefix_ = ssid_prefix;
 }
@@ -128,10 +128,10 @@ std::string WifiConfigurationAp::GetWebServerUrl()
 
 void WifiConfigurationAp::StartAccessPoint()
 {
-    // Initialize the TCP/IP stack
-    ESP_ERROR_CHECK(esp_netif_init());
-
-    // Create the default event loop
+    // Note: esp_netif_init() and esp_wifi_init() should be called once before calling this method
+    // WiFi driver is initialized by WifiManager::Initialize() and kept alive
+    
+    // Create the default WiFi AP interface
     ap_netif_ = esp_netif_create_default_wifi_ap();
 
     // Set the router IP address to 192.168.4.1
@@ -142,12 +142,10 @@ void WifiConfigurationAp::StartAccessPoint()
     esp_netif_dhcps_stop(ap_netif_);
     esp_netif_set_ip_info(ap_netif_, &ip_info);
     esp_netif_dhcps_start(ap_netif_);
-    // Start the DNS server
-    dns_server_.Start(ip_info.gw);
 
-    // Initialize the WiFi stack in Access Point mode
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    // Start the DNS server
+    dns_server_ = std::make_unique<DnsServer>();
+    dns_server_->Start(ip_info.gw);
 
     // Get the SSID
     std::string ssid = GetSsid();
@@ -434,9 +432,9 @@ void WifiConfigurationAp::StartWebServer()
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &done_html));
 
-    // Register the reboot endpoint
-    httpd_uri_t reboot = {
-        .uri = "/reboot",
+    // Register the exit endpoint - exits config mode without rebooting
+    httpd_uri_t exit_config = {
+        .uri = "/exit",
         .method = HTTP_POST,
         .handler = [](httpd_req_t *req) -> esp_err_t {
             auto* this_ = static_cast<WifiConfigurationAp*>(req->user_ctx);
@@ -448,27 +446,25 @@ void WifiConfigurationAp::StartWebServer()
             // 发送响应
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
             
-            // 创建一个延迟重启任务
-            ESP_LOGI(TAG, "Rebooting...");
+            // 延迟调用回调，确保HTTP响应完全发送
+            ESP_LOGI(TAG, "Exiting config mode...");
             xTaskCreate([](void *ctx) {
                 // 等待200ms确保HTTP响应完全发送
                 vTaskDelay(pdMS_TO_TICKS(200));
-                // 停止Web服务器
+                
                 auto* self = static_cast<WifiConfigurationAp*>(ctx);
-                if (self->server_) {
-                    httpd_stop(self->server_);
+                // 通知回调退出配网模式
+                if (self->on_exit_requested_) {
+                    self->on_exit_requested_();
                 }
-                // 再等待100ms确保所有连接都已关闭
-                vTaskDelay(pdMS_TO_TICKS(100));
-                // 执行重启
-                esp_restart();
-            }, "reboot_task", 4096, this_, 5, NULL);
+                vTaskDelete(NULL);
+            }, "exit_config_task", 4096, this_, 5, NULL);
             
             return ESP_OK;
         },
         .user_ctx = this
     };
-    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &reboot));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &exit_config));
 
     auto captive_portal_handler = [](httpd_req_t *req) -> esp_err_t {
         auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
@@ -736,6 +732,11 @@ void WifiConfigurationAp::Save(const std::string &ssid, const std::string &passw
     SsidManager::GetInstance().AddSsid(ssid, password);
 }
 
+void WifiConfigurationAp::OnExitRequested(std::function<void()> callback)
+{
+    on_exit_requested_ = callback;
+}
+
 void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     WifiConfigurationAp* self = static_cast<WifiConfigurationAp*>(arg);
@@ -811,11 +812,16 @@ void WifiConfigurationAp::SmartConfigEventHandler(void *arg, esp_event_base_t ev
             ESP_LOGI(TAG, "SmartConfig SSID: %s, Password: %s", ssid, password);
             // 尝试连接WiFi会失败，故不连接
             self->Save(ssid, password);
+            // 延迟退出配网模式
             xTaskCreate([](void *ctx){
-                ESP_LOGI(TAG, "Restarting in 3 second");
-                vTaskDelay(pdMS_TO_TICKS(3000));
-                esp_restart();
-            }, "restart_task", 4096, NULL, 5, NULL);
+                ESP_LOGI(TAG, "Exiting config mode in 1 second");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto* self = static_cast<WifiConfigurationAp*>(ctx);
+                if (self->on_exit_requested_) {
+                    self->on_exit_requested_();
+                }
+                vTaskDelete(NULL);
+            }, "exit_config_task", 4096, self, 5, NULL);
             break;
         }
         case SC_EVENT_SEND_ACK_DONE:
@@ -848,7 +854,10 @@ void WifiConfigurationAp::Stop() {
     }
 
     // 停止DNS服务器
-    dns_server_.Stop();
+    if (dns_server_) {
+        dns_server_->Stop();
+        dns_server_.reset();
+    }
 
     // 注销事件处理器
     if (instance_any_id_) {
@@ -860,14 +869,12 @@ void WifiConfigurationAp::Stop() {
         instance_got_ip_ = nullptr;
     }
 
-    // 停止WiFi并重置模式
+    // 停止WiFi（但不 deinit，WiFi 驱动由 WifiManager 管理）
     esp_wifi_stop();
-    esp_wifi_deinit();
-    esp_wifi_set_mode(WIFI_MODE_NULL);
-
-    // 释放网络接口资源
+    
+    // 销毁网络接口
     if (ap_netif_) {
-        esp_netif_destroy(ap_netif_);
+        esp_netif_destroy_default_wifi(ap_netif_);
         ap_netif_ = nullptr;
     }
 

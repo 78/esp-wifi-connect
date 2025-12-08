@@ -45,39 +45,28 @@
         </svg>
         
         <div class="message">
-            <p>设备将在 <span id="countdown">3</span> 秒后重启</p>
-            <p>Device will restart in <span id="countdown-en">3</span> seconds</p>
+            <p>配置成功！</p>
+            <p>Configuration successful!</p>
         </div>
     </div>
     
     <script>
         window.addEventListener('load', function() {
-            let count = 3;
-            const countdownElement = document.getElementById('countdown');
-            const countdownEnElement = document.getElementById('countdown-en');
-            
-            const timer = setInterval(function() {
-                count--;
-                countdownElement.textContent = count;
-                countdownEnElement.textContent = count;
-                
-                if (count <= 0) {
-                    clearInterval(timer);
-                    fetch('/reboot', {
-                        method: 'POST'
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            console.log('重启指令已发送');
-                            window.close();
-                        } else {
-                            console.error('发送重启指令失败');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
-                }
+            // Send exit request after a short delay
+            setTimeout(function() {
+                fetch('/exit', {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Exit config mode request sent');
+                    } else {
+                        console.error('Failed to send exit request');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }, 1000);
         });
     </script>

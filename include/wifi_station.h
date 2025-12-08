@@ -10,6 +10,13 @@
 #include <esp_netif.h>
 #include <esp_wifi_types_generic.h>
 
+// WiFi power save level enumeration
+enum class WifiPowerSaveLevel {
+    LOW_POWER,    // Maximum power saving (WIFI_PS_MAX_MODEM)
+    BALANCED,     // Minimum power saving (WIFI_PS_MIN_MODEM)
+    PERFORMANCE,  // No power saving (WIFI_PS_NONE) - full power
+};
+
 struct WifiApRecord {
     std::string ssid;
     std::string password;
@@ -18,9 +25,21 @@ struct WifiApRecord {
     uint8_t bssid[6];
 };
 
+/**
+ * WifiStation - WiFi station mode handler
+ * 
+ * This class handles connecting to WiFi access points in station mode.
+ * Note: WiFi driver must be initialized before using this class.
+ */
 class WifiStation {
 public:
-    static WifiStation& GetInstance();
+    WifiStation();
+    ~WifiStation();
+
+    // Delete copy constructor and assignment operator
+    WifiStation(const WifiStation&) = delete;
+    WifiStation& operator=(const WifiStation&) = delete;
+
     void AddAuth(const std::string &&ssid, const std::string &&password);
     void Start();
     void Stop();
@@ -30,18 +49,13 @@ public:
     std::string GetSsid() const { return ssid_; }
     std::string GetIpAddress() const { return ip_address_; }
     uint8_t GetChannel();
-    void SetPowerSaveMode(bool enabled);
+    void SetPowerSaveLevel(WifiPowerSaveLevel level);
 
     void OnConnect(std::function<void(const std::string& ssid)> on_connect);
     void OnConnected(std::function<void(const std::string& ssid)> on_connected);
     void OnScanBegin(std::function<void()> on_scan_begin);
 
 private:
-    WifiStation();
-    ~WifiStation();
-    WifiStation(const WifiStation&) = delete;
-    WifiStation& operator=(const WifiStation&) = delete;
-
     EventGroupHandle_t event_group_;
     esp_timer_handle_t timer_handle_ = nullptr;
     esp_event_handler_instance_t instance_any_id_ = nullptr;

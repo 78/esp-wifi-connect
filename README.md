@@ -14,6 +14,14 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_advanced.png" width="320" alt="Advanced Configuration">
 
+## Changelog: v3.0.0
+
+- Added WifiManager class for unified WiFi connection management.
+- Improved DnsServer and WifiConfigurationAp classes for better resource handling.
+- Updated HTML for configuration success message to use exit endpoint instead of reboot.
+- Enhanced error handling and state management in WifiStation.
+- Cleaned up unused code and improved thread safety across components.
+
 ## Changelog: v2.6.0
 
 - Add support for ESP32C5 5G mode.

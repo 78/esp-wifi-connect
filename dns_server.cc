@@ -1,6 +1,4 @@
 #include "dns_server.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <esp_log.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
@@ -11,9 +9,15 @@ DnsServer::DnsServer() {
 }
 
 DnsServer::~DnsServer() {
+    Stop();
 }
 
 void DnsServer::Start(esp_ip4_addr_t gateway) {
+    // If already running, stop first
+    if (running_) {
+        Stop();
+    }
+
     ESP_LOGI(TAG, "Starting DNS server");
     gateway_ = gateway;
 
@@ -32,28 +36,58 @@ void DnsServer::Start(esp_ip4_addr_t gateway) {
     if (bind(fd_, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         ESP_LOGE(TAG, "failed to bind port %d", port_);
         close(fd_);
+        fd_ = -1;
         return;
     }
 
+    running_ = true;
     xTaskCreate([](void* arg) {
         DnsServer* dns_server = static_cast<DnsServer*>(arg);
         dns_server->Run();
-    }, "DnsServerTask", 4096, this, 5, NULL);
+        vTaskDelete(NULL);
+    }, "DnsServerTask", 4096, this, 5, &task_handle_);
 }
 
 void DnsServer::Stop() {
+    if (!running_) {
+        return;
+    }
+
     ESP_LOGI(TAG, "Stopping DNS server");
+    running_ = false;
+
+    // Close socket to unblock recvfrom
+    if (fd_ >= 0) {
+        shutdown(fd_, SHUT_RDWR);
+        close(fd_);
+        fd_ = -1;
+    }
+
+    // Wait for task to finish
+    if (task_handle_ != nullptr) {
+        // Give the task some time to exit gracefully
+        vTaskDelay(pdMS_TO_TICKS(100));
+        task_handle_ = nullptr;
+    }
 }
 
 void DnsServer::Run() {
     char buffer[512];
-    while (1) {
+    while (running_) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         int len = recvfrom(fd_, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &client_addr_len);
         if (len < 0) {
+            if (!running_) {
+                // Socket was closed during Stop(), exit gracefully
+                break;
+            }
             ESP_LOGE(TAG, "recvfrom failed, errno=%d", errno);
             continue;
+        }
+
+        if (!running_) {
+            break;
         }
 
         // Simple DNS response: point all queries to 192.168.4.1
@@ -72,4 +106,7 @@ void DnsServer::Run() {
 
         sendto(fd_, buffer, len, 0, (struct sockaddr *)&client_addr, client_addr_len);
     }
+
+    task_handle_ = nullptr;
+    ESP_LOGI(TAG, "DNS server task exiting");
 }

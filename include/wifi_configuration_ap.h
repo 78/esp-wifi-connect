@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <memory>
+#include <functional>
 
 #include <esp_http_server.h>
 #include <esp_event.h>
@@ -13,11 +15,25 @@
 
 #include "dns_server.h"
 
+/**
+ * WifiConfigurationAp - WiFi configuration access point
+ * 
+ * Creates a WiFi hotspot with a captive portal for configuring WiFi credentials.
+ * Note: WiFi driver must be initialized before using this class.
+ */
 class WifiConfigurationAp {
 public:
-    static WifiConfigurationAp& GetInstance();
+    WifiConfigurationAp();
+    ~WifiConfigurationAp();
+
+    // Delete copy constructor and assignment operator
+    WifiConfigurationAp(const WifiConfigurationAp&) = delete;
+    WifiConfigurationAp& operator=(const WifiConfigurationAp&) = delete;
+
     void SetSsidPrefix(const std::string &&ssid_prefix);
+    void SetSsidPrefix(const std::string &ssid_prefix);
     void SetLanguage(const std::string &&language);
+    void SetLanguage(const std::string &language);
     void Start();
     void Stop();
     void StartSmartConfig();
@@ -27,17 +43,15 @@ public:
     std::string GetSsid();
     std::string GetWebServerUrl();
 
-    // Delete copy constructor and assignment operator
-    WifiConfigurationAp(const WifiConfigurationAp&) = delete;
-    WifiConfigurationAp& operator=(const WifiConfigurationAp&) = delete;
+    /**
+     * Set callback for when exit is requested from config mode
+     * This is called when user requests to exit config mode (e.g., via /exit endpoint)
+     */
+    void OnExitRequested(std::function<void()> callback);
 
 private:
-    // Private constructor
-    WifiConfigurationAp();
-    ~WifiConfigurationAp();
-
     std::mutex mutex_;
-    DnsServer dns_server_;
+    std::unique_ptr<DnsServer> dns_server_;
     httpd_handle_t server_ = NULL;
     EventGroupHandle_t event_group_;
     std::string ssid_prefix_;
@@ -54,6 +68,9 @@ private:
     int8_t max_tx_power_;
     bool remember_bssid_;
     bool sleep_mode_;
+
+    // Callbacks
+    std::function<void()> on_exit_requested_;
 
     void StartAccessPoint();
     void StartWebServer();
