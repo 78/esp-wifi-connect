@@ -13,7 +13,9 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <cJSON.h>
+#if !CONFIG_IDF_TARGET_ESP32P4
 #include <esp_smartconfig.h>
+#endif
 #include "ssid_manager.h"
 #include "sdkconfig.h"
 
@@ -773,6 +775,7 @@ void WifiConfigurationAp::IpEventHandler(void* arg, esp_event_base_t event_base,
     }
 }
 
+#if !CONFIG_IDF_TARGET_ESP32P4
 void WifiConfigurationAp::StartSmartConfig()
 {
     // 注册SmartConfig事件处理器
@@ -831,14 +834,17 @@ void WifiConfigurationAp::SmartConfigEventHandler(void *arg, esp_event_base_t ev
         }
     }
 }
+#endif // !CONFIG_IDF_TARGET_ESP32P4
 
 void WifiConfigurationAp::Stop() {
+#if !CONFIG_IDF_TARGET_ESP32P4
     // 停止SmartConfig服务
     if (sc_event_instance_) {
         esp_event_handler_instance_unregister(SC_EVENT, ESP_EVENT_ANY_ID, sc_event_instance_);
         sc_event_instance_ = nullptr;
     }
     esp_smartconfig_stop();
+#endif
 
     // 停止定时器
     if (scan_timer_) {

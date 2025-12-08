@@ -14,6 +14,7 @@
 #include <esp_wifi_types_generic.h>
 
 #include "dns_server.h"
+#include "sdkconfig.h"
 
 /**
  * WifiConfigurationAp - WiFi configuration access point
@@ -36,7 +37,9 @@ public:
     void SetLanguage(const std::string &language);
     void Start();
     void Stop();
+#if !CONFIG_IDF_TARGET_ESP32P4
     void StartSmartConfig();
+#endif
     bool ConnectToWifi(const std::string &ssid, const std::string &password);
     void Save(const std::string &ssid, const std::string &password);
     std::vector<wifi_ap_record_t> GetAccessPoints();
@@ -78,9 +81,11 @@ private:
     // Event handlers
     static void WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+#if !CONFIG_IDF_TARGET_ESP32P4
     static void SmartConfigEventHandler(void* arg, esp_event_base_t event_base, 
                                       int32_t event_id, void* event_data);
     esp_event_handler_instance_t sc_event_instance_ = nullptr;
+#endif
 };
 
 #endif // _WIFI_CONFIGURATION_AP_H_
