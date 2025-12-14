@@ -1,4 +1,4 @@
-﻿#include "wifi_station.h"
+#include "wifi_station.h"
 #include <cstring>
 #include <algorithm>
 
@@ -84,6 +84,9 @@ void WifiStation::Stop() {
         esp_netif_destroy_default_wifi(station_netif_);
         station_netif_ = nullptr;
     }
+    
+    // Reset was_connected_ flag to prevent stale state from affecting subsequent sessions
+    was_connected_ = false;
 
     // Clear connected bit
     xEventGroupClearBits(event_group_, WIFI_EVENT_CONNECTED);
@@ -103,6 +106,10 @@ void WifiStation::OnConnect(std::function<void(const std::string& ssid)> on_conn
 
 void WifiStation::OnConnected(std::function<void(const std::string& ssid)> on_connected) {
     on_connected_ = on_connected;
+}
+
+void WifiStation::OnDisconnected(std::function<void()> on_disconnected) {
+    on_disconnected_ = on_disconnected;
 }
 
 void WifiStation::Start() {
@@ -191,8 +198,9 @@ void WifiStation::HandleScanResult() {
     free(ap_records);
 
     if (connect_queue_.empty()) {
-        ESP_LOGI(TAG, "Wait for next scan");
-        esp_timer_start_once(timer_handle_, 10 * 1000);
+        ESP_LOGI(TAG, "No AP found, next scan in %d seconds", scan_current_interval_microseconds_ / 1000 / 1000);
+        esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+        UpdateScanInterval();
         return;
     }
 
@@ -261,6 +269,12 @@ bool WifiStation::IsConnected() {
     return xEventGroupGetBits(event_group_) & WIFI_EVENT_CONNECTED;
 }
 
+void WifiStation::SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds) {
+    scan_min_interval_microseconds_ = min_interval_seconds * 1000 * 1000;
+    scan_max_interval_microseconds_ = max_interval_seconds * 1000 * 1000;
+    scan_current_interval_microseconds_ = scan_min_interval_microseconds_;
+}
+
 void WifiStation::SetPowerSaveLevel(WifiPowerSaveLevel level) {
     wifi_ps_type_t ps_type;
     switch (level) {
@@ -281,6 +295,16 @@ void WifiStation::SetPowerSaveLevel(WifiPowerSaveLevel level) {
     ESP_ERROR_CHECK(esp_wifi_set_ps(ps_type));
 }
 
+void WifiStation::UpdateScanInterval() {
+    // Apply exponential backoff: double the interval, up to max
+    if (scan_current_interval_microseconds_ < scan_max_interval_microseconds_) {
+        scan_current_interval_microseconds_ *= 2;
+        if (scan_current_interval_microseconds_ > scan_max_interval_microseconds_) {
+            scan_current_interval_microseconds_ = scan_max_interval_microseconds_;
+        }
+    }
+}
+
 // Static event handler functions
 void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     auto* this_ = static_cast<WifiStation*>(arg);
@@ -294,6 +318,15 @@ void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32
         this_->HandleScanResult();
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupClearBits(this_->event_group_, WIFI_EVENT_CONNECTED);
+        
+        // Notify disconnected callback only once when transitioning from connected to disconnected
+        bool was_connected = this_->was_connected_;
+        this_->was_connected_ = false;
+        if (was_connected && this_->on_disconnected_) {
+            ESP_LOGI(TAG, "WiFi disconnected, notifying callback");
+            this_->on_disconnected_();
+        }
+        
         if (this_->reconnect_count_ < MAX_RECONNECT_COUNT) {
             esp_wifi_connect();
             this_->reconnect_count_++;
@@ -306,8 +339,10 @@ void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32
             return;
         }
         
-        ESP_LOGI(TAG, "No more AP to connect, wait for next scan");
-        esp_timer_start_once(this_->timer_handle_, 10 * 1000);
+        ESP_LOGI(TAG, "No more AP to connect, next scan in %d seconds", 
+                 this_->scan_current_interval_microseconds_ / 1000 / 1000);
+        esp_timer_start_once(this_->timer_handle_, this_->scan_current_interval_microseconds_);
+        this_->UpdateScanInterval();
     } else if (event_id == WIFI_EVENT_STA_CONNECTED) {
     }
 }
@@ -322,9 +357,13 @@ void WifiStation::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t
     ESP_LOGI(TAG, "Got IP: %s", this_->ip_address_.c_str());
     
     xEventGroupSetBits(this_->event_group_, WIFI_EVENT_CONNECTED);
+    this_->was_connected_ = true;  // Mark as connected for disconnect notification
     if (this_->on_connected_) {
         this_->on_connected_(this_->ssid_);
     }
     this_->connect_queue_.clear();
     this_->reconnect_count_ = 0;
+    
+    // Reset scan interval to minimum for fast reconnect if disconnected later
+    this_->scan_current_interval_microseconds_ = this_->scan_min_interval_microseconds_;
 }

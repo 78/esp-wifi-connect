@@ -133,6 +133,10 @@ void WifiManager::StartStation() {
 
     ESP_LOGI(TAG, "Starting station");
 
+    // Apply configuration
+    station_->SetScanIntervalRange(config_.station_scan_min_interval_seconds,
+                                   config_.station_scan_max_interval_seconds);
+
     // Setup callbacks
     station_->OnScanBegin([this]() {
         NotifyEvent(WifiEvent::Scanning);
@@ -142,6 +146,9 @@ void WifiManager::StartStation() {
     });
     station_->OnConnected([this](const std::string&) {
         NotifyEvent(WifiEvent::Connected);
+    });
+    station_->OnDisconnected([this]() {
+        NotifyEvent(WifiEvent::Disconnected);
     });
 
     station_->Start();
