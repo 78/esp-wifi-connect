@@ -23,6 +23,7 @@
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
+#define WIFI_SCAN_FINISHED_BIT BIT2  // added by nvc
 
 extern const char index_html_start[] asm("_binary_wifi_configuration_html_start");
 extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_start");
@@ -87,18 +88,23 @@ void WifiConfigurationAp::Start()
                                                         this,
                                                         &instance_got_ip_));
 
-    StartAccessPoint();
-    StartWebServer();
+// Deleted by nvc
+//     StartAccessPoint();
+//     StartWebServer();
     
     // Start scan immediately
-    esp_wifi_scan_start(nullptr, false);
+    // esp_wifi_scan_start(nullptr, false);  // Deleted by nvc
     // Setup periodic WiFi scan timer
     esp_timer_create_args_t timer_args = {
         .callback = [](void* arg) {
+#if 0
             auto* self = static_cast<WifiConfigurationAp*>(arg);
             if (!self->is_connecting_) {
                 esp_wifi_scan_start(nullptr, false);
             }
+#else
+            esp_wifi_scan_start(nullptr, false);  // The scan always works before AP point is set. nvc
+#endif
         },
         .arg = this,
         .dispatch_method = ESP_TIMER_TASK,
@@ -106,6 +112,8 @@ void WifiConfigurationAp::Start()
         .skip_unhandled_events = true
     };
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
+
+    PerformWorking();  // Added by nvc
 }
 
 std::string WifiConfigurationAp::GetSsid()
@@ -157,13 +165,13 @@ void WifiConfigurationAp::StartAccessPoint()
     strcpy((char *)wifi_config.ap.ssid, ssid.c_str());
     wifi_config.ap.ssid_len = ssid.length();
     wifi_config.ap.max_connection = 4;
-    wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    wifi_config.ap.authmode = WIFI_AUTH_OPEN;  // 表示没有密码
 
     // Start the WiFi Access Point
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    // ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));   // Deleted by nvc
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    // ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));   // Deleted by nvc
+    // ESP_ERROR_CHECK(esp_wifi_start());   // Deleted by nvc
 
 #ifdef CONFIG_SOC_WIFI_SUPPORT_5G
     ESP_ERROR_CHECK(esp_wifi_set_band_mode(WIFI_BAND_MODE_AUTO));
@@ -403,6 +411,12 @@ void WifiConfigurationAp::StartWebServer()
 
             // 获取当前对象
             auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
+            // add by nvc
+            WifiConnectState expected = WifiConnectState::Idle;
+            if (!this_->connect_state_.compare_exchange_strong(expected, WifiConnectState::Connecting)) {
+                return false;
+            }
+
             if (!this_->ConnectToWifi(ssid_str, password_str)) {
                 cJSON_Delete(json);
                 httpd_resp_send(req, "{\"success\":false,\"error\":\"Failed to connect to the Access Point\"}", HTTPD_RESP_USE_STRLEN);
@@ -684,22 +698,26 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
         return false;
     }
     
-    is_connecting_ = true;
-    esp_wifi_scan_stop();
-    xEventGroupClearBits(event_group_, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
+    // is_connecting_ = true;  // Deleted by nvc
+    // esp_wifi_scan_stop();   // Deleted by nvc
+    {
+        // Prevent multiple users from calling esp_wifi_connect simultaneously
+        // std::lock_guard<std::mutex> lock(mutex_);
+        xEventGroupClearBits(event_group_, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
 
-    wifi_config_t wifi_config;
-    bzero(&wifi_config, sizeof(wifi_config));
-    strlcpy((char *)wifi_config.sta.ssid, ssid.c_str(), 32);
-    strlcpy((char *)wifi_config.sta.password, password.c_str(), 64);
-    wifi_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
-    wifi_config.sta.failure_retry_cnt = 1;
+        wifi_config_t wifi_config;
+        bzero(&wifi_config, sizeof(wifi_config));
+        strlcpy((char *)wifi_config.sta.ssid, ssid.c_str(), 32);
+        strlcpy((char *)wifi_config.sta.password, password.c_str(), 64);
+        wifi_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+        wifi_config.sta.failure_retry_cnt = 1;
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    }
     
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     auto ret = esp_wifi_connect();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to connect to WiFi: %d", ret);
-        is_connecting_ = false;
+        // is_connecting_ = false; // Deleted by nvc
         return false;
     }
     ESP_LOGI(TAG, "Connecting to WiFi %s", ssid.c_str());
@@ -716,16 +734,23 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
         pdMS_TO_TICKS(10000)
 #endif
     );
-    is_connecting_ = false;
+    // is_connecting_ = false;  // Deleted by nvc
 
+    esp_wifi_disconnect();  // must disconnect after trying, then next esp_wifi_connect will work properly. nvc added
+    // Modify by nvc
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to WiFi %s", ssid.c_str());
-        esp_wifi_disconnect();
+        // esp_wifi_disconnect();  // Deleted by nvc
         return true;
-    } else {
+    } 
+    if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG, "Failed to connect to WiFi %s", ssid.c_str());
         return false;
     }
+
+    ESP_LOGE(TAG, "Connect to WiFi %s timeout", ssid.c_str());
+    connect_state_.store(WifiConnectState::Idle);
+    return false;
 }
 
 void WifiConfigurationAp::Save(const std::string &ssid, const std::string &password)
@@ -749,19 +774,29 @@ void WifiConfigurationAp::WifiEventHandler(void* arg, esp_event_base_t event_bas
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "Station " MACSTR " left, AID=%d", MAC2STR(event->mac), event->aid);
     } else if (event_id == WIFI_EVENT_STA_CONNECTED) {
+        ESP_LOGW(TAG, "AP try WiFi connected");  // nvc
+        self->connect_state_.store(WifiConnectState::Connected);
         xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        self->connect_state_.store(WifiConnectState::Idle);   // added by nvc
         xEventGroupSetBits(self->event_group_, WIFI_FAIL_BIT);
     } else if (event_id == WIFI_EVENT_SCAN_DONE) {
+        // 这里的锁只对 GetAccessPoints 有效，防止数据竞争，在Web处理中已经不需要了
         std::lock_guard<std::mutex> lock(self->mutex_);
         uint16_t ap_num = 0;
         esp_wifi_scan_get_ap_num(&ap_num);
 
         self->ap_records_.resize(ap_num);
         esp_wifi_scan_get_ap_records(&ap_num, self->ap_records_.data());
-
-        // 扫描完成，等待10秒后再次扫描
-        esp_timer_start_once(self->scan_timer_, 10 * 1000000);
+        
+        self->scan_count_++;
+        if(self->scan_count_ < MAX_PRE_SCAN_COUNT) {
+            esp_timer_start_once(self->scan_timer_, SCAN_INTERVAL_MS * 1000);
+            ESP_LOGW(TAG, "Pre-scan %d/%d done, scheduling next scan...", self->scan_count_, MAX_PRE_SCAN_COUNT);
+        } else {
+            self->NotifyPreScanFinished();  
+            ESP_LOGW(TAG, "Pre-scan finished with %d APs found.", ap_num);
+        }
     }
 }
 
@@ -771,6 +806,7 @@ void WifiConfigurationAp::IpEventHandler(void* arg, esp_event_base_t event_base,
     if (event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
+        self->connect_state_.store(WifiConnectState::Connected);
         xEventGroupSetBits(self->event_group_, WIFI_CONNECTED_BIT);
     }
 }
@@ -885,4 +921,53 @@ void WifiConfigurationAp::Stop() {
     }
 
     ESP_LOGI(TAG, "Wifi configuration AP stopped");
+}
+
+// Added by nvc
+
+void WifiConfigurationAp::StartPreScan()
+{
+    scan_count_ = 0;
+    xEventGroupClearBits(event_group_, WIFI_SCAN_FINISHED_BIT);
+    esp_wifi_scan_start(nullptr, false);
+}
+
+void WifiConfigurationAp::NotifyPreScanFinished()
+{
+    xEventGroupSetBits(event_group_, WIFI_SCAN_FINISHED_BIT);
+}
+
+void WifiConfigurationAp::PerformWorking()
+{
+    connect_state_.store(WifiConnectState::Idle);
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    StartPreScan();
+    // ESP_LOGW(TAG, "Waiting for pre-scan to complete...");
+    EventBits_t bits = xEventGroupWaitBits(
+        event_group_,
+        WIFI_SCAN_FINISHED_BIT,
+        pdTRUE,     
+        pdFALSE,    
+        pdMS_TO_TICKS(30000) // 可选超时
+    );
+
+    if (bits & WIFI_SCAN_FINISHED_BIT) {
+        esp_wifi_scan_stop();
+        ESP_LOGW(TAG, "Pre-scan completed, starting AP and Web Server");
+    } else {
+        esp_timer_stop(scan_timer_);
+        esp_err_t stop_err = esp_wifi_scan_stop();
+        if (stop_err != ESP_OK && stop_err != ESP_ERR_WIFI_STATE) {
+            ESP_LOGW(TAG, "esp_wifi_scan_stop returned %d", stop_err);
+        }
+        // 超时兜底策略
+        ESP_LOGW(TAG, "Pre-scan timeout, starting AP and Web Server anyway");
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_wifi_disconnect();
+    StartAccessPoint();
+    StartWebServer();
 }

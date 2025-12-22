@@ -62,7 +62,7 @@ private:
     esp_event_handler_instance_t instance_any_id_;
     esp_event_handler_instance_t instance_got_ip_;
     esp_timer_handle_t scan_timer_ = nullptr;
-    bool is_connecting_ = false;
+    // bool is_connecting_ = false;  // replaced by connect_state_ . nvc
     esp_netif_t* ap_netif_ = nullptr;
     std::vector<wifi_ap_record_t> ap_records_;
 
@@ -86,6 +86,23 @@ private:
                                       int32_t event_id, void* event_data);
     esp_event_handler_instance_t sc_event_instance_ = nullptr;
 #endif
+
+    // added by nvc
+    static constexpr uint16_t SCAN_INTERVAL_MS = 1500; // 1500 ms
+    static constexpr uint8_t MAX_PRE_SCAN_COUNT = 3;
+    uint8_t scan_count_ = 0;
+    // bool pre_scan_phase_ = false;  // 如果将来需要进行判断，可以用这个变量作为标志
+    enum class WifiConnectState {
+        Idle,
+        Connecting,
+        Connected,
+    };
+
+    std::atomic<WifiConnectState> connect_state_{WifiConnectState::Idle};
+
+    void StartPreScan();
+    void NotifyPreScanFinished();
+    void PerformWorking();
 };
 
 #endif // _WIFI_CONFIGURATION_AP_H_
