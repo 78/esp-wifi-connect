@@ -236,7 +236,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, index_html_start, strlen(index_html_start));
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = NULL,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &index_html));
 
@@ -259,7 +264,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, json_str.c_str(), HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = NULL,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_list));
 
@@ -282,7 +292,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = NULL,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_set_default));
 
@@ -305,7 +320,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = NULL,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_delete));
 
@@ -344,7 +364,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_sendstr_chunk(req, NULL);
             return ESP_OK;
         },
-        .user_ctx = this
+        .user_ctx = this,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &scan));
 
@@ -417,7 +442,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
-        .user_ctx = this
+        .user_ctx = this,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &form_submit));
 
@@ -430,7 +460,12 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, done_html_start, strlen(done_html_start));
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = NULL,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &done_html));
 
@@ -464,7 +499,12 @@ void WifiConfigurationAp::StartWebServer()
             
             return ESP_OK;
         },
-        .user_ctx = this
+        .user_ctx = this,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &exit_config));
 
@@ -499,7 +539,12 @@ void WifiConfigurationAp::StartWebServer()
             .uri = url,
             .method = HTTP_GET,
             .handler = captive_portal_handler,
-            .user_ctx = this
+            .user_ctx = this,
+            #ifdef CONFIG_HTTPD_WS_SUPPORT
+            .is_websocket = false;
+            .handle_ws_control_frames = false;
+            .supported_subprotocol = NULL;
+            #endif
         };
         ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &redirect_uri));
     }
@@ -541,7 +586,12 @@ void WifiConfigurationAp::StartWebServer()
             free(json_str);
             return ESP_OK;
         },
-        .user_ctx = this
+        .user_ctx = this,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_config));
 
@@ -660,7 +710,12 @@ void WifiConfigurationAp::StartWebServer()
                 this_->ota_url_.c_str(), this_->max_tx_power_, this_->remember_bssid_, this_->sleep_mode_);
             return ESP_OK;
         },
-        .user_ctx = this
+        .user_ctx = this,
+        #ifdef CONFIG_HTTPD_WS_SUPPORT
+        .is_websocket = false;
+        .handle_ws_control_frames = false;
+        .supported_subprotocol = NULL;
+        #endif
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_submit));
 
