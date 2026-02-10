@@ -6,6 +6,8 @@ It first tries to connect to a Wi-Fi network using the credentials stored in the
 
 The URL to access the web server is `http://192.168.4.1`.
 
+You should set menuconfig **CONFIG_HTTPD_MAX_REQ_HDR_LEN** and **CONFIG_HTTPD_MAX_URI_LEN** to unless more than 3000.
+
 ### Screenshot: Wi-Fi Configuration
 
 <img src="assets/ap_v3.png" width="320" alt="Wi-Fi Configuration">
