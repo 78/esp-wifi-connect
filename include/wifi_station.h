@@ -53,7 +53,7 @@ public:
 
     void OnConnect(std::function<void(const std::string& ssid)> on_connect);
     void OnConnected(std::function<void(const std::string& ssid)> on_connected);
-    void OnDisconnected(std::function<void()> on_disconnected);
+    void OnDisconnected(std::function<void(int reason)> on_disconnected);
     void OnScanBegin(std::function<void()> on_scan_begin);
     void SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds);
 
@@ -76,7 +76,7 @@ private:
     int scan_current_interval_microseconds_ = 10 * 1000 * 1000;  // Current interval
     std::function<void(const std::string& ssid)> on_connect_;
     std::function<void(const std::string& ssid)> on_connected_;
-    std::function<void()> on_disconnected_;
+    std::function<void(int reason)> on_disconnected_;
     std::function<void()> on_scan_begin_;
     std::vector<WifiApRecord> connect_queue_;
     bool was_connected_ = false;  // Track if we were connected before disconnection

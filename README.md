@@ -14,6 +14,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_advanced.png" width="320" alt="Advanced Configuration">
 
+## Changelog: v3.1.0
+
+- Event callback now includes an additional `data` parameter for extra information.
+- Disconnected event now provides the disconnect reason code via the `data` parameter.
+- This allows applications to handle different disconnect scenarios appropriately.
+
 ## Changelog: v3.0.0
 
 - Added WifiManager class for unified WiFi connection management.
@@ -84,7 +90,8 @@ config.language = "zh-CN";     // Web UI language
 wifi_manager.Initialize(config);
 
 // Set event callback to handle WiFi events
-wifi_manager.SetEventCallback([](WifiEvent event) {
+// The callback receives the event type and optional data (e.g., disconnect reason)
+wifi_manager.SetEventCallback([](WifiEvent event, const std::string& data) {
     switch (event) {
         case WifiEvent::Scanning:
             ESP_LOGI("WiFi", "Scanning for networks...");
@@ -96,7 +103,8 @@ wifi_manager.SetEventCallback([](WifiEvent event) {
             ESP_LOGI("WiFi", "Connected successfully!");
             break;
         case WifiEvent::Disconnected:
-            ESP_LOGW("WiFi", "Disconnected from network");
+            // data contains the disconnect reason code
+            ESP_LOGW("WiFi", "Disconnected from network, reason: %s", data.c_str());
             break;
         case WifiEvent::ConfigModeEnter:
             ESP_LOGI("WiFi", "Entered config mode");

@@ -91,7 +91,7 @@ public:
 
     // ==================== Event ====================
     
-    void SetEventCallback(std::function<void(WifiEvent)> callback);
+    void SetEventCallback(std::function<void(WifiEvent, const std::string&)> callback);
 
     const WifiManagerConfig& GetConfig() const { return config_; }
 
@@ -102,7 +102,7 @@ private:
     WifiManager();
     ~WifiManager();
 
-    void NotifyEvent(WifiEvent event);
+    void NotifyEvent(WifiEvent event, const std::string& data = "");
 
     WifiManagerConfig config_;
     std::unique_ptr<WifiStation> station_;
@@ -113,7 +113,7 @@ private:
     bool station_active_ = false;
     bool config_mode_active_ = false;
 
-    std::function<void(WifiEvent)> event_callback_;
+    std::function<void(WifiEvent, const std::string&)> event_callback_;
     mutable std::string mac_address_;
 };
 

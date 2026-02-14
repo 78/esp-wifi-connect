@@ -35,15 +35,15 @@ WifiManager::~WifiManager() {
     }
 }
 
-void WifiManager::NotifyEvent(WifiEvent event) {
+void WifiManager::NotifyEvent(WifiEvent event, const std::string& data) {
     // Copy callback under lock, invoke without lock to avoid deadlock
-    std::function<void(WifiEvent)> callback;
+    std::function<void(WifiEvent, const std::string&)> callback;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         callback = event_callback_;
     }
     if (callback) {
-        callback(event);
+        callback(event, data);
     }
 }
 
@@ -147,8 +147,8 @@ void WifiManager::StartStation() {
     station_->OnConnected([this](const std::string&) {
         NotifyEvent(WifiEvent::Connected);
     });
-    station_->OnDisconnected([this]() {
-        NotifyEvent(WifiEvent::Disconnected);
+    station_->OnDisconnected([this](int reason) {
+        NotifyEvent(WifiEvent::Disconnected, std::to_string(reason));
     });
 
     station_->Start();
@@ -305,7 +305,7 @@ void WifiManager::SetPowerSaveLevel(WifiPowerSaveLevel level) {
 
 // ==================== Event ====================
 
-void WifiManager::SetEventCallback(std::function<void(WifiEvent)> callback) {
+void WifiManager::SetEventCallback(std::function<void(WifiEvent, const std::string&)> callback) {
     std::lock_guard<std::mutex> lock(mutex_);
     event_callback_ = std::move(callback);
 }

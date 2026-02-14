@@ -108,7 +108,7 @@ void WifiStation::OnConnected(std::function<void(const std::string& ssid)> on_co
     on_connected_ = on_connected;
 }
 
-void WifiStation::OnDisconnected(std::function<void()> on_disconnected) {
+void WifiStation::OnDisconnected(std::function<void(int reason)> on_disconnected) {
     on_disconnected_ = on_disconnected;
 }
 
@@ -322,9 +322,10 @@ void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32
         // Notify disconnected callback only once when transitioning from connected to disconnected
         bool was_connected = this_->was_connected_;
         this_->was_connected_ = false;
+        wifi_event_sta_disconnected_t* event = static_cast<wifi_event_sta_disconnected_t*>(event_data);
+        ESP_LOGI(TAG, "WiFi disconnected, reason: %d", event->reason);
         if (was_connected && this_->on_disconnected_) {
-            ESP_LOGI(TAG, "WiFi disconnected, notifying callback");
-            this_->on_disconnected_();
+            this_->on_disconnected_(event->reason);
         }
         
         if (this_->reconnect_count_ < MAX_RECONNECT_COUNT) {
