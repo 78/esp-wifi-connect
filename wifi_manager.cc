@@ -141,11 +141,11 @@ void WifiManager::StartStation() {
     station_->OnScanBegin([this]() {
         NotifyEvent(WifiEvent::Scanning);
     });
-    station_->OnConnect([this](const std::string&) {
-        NotifyEvent(WifiEvent::Connecting);
+    station_->OnConnect([this](const std::string& ssid) {
+        NotifyEvent(WifiEvent::Connecting, ssid);
     });
-    station_->OnConnected([this](const std::string&) {
-        NotifyEvent(WifiEvent::Connected);
+    station_->OnConnected([this](const std::string& ssid) {
+        NotifyEvent(WifiEvent::Connected, ssid);
     });
     station_->OnDisconnected([this](int reason) {
         NotifyEvent(WifiEvent::Disconnected, std::to_string(reason));
