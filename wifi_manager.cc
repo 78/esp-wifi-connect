@@ -109,8 +109,8 @@ bool WifiManager::IsInitialized() const {
 // ==================== Station Mode ====================
 
 void WifiManager::StartStation() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
+    std::unique_lock<std::mutex> lock(mutex_);
+
     if (!initialized_) {
         ESP_LOGE(TAG, "Not initialized");
         return;
@@ -126,9 +126,9 @@ void WifiManager::StartStation() {
         config_ap_->Stop();
         config_mode_active_ = false;
         // Notify outside lock
-        mutex_.unlock();
+        lock.unlock();
         NotifyEvent(WifiEvent::ConfigModeExit);
-        mutex_.lock();
+        lock.lock();
     }
 
     ESP_LOGI(TAG, "Starting station");
@@ -156,8 +156,8 @@ void WifiManager::StartStation() {
 }
 
 void WifiManager::StopStation() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
+    std::unique_lock<std::mutex> lock(mutex_);
+
     if (!station_active_) {
         return;
     }
@@ -166,10 +166,10 @@ void WifiManager::StopStation() {
     station_->Stop();
     ESP_LOGI(TAG, "Station stopped");
     station_active_ = false;
-    
-    mutex_.unlock();
+
+    lock.unlock();
     NotifyEvent(WifiEvent::Disconnected);
-    mutex_.lock();
+    lock.lock();
 }
 
 bool WifiManager::IsConnected() const {
@@ -220,8 +220,8 @@ std::string WifiManager::GetMacAddress() const {
 // ==================== Config AP Mode ====================
 
 void WifiManager::StartConfigAp() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
+    std::unique_lock<std::mutex> lock(mutex_);
+
     if (!initialized_) {
         ESP_LOGE(TAG, "Not initialized");
         return;
@@ -236,33 +236,33 @@ void WifiManager::StartConfigAp() {
         ESP_LOGI(TAG, "Stopping station before starting config AP");
         station_->Stop();
         station_active_ = false;
-        mutex_.unlock();
+        lock.unlock();
         NotifyEvent(WifiEvent::Disconnected);
-        mutex_.lock();
+        lock.lock();
     }
 
     ESP_LOGI(TAG, "Starting config AP");
 
     config_ap_->SetSsidPrefix(config_.ssid_prefix);
     config_ap_->SetLanguage(config_.language);
-    
+
     // Web handler calls this when user submits config
     config_ap_->OnExitRequested([this]() {
         ESP_LOGI(TAG, "Config exit requested from web");
         StopConfigAp();
     });
-    
+
     config_ap_->Start();
     config_mode_active_ = true;
 
-    mutex_.unlock();
+    lock.unlock();
     NotifyEvent(WifiEvent::ConfigModeEnter);
-    mutex_.lock();
+    lock.lock();
 }
 
 void WifiManager::StopConfigAp() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
+    std::unique_lock<std::mutex> lock(mutex_);
+
     if (!config_mode_active_) {
         return;
     }
@@ -271,9 +271,9 @@ void WifiManager::StopConfigAp() {
     config_ap_->Stop();
     config_mode_active_ = false;
 
-    mutex_.unlock();
+    lock.unlock();
     NotifyEvent(WifiEvent::ConfigModeExit);
-    mutex_.lock();
+    lock.lock();
 }
 
 bool WifiManager::IsConfigMode() const {
