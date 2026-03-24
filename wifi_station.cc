@@ -173,25 +173,30 @@ void WifiStation::HandleScanResult() {
 
     auto& ssid_manager = SsidManager::GetInstance();
     auto ssid_list = ssid_manager.GetSsidList();
-    for (int i = 0; i < ap_num; i++) {
-        auto ap_record = ap_records[i];
-        auto it = std::find_if(ssid_list.begin(), ssid_list.end(), [ap_record](const SsidItem& item) {
-            return strcmp((char *)ap_record.ssid, item.ssid.c_str()) == 0;
-        });
-        if (it != ssid_list.end()) {
+
+    for (const auto& ssid_item : ssid_list) {
+        wifi_ap_record_t *best_ap = nullptr;
+        for (int i = 0; i < ap_num; i++) {
+            if (strcmp((char *)ap_records[i].ssid, ssid_item.ssid.c_str()) == 0) {
+                if (best_ap == nullptr || ap_records[i].rssi > best_ap->rssi) {
+                    best_ap = &ap_records[i];
+                }
+            }
+        }
+        if (best_ap != nullptr) {
             ESP_LOGI(TAG, "Found AP: %s, BSSID: %02x:%02x:%02x:%02x:%02x:%02x, RSSI: %d, Channel: %d, Authmode: %d",
-                (char *)ap_record.ssid, 
-                ap_record.bssid[0], ap_record.bssid[1], ap_record.bssid[2],
-                ap_record.bssid[3], ap_record.bssid[4], ap_record.bssid[5],
-                ap_record.rssi, ap_record.primary, ap_record.authmode);
+                (char *)best_ap->ssid, 
+                best_ap->bssid[0], best_ap->bssid[1], best_ap->bssid[2],
+                best_ap->bssid[3], best_ap->bssid[4], best_ap->bssid[5],
+                best_ap->rssi, best_ap->primary, best_ap->authmode);
             WifiApRecord record = {
-                .ssid = it->ssid,
-                .password = it->password,
-                .channel = ap_record.primary,
-                .authmode = ap_record.authmode,
+                .ssid = ssid_item.ssid,
+                .password = ssid_item.password,
+                .channel = best_ap->primary,
+                .authmode = best_ap->authmode,
                 .bssid = {0}
             };
-            memcpy(record.bssid, ap_record.bssid, 6);
+            memcpy(record.bssid, best_ap->bssid, 6);
             connect_queue_.push_back(record);
         }
     }
@@ -221,11 +226,9 @@ void WifiStation::StartConnect() {
     bzero(&wifi_config, sizeof(wifi_config));
     strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
     strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
-    if (remember_bssid_) {
-        wifi_config.sta.channel = ap_record.channel;
-        memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
-        wifi_config.sta.bssid_set = true;
-    }
+    wifi_config.sta.channel = ap_record.channel;
+    memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
+    wifi_config.sta.bssid_set = true;
     wifi_config.sta.listen_interval = 10;
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
