@@ -176,8 +176,10 @@ void WifiStation::HandleScanResult() {
 
     for (const auto& ssid_item : ssid_list) {
         wifi_ap_record_t *best_ap = nullptr;
+        int same_ssid_count = 0;
         for (int i = 0; i < ap_num; i++) {
             if (strcmp((char *)ap_records[i].ssid, ssid_item.ssid.c_str()) == 0) {
+                same_ssid_count++;
                 if (best_ap == nullptr || ap_records[i].rssi > best_ap->rssi) {
                     best_ap = &ap_records[i];
                 }
@@ -197,6 +199,7 @@ void WifiStation::HandleScanResult() {
                 .bssid = {0}
             };
             memcpy(record.bssid, best_ap->bssid, 6);
+            record.has_multiple_same_ssid = (same_ssid_count > 1);
             connect_queue_.push_back(record);
         }
     }
@@ -226,9 +229,19 @@ void WifiStation::StartConnect() {
     bzero(&wifi_config, sizeof(wifi_config));
     strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
     strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
-    wifi_config.sta.channel = ap_record.channel;
-    memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
-    wifi_config.sta.bssid_set = true;
+
+    // If remember_bssid_ is enabled and there's only one AP with this SSID, use remembered BSSID
+    // If there are multiple APs with same SSID (mesh/dual-band), connect to strongest signal
+    if (remember_bssid_ && !ap_record.has_multiple_same_ssid) {
+        wifi_config.sta.channel = ap_record.channel;
+        memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
+        wifi_config.sta.bssid_set = true;
+    } else {
+        if (ap_record.has_multiple_same_ssid) {
+            ESP_LOGI(TAG, "Multiple APs with same SSID found, connecting to strongest signal");
+        }
+        wifi_config.sta.bssid_set = false;
+    }
     wifi_config.sta.listen_interval = 10;
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
