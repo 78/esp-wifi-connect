@@ -26,7 +26,6 @@ WifiStation::WifiStation() {
     nvs_handle_t nvs;
     esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to open NVS: %d", err);
         max_tx_power_ = 0;
         remember_bssid_ = 0;
     } else {
