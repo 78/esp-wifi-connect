@@ -158,6 +158,9 @@ void WifiConfigurationAp::StartAccessPoint()
     wifi_config.ap.ssid_len = ssid.length();
     wifi_config.ap.max_connection = 4;
     wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    wifi_config.ap.beacon_interval = 200;               // 增加信标间隔到200ms，减少功耗和干扰
+    wifi_config.ap.channel = 6;                         // 使用信道6，减少2.4G频段常见干扰
+    wifi_config.ap.ftm_responder = false;               // 关闭FTM响应减少开销
 
     // Start the WiFi Access Point
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
@@ -220,11 +223,15 @@ void WifiConfigurationAp::StartWebServer()
 {
     // Start the web server
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 24;
+    config.max_uri_handlers = 32;
     config.uri_match_fn = httpd_uri_match_wildcard;
     // 5G Network takes longer to connect
     config.recv_wait_timeout = 15;
     config.send_wait_timeout = 15;
+    config.max_open_sockets = 7;            // 修复socket数量限制，系统最大允许7，HTTP服务器内部使用3，留4个给用户连接
+    config.max_resp_headers = 16;
+    config.backlog_conn = 7;                // 相应调整backlog连接数
+    config.lru_purge_enable = true;
     ESP_ERROR_CHECK(httpd_start(&server_, &config));
 
     // Register the index.html file
@@ -415,6 +422,18 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_set_type(req, "application/json");
             httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
+
+            // 保存成功后延迟触发exit回调(防止HTTP响应未完全发送就重启或关闭AP导致响应被中断)
+            xTaskCreate([](void *ctx) {
+                ESP_LOGI(TAG, "Config saved, exiting in 1 second...");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto* self = static_cast<WifiConfigurationAp*>(ctx);
+                if (self->on_exit_requested_) {
+                    self->on_exit_requested_();
+                }
+                vTaskDelete(NULL);
+            }, "exit_after_save", 4096, this_, 5, NULL);
+
             return ESP_OK;
         },
         .user_ctx = this
