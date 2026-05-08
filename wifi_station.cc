@@ -139,7 +139,12 @@ void WifiStation::Start() {
         ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(max_tx_power_));
     }
 
-    // Setup the timer to scan WiFi
+    // Setup the timer to scan WiFi.
+    // skip_unhandled_events = false so the timer can wake the CPU from light
+    // sleep on its own; otherwise an idle device that failed to connect would
+    // never retry the scan, because esp_timer_get_next_alarm_for_wake_up
+    // (components/esp_timer/src/esp_timer.c) excludes timers with this flag
+    // from light-sleep wakeup sources.
     esp_timer_create_args_t timer_args = {
         .callback = [](void* arg) {
             esp_wifi_scan_start(nullptr, false);
@@ -147,7 +152,7 @@ void WifiStation::Start() {
         .arg = this,
         .dispatch_method = ESP_TIMER_TASK,
         .name = "WiFiScanTimer",
-        .skip_unhandled_events = true
+        .skip_unhandled_events = false
     };
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &timer_handle_));
 }

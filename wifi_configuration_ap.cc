@@ -92,7 +92,11 @@ void WifiConfigurationAp::Start()
     
     // Start scan immediately
     esp_wifi_scan_start(nullptr, false);
-    // Setup periodic WiFi scan timer
+    // Setup periodic WiFi scan timer.
+    // skip_unhandled_events = false so the timer can wake the CPU from light
+    // sleep on its own; otherwise the AP-mode scan list would stop refreshing
+    // whenever the user paused interacting with the config web UI. See
+    // esp_timer_get_next_alarm_for_wake_up in components/esp_timer/src/esp_timer.c.
     esp_timer_create_args_t timer_args = {
         .callback = [](void* arg) {
             auto* self = static_cast<WifiConfigurationAp*>(arg);
@@ -103,7 +107,7 @@ void WifiConfigurationAp::Start()
         .arg = this,
         .dispatch_method = ESP_TIMER_TASK,
         .name = "wifi_scan_timer",
-        .skip_unhandled_events = true
+        .skip_unhandled_events = false
     };
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &scan_timer_));
 }
