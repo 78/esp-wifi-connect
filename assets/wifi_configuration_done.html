@@ -9,6 +9,8 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            background-color: #f0f4ff;
+            color: #0B2447;
         }
 
         .container {
@@ -28,12 +30,41 @@
             width: 150px;
             height: 150px;
             margin-bottom: 30px;
+            animation: scaleIn 0.4s ease-out;
+        }
+        .checkmark__circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            animation: drawCircle 0.6s ease-out 0.2s forwards;
+        }
+        .checkmark__check {
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: drawCheck 0.4s ease-out 0.7s forwards;
+        }
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes drawCircle {
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes drawCheck {
+            to { stroke-dashoffset: 0; }
         }
 
         .message {
             text-align: center;
             font-size: 20px;
             margin-bottom: 20px;
+            color: #0B2447;
+            font-weight: bold;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out 1s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
     </style>
 </head>

@@ -11,13 +11,16 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f0f0;
+            background-color: #f0f4ff;
+            color: #0B2447;
         }
 
         /* ========== Form Elements ========== */
         label {
             display: block;
             margin-bottom: 5px;
+            color: #0B2447;
+            font-weight: bold;
         }
         input {
             width: 100%;
@@ -26,55 +29,181 @@
             border: 1px solid #ccc;
             border-radius: 3px;
         }
-        input[type="submit"] {
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 3px;
+
+        /* ========== Input Container Style ========== */
+        .input-container {
+            position: relative;
+        }
+        .input-container input[type="text"],
+        .input-container input[type="password"] {
             padding: 10px;
+            height: 40px;
+            border: 2px solid #0B2447;
+            border-top: none;
+            border-bottom: none;
+            font-size: 16px;
+            background: transparent;
+            outline: none;
+            box-shadow: 7px 7px 0px 0px #0B2447;
+            transition: all 0.5s;
+            color: #0B2447;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0;
+        }
+        .input-container input[type="text"]:focus,
+        .input-container input[type="password"]:focus {
+            box-shadow: none;
+            transition: all 0.5s;
+        }
+        .input-container .topline {
+            position: absolute;
+            background-color: #0B2447;
+            width: 0%;
+            height: 2px;
+            right: 0;
+            top: 0;
+            transition: all 0.5s;
+        }
+        .input-container input:focus ~ .topline {
+            width: 35%;
+            transition: all 0.5s;
+        }
+        .input-container .underline {
+            position: absolute;
+            background-color: #0B2447;
+            width: 0%;
+            height: 2px;
+            right: 0;
+            bottom: 0;
+            transition: all 0.5s;
+        }
+        .input-container input:focus ~ .underline {
+            width: 100%;
+            transition: all 0.5s;
+        }
+
+        /* ========== Submit Buttons ========== */
+        input[type="submit"] {
+            background-color: #0B2447;
+            color: #fff;
+            border: 2px solid #0B2447;
+            border-radius: 0;
+            padding: 12px 36px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 5px 5px 0px 0px #19376D;
+            transition: all 0.3s;
+            letter-spacing: 1px;
         }
         input[type="submit"]:hover {
-            background-color: #0056b3;
+            box-shadow: none;
+            transform: translate(5px, 5px);
         }
         input[type="submit"]:disabled {
-            background-color: #ccc;
+            background-color: #A5B4CF;
+            border-color: #A5B4CF;
+            box-shadow: 5px 5px 0px 0px #8899B3;
             cursor: not-allowed;
+            transform: none;
         }
         #remember_bssid, #sleep_mode {
             width: auto;
+            accent-color: #0B2447;
+        }
+
+        /* ========== Select Styles ========== */
+        select {
+            padding: 8px 12px;
+            border: 2px solid #0B2447;
+            border-radius: 0;
+            background-color: #fff;
+            color: #0B2447;
+            font-size: 14px;
+            outline: none;
+            box-shadow: 4px 4px 0px 0px #0B2447;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        select:focus {
+            box-shadow: none;
+        }
+
+        /* ========== Button Styles ========== */
+        button {
+            padding: 6px 12px;
+            border: 2px solid #0B2447;
+            border-radius: 0;
+            background-color: #fff;
+            color: #0B2447;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 3px 3px 0px 0px #0B2447;
+            transition: all 0.3s;
+        }
+        button:hover {
+            box-shadow: none;
+            transform: translate(3px, 3px);
         }
 
         /* ========== AP List Styles ========== */
         #ap_list {
             margin-top: 20px;
-            border-top: 1px solid #ccc;
+            border-top: 2px solid #0B2447;
             padding-top: 10px;
         }
         #ap_list .scanning {
             font-style: italic;
-            color: #666;
+            color: #576CBC;
         }
         #ap_list a {
             display: block;
-            margin-top: 5px;
-            color: #007bff;
+            margin-top: 6px;
+            padding: 8px 12px;
+            color: #0B2447;
             text-decoration: none;
+            border: 1px solid #d0d8e8;
+            background: #fff;
+            transition: all 0.3s;
         }
         #ap_list a:hover {
-            text-decoration: underline;
+            background-color: #0B2447;
+            color: #fff;
+            box-shadow: 4px 4px 0px 0px #19376D;
         }
 
         /* ========== Language Switcher ========== */
         .language-switch {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 20px 0 20px;
         }
         .language-switch select {
-            padding: 5px;
-            border-radius: 3px;
-            border: 1px solid #ccc;
+            padding: 5px 8px;
+        }
+
+        /* ========== Advanced Form Items ========== */
+        .adv-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border: 1px solid #d0d8e8;
+            background: #f8faff;
+        }
+        .adv-row label {
+            margin: 0;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .adv-row select {
+            flex: 1;
+        }
+        .adv-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
         }
 
         /* ========== Tab Styles ========== */
@@ -83,21 +212,27 @@
             margin-top: 20px;
             margin-bottom: 0;
             padding-left: 20px;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 2px solid #0B2447;
         }
         .tab {
             padding: 10px 20px;
             cursor: pointer;
-            border: 1px solid #ccc;
+            border: 2px solid #0B2447;
             border-bottom: none;
-            border-radius: 5px 5px 0 0;
+            border-radius: 0;
             margin-right: 5px;
-            background-color: #f0f0f0;
+            background-color: #e8edf8;
             position: relative;
-            top: 1px;
+            top: 2px;
+            font-weight: bold;
+            color: #0B2447;
+            transition: all 0.3s;
         }
         .tab.active {
             background-color: #fff;
+        }
+        .tab:hover:not(.active) {
+            background-color: #d0d8e8;
         }
         .tab-content {
             display: none;
@@ -115,15 +250,16 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(11, 36, 71, 0.9);
             color: white;
             padding: 15px 30px;
-            border-radius: 8px;
+            border-radius: 0;
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
             min-width: 200px;
             text-align: center;
+            box-shadow: 6px 6px 0px 0px rgba(25, 55, 109, 0.5);
         }
         .toast.show {
             opacity: 1;
@@ -137,7 +273,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(11, 36, 71, 0.7);
             z-index: 2000;
             justify-content: center;
             align-items: center;
@@ -166,6 +302,28 @@
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* ========== Saved List ========== */
+        #saved_list {
+            list-style: none;
+            padding: 0;
+        }
+        #saved_list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border: 1px solid #d0d8e8;
+            background: #fff;
+        }
+
+        /* ========== Headings ========== */
+        h3 {
+            color: #0B2447;
+            border-bottom: 2px solid #0B2447;
+            padding-bottom: 5px;
         }
     </style>
 </head>
@@ -248,11 +406,19 @@
             <form action="/submit" method="post" onsubmit="submitForm(event)">
                 <p>
                     <label for="ssid">SSID:</label>
-                    <input type="text" id="ssid" name="ssid" required readonly>
+                    <div class="input-container">
+                        <input type="text" id="ssid" name="ssid" required readonly>
+                        <div class="topline"></div>
+                        <div class="underline"></div>
+                    </div>
                 </p>
                 <p>
                     <label for="password" data-lang="password">Password:</label>
-                    <input type="password" id="password" name="password">
+                    <div class="input-container">
+                        <input type="password" id="password" name="password">
+                        <div class="topline"></div>
+                        <div class="underline"></div>
+                    </div>
                 </p>
                 <p style="text-align: center;">
                     <input type="submit" value="Connect" id="button" data-lang-value="connect">
@@ -273,14 +439,18 @@
                 <p>
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
-                        <button type="button" onclick="clearOtaUrl()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; background-color: #f0f0f0; cursor: pointer;">❌</button>
+                        <div class="input-container" style="flex: 1;">
+                            <input type="text" id="ota_url" name="ota_url">
+                            <div class="topline"></div>
+                            <div class="underline"></div>
+                        </div>
+                        <button type="button" onclick="clearOtaUrl()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L13 13M13 1L1 13" stroke="#0B2447" stroke-width="2" stroke-linecap="round"/></svg></button>
                     </div>
                 </p>
 
                 <!-- Max TX Power -->
-                <p style="display: flex; align-items: center; gap: 10px;">
-                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Wi-Fi Max TX Power:</label>
+                <div class="adv-row">
+                    <label for="max_tx_power" data-lang="max_tx_power">Wi-Fi Max TX Power:</label>
                     <select id="max_tx_power" name="max_tx_power">
                         <option value="8">2 dBm</option>
                         <option value="20">5 dBm</option>
@@ -294,23 +464,23 @@
                         <option value="72">18 dBm</option>
                         <option value="80">20 dBm</option>
                     </select>
-                </p>
+                </div>
 
                 <!-- Remember BSSID -->
-                <p style="display: flex; align-items: center; gap: 10px;">
-                    <label for="remember_bssid" style="margin: 0;">
+                <div class="adv-row">
+                    <label for="remember_bssid">
                         <span data-lang="remember_bssid">Remember BSSID when connecting to Wi-Fi</span>
                     </label>
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
-                </p>
+                </div>
 
                 <!-- Sleep Mode -->
-                <p style="display: flex; align-items: center; gap: 10px;">
-                    <label for="sleep_mode" style="margin: 0;">
+                <div class="adv-row">
+                    <label for="sleep_mode">
                         <span data-lang="sleep_mode">Enable Sleep Mode</span>
                     </label>
                     <input type="checkbox" id="sleep_mode" name="sleep_mode">
-                </p>
+                </div>
 
                 <p style="text-align: center;">
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
