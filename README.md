@@ -14,6 +14,10 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_advanced.png" width="320" alt="Advanced Configuration">
 
+### Screenshot: Wi-Fi Configuration v3.2
+
+<img src="assets/ap_v3_2.jpg" width="320" alt="Wi-Fi Configuration v3.2">
+
 ## Changelog: v3.2.0
 
 - Station mode now connects to the strongest same-SSID AP. `StartConnect()` sets `WIFI_ALL_CHANNEL_SCAN` + `WIFI_CONNECT_AP_BY_SIGNAL` on the station config so the driver picks the AP with the best signal instead of the first match it finds (the previous default was `WIFI_FAST_SCAN`).
