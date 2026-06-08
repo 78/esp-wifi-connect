@@ -5,10 +5,37 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <style>
+        :root {
+            --bg-grad-1: #eef2ff;
+            --bg-grad-2: #e0f2fe;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-grad-1: #0b1220;
+                --bg-grad-2: #111827;
+                --surface: #1e293b;
+                --border: #334155;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+                --success: #4ade80;
+                --shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            background: linear-gradient(160deg, var(--bg-grad-1), var(--bg-grad-2));
         }
 
         .container {
@@ -17,41 +44,83 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            font-family: Arial, sans-serif;
-            /* Prevent content from overflowing */
             max-height: 100vh;
-            box-sizing: border-box;
-            padding: 20px;
+            padding: 24px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 40px 36px;
+            max-width: 360px;
+            width: 100%;
         }
 
         .checkmark {
-            width: 150px;
-            height: 150px;
-            margin-bottom: 30px;
+            width: 110px;
+            height: 110px;
+            margin-bottom: 24px;
+        }
+        .checkmark__circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke: var(--success);
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark__check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            stroke: var(--success);
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+        }
+
+        @keyframes stroke {
+            to { stroke-dashoffset: 0; }
         }
 
         .message {
             text-align: center;
+        }
+        .message .primary {
             font-size: 20px;
-            margin-bottom: 20px;
+            font-weight: 700;
+            margin: 0 0 6px;
+        }
+        .message .secondary {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <svg class="checkmark" viewBox="0 0 52 52">
-            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" stroke="#4CAF50" stroke-width="2"/>
-            <path class="checkmark__check" fill="none" stroke="#4CAF50" stroke-width="2" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-        </svg>
-        
-        <div class="message">
-            <p>配置成功！</p>
-            <p>Configuration successful!</p>
+        <div class="card">
+            <svg class="checkmark" viewBox="0 0 52 52">
+                <circle class="checkmark__circle" cx="26" cy="26" r="25" stroke-width="2"/>
+                <path class="checkmark__check" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+
+            <div class="message">
+                <p class="primary" id="message">Configuration successful!</p>
+            </div>
         </div>
     </div>
     
     <script>
         window.addEventListener('load', function() {
+            const params = new URLSearchParams(window.location.search);
+            const message = params.get('message') || 'Configuration successful!';
+            document.title = message;
+            document.getElementById('message').textContent = message;
+
             // Send exit request after a short delay
             setTimeout(function() {
                 fetch('/exit', {

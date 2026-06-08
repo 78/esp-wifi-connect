@@ -6,149 +6,411 @@
     <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <style type="text/css">
+        /* ========== Design Tokens ========== */
+        :root {
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-soft: rgba(37, 99, 235, 0.10);
+            --bg-grad-1: #eef2ff;
+            --bg-grad-2: #e0f2fe;
+            --surface: #ffffff;
+            --surface-muted: #f5f7fb;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --radius: 14px;
+            --radius-sm: 10px;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --accent: #60a5fa;
+                --accent-hover: #93c5fd;
+                --accent-soft: rgba(96, 165, 250, 0.16);
+                --bg-grad-1: #0b1220;
+                --bg-grad-2: #111827;
+                --surface: #1e293b;
+                --surface-muted: #18233a;
+                --border: #334155;
+                --border-strong: #475569;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+                --danger: #f87171;
+                --success: #4ade80;
+                --shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+            }
+        }
+
         /* ========== Base Styles ========== */
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
+            padding: 12px 16px 32px;
+            color: var(--text);
+            background: linear-gradient(160deg, var(--bg-grad-1), var(--bg-grad-2));
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100%;
+        }
+
+        .page {
+            max-width: 460px;
+            margin: 0 auto;
+        }
+
+        /* ========== Header ========== */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 4px 10px;
+        }
+        .app-header .logo {
+            width: 32px;
+            height: 32px;
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            background: var(--accent);
+            color: #fff;
+            box-shadow: var(--shadow);
+        }
+        .app-header .logo svg { width: 19px; height: 19px; }
+
+        /* ========== Card ========== */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        h3 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin: 0 0 12px;
         }
 
         /* ========== Form Elements ========== */
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
         }
-        input {
+        input[type="text"],
+        input[type="password"],
+        select {
             width: 100%;
-            padding: 5px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            padding: 11px 12px;
+            font-size: 15px;
+            color: var(--text);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            -webkit-appearance: none;
+            appearance: none;
         }
-        input[type="submit"] {
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 3px;
-            padding: 10px;
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus {
+            border-color: var(--accent);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
             cursor: pointer;
         }
-        input[type="submit"]:hover {
-            background-color: #0056b3;
+        form p { margin: 0 0 16px; }
+
+        input[type="submit"] {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.05s;
         }
+        input[type="submit"]:hover { background: var(--accent-hover); }
+        input[type="submit"]:active { transform: translateY(1px); }
         input[type="submit"]:disabled {
-            background-color: #ccc;
+            background: var(--border-strong);
             cursor: not-allowed;
         }
-        #remember_bssid, #sleep_mode {
-            width: auto;
-        }
 
-        /* ========== AP List Styles ========== */
-        #ap_list {
-            margin-top: 20px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
+        .error {
+            color: var(--danger);
+            font-size: 13px;
+            text-align: center;
+            margin: 0 0 12px;
         }
-        #ap_list .scanning {
-            font-style: italic;
-            color: #666;
-        }
-        #ap_list a {
-            display: block;
-            margin-top: 5px;
-            color: #007bff;
-            text-decoration: none;
-        }
-        #ap_list a:hover {
-            text-decoration: underline;
+        .error:empty {
+            display: none;
         }
 
         /* ========== Language Switcher ========== */
         .language-switch {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .language-switch svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+            flex: none;
         }
         .language-switch select {
-            padding: 5px;
-            border-radius: 3px;
-            border: 1px solid #ccc;
+            width: auto;
+            padding: 7px 30px 7px 10px;
+            font-size: 13px;
+            background-position: right 8px center;
         }
 
         /* ========== Tab Styles ========== */
         .tabs {
             display: flex;
-            margin-top: 20px;
-            margin-bottom: 0;
-            padding-left: 20px;
-            border-bottom: 1px solid #ccc;
+            gap: 6px;
+            padding: 6px;
+            margin: 0;
+            background: var(--surface-muted);
+            border-bottom: 1px solid var(--border);
         }
         .tab {
-            padding: 10px 20px;
+            flex: 1;
+            padding: 10px 14px;
             cursor: pointer;
-            border: 1px solid #ccc;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
-            margin-right: 5px;
-            background-color: #f0f0f0;
-            position: relative;
-            top: 1px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border: none;
+            border-radius: 9px;
+            background: transparent;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
         }
+        .tab:hover { color: var(--text); }
         .tab.active {
-            background-color: #fff;
+            background: var(--surface);
+            color: var(--accent);
+            box-shadow: var(--shadow);
         }
         .tab-content {
             display: none;
-            border-top: none;
             padding: 20px;
-            background-color: #fff;
+            background: var(--surface);
         }
         .tab-content.active {
             display: block;
         }
+        #saved_list_container { margin-bottom: 24px; }
+
+        /* ========== Saved Wi-Fi List ========== */
+        #saved_list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #saved_list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 5px 12px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+        }
+        #saved_list li > span:first-child {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #saved_list li button {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        #saved_list li button:hover { background: var(--accent-soft); }
+        #saved_list li button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ========== AP List Styles ========== */
+        #ap_list {
+            margin: 16px 0 0;
+            padding: 16px 0 0;
+            border-top: 1px solid var(--border);
+        }
+        #ap_list > p:first-child {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0 0 4px;
+        }
+        #ap_list .scanning {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-style: normal;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        #ap_list .scanning::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--border-strong);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        #ap_list a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+            padding: 7px 12px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        #ap_list a:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            text-decoration: none;
+        }
+
+        /* ========== Advanced rows ========== */
+        #ota_url_row { margin-bottom: 16px; }
+        .field-inline {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .field-inline label { margin: 0; }
+        .field-inline select { width: auto; min-width: 120px; margin-left: auto; }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+        }
+        .switch-row label {
+            margin: 0;
+            color: var(--text);
+            font-weight: 500;
+            flex: 1;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            flex: none;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            flex: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .icon-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .icon-btn svg { width: 18px; height: 18px; }
 
         /* ========== Toast Message Styles ========== */
         .toast {
             position: fixed;
-            top: 50%;
+            bottom: 28px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 8px;
+            transform: translateX(-50%) translateY(12px);
+            background: rgba(15, 23, 42, 0.92);
+            color: #fff;
+            padding: 13px 22px;
+            border-radius: 12px;
             z-index: 1000;
             opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            min-width: 200px;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            font-size: 14px;
+            box-shadow: var(--shadow);
+            max-width: 90vw;
             text-align: center;
         }
         .toast.show {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* ========== Loading Spinner Styles ========== */
         .loading-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(2px);
             z-index: 2000;
             justify-content: center;
             align-items: center;
         }
-        .loading-overlay.show {
-            display: flex;
-        }
+        .loading-overlay.show { display: flex; }
         .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255, 255, 255, 0.3);
+            width: 56px;
+            height: 56px;
+            border: 5px solid rgba(255, 255, 255, 0.25);
             border-top-color: #ffffff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -157,12 +419,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 18px;
         }
         .loading-text {
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -180,10 +442,26 @@
             <div class="loading-text" data-lang="connecting">Connecting...</div>
         </div>
     </div>
-    
-    <!-- Language switcher -->
-    <div class="language-switch">
-        <select id="language" onchange="changeLanguage()">
+
+    <div class="page">
+    <!-- Header -->
+    <header class="app-header">
+        <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+            </svg>
+        </span>
+        <!-- Language switcher -->
+        <div class="language-switch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <select id="language" onchange="changeLanguage()">
             <option value="ar-SA">العربية</option>
             <option value="bg-BG">Български</option>
             <option value="ca-ES">Català</option>
@@ -222,9 +500,11 @@
             <option value="vi-VN">Tiếng Việt</option>
             <option value="zh-CN">简体中文</option>
             <option value="zh-TW">繁體中文</option>
-        </select>
-    </div>
-    
+            </select>
+        </div>
+    </header>
+
+    <div class="card">
     <!-- Tabs -->
     <div class="tabs">
         <div class="tab active" onclick="switchTab('wifi')" data-lang="wifi_tab">Wi-Fi Config</div>
@@ -234,7 +514,7 @@
     <!-- Wi-Fi Configuration Tab -->
     <div id="wifi-tab" class="tab-content active">
         <!-- Saved Wi-Fi List -->
-        <div id="saved_list_container" style="display: none;">
+        <div class="section" id="saved_list_container" style="display: none;">
             <h3 data-lang="saved_wifi">Saved Wi-Fi</h3>
             <ul id="saved_list">
                 <li><span>SSID</span></li>
@@ -242,9 +522,9 @@
         </div>
         
         <!-- New Wi-Fi Connection -->
-        <div>
+        <div class="section">
             <h3 data-lang="new_wifi">New Wi-Fi</h3>
-            <p class="error" style="color: red; text-align: center;" id="error"></p>
+            <p class="error" id="error"></p>
             <form action="/submit" method="post" onsubmit="submitForm(event)">
                 <p>
                     <label for="ssid">SSID:</label>
@@ -254,11 +534,11 @@
                     <label for="password" data-lang="password">Password:</label>
                     <input type="password" id="password" name="password">
                 </p>
-                <p style="text-align: center;">
+                <p>
                     <input type="submit" value="Connect" id="button" data-lang-value="connect">
                 </p>
             </form>
-            <p id="ap_list"></p>
+            <div id="ap_list"></div>
         </div>
     </div>
 
@@ -266,20 +546,21 @@
     <div id="advanced-tab" class="tab-content">
         <form action="/advanced/submit" method="post" onsubmit="submitAdvancedForm(event)">
             <div>
-                <h3 data-lang="advanced_tab">Advanced</h3>
-                <p class="error" style="color: red; text-align: center;" id="advanced_error"></p>
+                <p class="error" id="advanced_error"></p>
                 
                 <!-- OTA URL (visibility controlled by show_ota_config from server) -->
                 <div id="ota_url_row" style="display: none;">
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
-                        <button type="button" onclick="clearOtaUrl()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; background-color: #f0f0f0; cursor: pointer;">❌</button>
+                        <button type="button" class="icon-btn" onclick="clearOtaUrl()" aria-label="Clear">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Max TX Power -->
-                <p style="display: flex; align-items: center; gap: 10px;">
+                <p class="field-inline">
                     <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Wi-Fi Max TX Power:</label>
                     <select id="max_tx_power" name="max_tx_power">
                         <option value="8">2 dBm</option>
@@ -297,26 +578,28 @@
                 </p>
 
                 <!-- Remember BSSID -->
-                <p style="display: flex; align-items: center; gap: 10px;">
-                    <label for="remember_bssid" style="margin: 0;">
+                <div class="switch-row">
+                    <label for="remember_bssid">
                         <span data-lang="remember_bssid">Remember BSSID when connecting to Wi-Fi</span>
                     </label>
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
-                </p>
+                </div>
 
                 <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
-                <div id="sleep_config_row" style="display: none; align-items: center; gap: 10px;">
-                    <label for="sleep_mode" style="margin: 0;">
+                <div class="switch-row" id="sleep_config_row" style="display: none;">
+                    <label for="sleep_mode">
                         <span data-lang="sleep_mode">Enable Sleep Mode</span>
                     </label>
                     <input type="checkbox" id="sleep_mode" name="sleep_mode">
                 </div>
 
-                <p style="text-align: center;">
+                <p>
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
                 </p>
             </div>
         </form>
+    </div>
+    </div>
     </div>
 
     <script type="text/javascript">
@@ -344,7 +627,8 @@
                 max_tx_power: 'أقصى قوة إرسال Wi-Fi:',
                 remember_bssid: 'تذكر BSSID عند الاتصال بـ Wi-Fi',
                 sleep_mode: 'تمكين وضع السكون',
-                save: 'حفظ'
+                save: 'حفظ',
+                config_success: 'تم التكوين بنجاح!'
             },
             'bg-BG': {
                 title: 'Конфигурация на мрежата',
@@ -362,7 +646,8 @@
                 max_tx_power: 'Макс. мощност на предаване Wi-Fi:',
                 remember_bssid: 'Запомни BSSID при свързване към Wi-Fi',
                 sleep_mode: 'Активиране на режим на заспиване',
-                save: 'Запазване'
+                save: 'Запазване',
+                config_success: 'Конфигурацията е успешна!'
             },
             'ca-ES': {
                 title: 'Configuració de xarxa',
@@ -380,7 +665,8 @@
                 max_tx_power: 'Potència màxima TX Wi-Fi:',
                 remember_bssid: 'Recordar BSSID en connectar a Wi-Fi',
                 sleep_mode: 'Activar mode de suspensió',
-                save: 'Desar'
+                save: 'Desar',
+                config_success: 'Configuració completada correctament!'
             },
             'cs-CZ': {
                 title: 'Konfigurace sítě',
@@ -398,7 +684,8 @@
                 max_tx_power: 'Max. vysílací výkon Wi-Fi:',
                 remember_bssid: 'Pamatovat si BSSID při připojení k Wi-Fi',
                 sleep_mode: 'Povolit režim spánku',
-                save: 'Uložit'
+                save: 'Uložit',
+                config_success: 'Konfigurace byla úspěšná!'
             },
             'da-DK': {
                 title: 'Netværkskonfiguration',
@@ -416,7 +703,8 @@
                 max_tx_power: 'Wi-Fi maks. TX-effekt:',
                 remember_bssid: 'Husk BSSID ved forbindelse til Wi-Fi',
                 sleep_mode: 'Aktiver dvaletilstand',
-                save: 'Gem'
+                save: 'Gem',
+                config_success: 'Konfigurationen lykkedes!'
             },
             'de-DE': {
                 title: 'Netzwerk-Konfiguration',
@@ -434,7 +722,8 @@
                 max_tx_power: 'Wi-Fi Max. Sendeleistung:',
                 remember_bssid: 'BSSID beim Verbinden mit Wi-Fi merken',
                 sleep_mode: 'Schlafmodus aktivieren',
-                save: 'Speichern'
+                save: 'Speichern',
+                config_success: 'Konfiguration erfolgreich!'
             },
             'el-GR': {
                 title: 'Διαμόρφωση δικτύου',
@@ -452,7 +741,8 @@
                 max_tx_power: 'Μέγιστη ισχύς μετάδοσης Wi-Fi:',
                 remember_bssid: 'Απομνημόνευση BSSID κατά τη σύνδεση σε Wi-Fi',
                 sleep_mode: 'Ενεργοποίηση λειτουργίας αναστολής',
-                save: 'Αποθήκευση'
+                save: 'Αποθήκευση',
+                config_success: 'Η διαμόρφωση ολοκληρώθηκε με επιτυχία!'
             },
             'en-US': {
                 title: 'Network Configuration',
@@ -470,7 +760,8 @@
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
-                save: 'Save'
+                save: 'Save',
+                config_success: 'Configuration successful!'
             },
             'es-ES': {
                 title: 'Configuración de red',
@@ -488,7 +779,8 @@
                 max_tx_power: 'Potencia máxima TX Wi-Fi:',
                 remember_bssid: 'Recordar BSSID al conectarse a Wi-Fi',
                 sleep_mode: 'Activar modo de suspensión',
-                save: 'Guardar'
+                save: 'Guardar',
+                config_success: '¡Configuración exitosa!'
             },
             'fa-IR': {
                 title: 'پیکربندی شبکه',
@@ -506,7 +798,8 @@
                 max_tx_power: 'حداکثر قدرت انتقال Wi-Fi:',
                 remember_bssid: 'به خاطر سپردن BSSID هنگام اتصال به Wi-Fi',
                 sleep_mode: 'فعال کردن حالت خواب',
-                save: 'ذخیره'
+                save: 'ذخیره',
+                config_success: 'پیکربندی با موفقیت انجام شد!'
             },
             'fi-FI': {
                 title: 'Verkon määritys',
@@ -524,7 +817,8 @@
                 max_tx_power: 'Wi-Fi maks. lähetysteho:',
                 remember_bssid: 'Muista BSSID yhdistettäessä Wi-Fi-verkkoon',
                 sleep_mode: 'Ota lepotila käyttöön',
-                save: 'Tallenna'
+                save: 'Tallenna',
+                config_success: 'Määritys onnistui!'
             },
             'fil-PH': {
                 title: 'Pagsasaayos ng Network',
@@ -542,7 +836,8 @@
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Tandaan ang BSSID kapag kumokonekta sa Wi-Fi',
                 sleep_mode: 'I-enable ang Sleep Mode',
-                save: 'I-save'
+                save: 'I-save',
+                config_success: 'Matagumpay ang configuration!'
             },
             'fr-FR': {
                 title: 'Configuration réseau',
@@ -560,7 +855,8 @@
                 max_tx_power: 'Puissance TX maximale Wi-Fi:',
                 remember_bssid: 'Mémoriser le BSSID lors de la connexion au Wi-Fi',
                 sleep_mode: 'Activer le mode veille',
-                save: 'Enregistrer'
+                save: 'Enregistrer',
+                config_success: 'Configuration réussie !'
             },
             'he-IL': {
                 title: 'הגדרות רשת',
@@ -578,7 +874,8 @@
                 max_tx_power: 'הספק שידור מקסימלי Wi-Fi:',
                 remember_bssid: 'זכור BSSID בעת התחברות ל-Wi-Fi',
                 sleep_mode: 'הפעל מצב שינה',
-                save: 'שמור'
+                save: 'שמור',
+                config_success: 'ההגדרה הושלמה בהצלחה!'
             },
             'hi-IN': {
                 title: 'नेटवर्क कॉन्फ़िगरेशन',
@@ -596,7 +893,8 @@
                 max_tx_power: 'Wi-Fi अधिकतम TX पावर:',
                 remember_bssid: 'Wi-Fi से कनेक्ट करते समय BSSID याद रखें',
                 sleep_mode: 'स्लीप मोड सक्षम करें',
-                save: 'सहेजें'
+                save: 'सहेजें',
+                config_success: 'कॉन्फ़िगरेशन सफल!'
             },
             'hr-HR': {
                 title: 'Konfiguracija mreže',
@@ -614,7 +912,8 @@
                 max_tx_power: 'Wi-Fi maksimalna TX snaga:',
                 remember_bssid: 'Zapamti BSSID pri povezivanju na Wi-Fi',
                 sleep_mode: 'Omogući način spavanja',
-                save: 'Spremi'
+                save: 'Spremi',
+                config_success: 'Konfiguracija uspješna!'
             },
             'hu-HU': {
                 title: 'Hálózati konfiguráció',
@@ -632,7 +931,8 @@
                 max_tx_power: 'Wi-Fi max. adási teljesítmény:',
                 remember_bssid: 'BSSID megjegyzése Wi-Fi csatlakozáskor',
                 sleep_mode: 'Alvó mód engedélyezése',
-                save: 'Mentés'
+                save: 'Mentés',
+                config_success: 'Sikeres konfiguráció!'
             },
             'id-ID': {
                 title: 'Konfigurasi Jaringan',
@@ -650,7 +950,8 @@
                 max_tx_power: 'Daya Pancar Maks Wi-Fi:',
                 remember_bssid: 'Ingat BSSID saat menghubungkan ke Wi-Fi',
                 sleep_mode: 'Aktifkan Mode Tidur',
-                save: 'Simpan'
+                save: 'Simpan',
+                config_success: 'Konfigurasi berhasil!'
             },
             'it-IT': {
                 title: 'Configurazione di rete',
@@ -668,7 +969,8 @@
                 max_tx_power: 'Potenza TX massima Wi-Fi:',
                 remember_bssid: 'Ricorda BSSID durante la connessione al Wi-Fi',
                 sleep_mode: 'Abilita modalità sospensione',
-                save: 'Salva'
+                save: 'Salva',
+                config_success: 'Configurazione riuscita!'
             },
             'ja-JP': {
                 title: 'ネットワーク設定',
@@ -686,7 +988,8 @@
                 max_tx_power: 'Wi-Fi最大送信電力:',
                 remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
                 sleep_mode: 'スリープモードを有効にする',
-                save: '保存'
+                save: '保存',
+                config_success: '設定が完了しました！'
             },
             'ko-KR': {
                 title: '네트워크 구성',
@@ -704,7 +1007,8 @@
                 max_tx_power: 'Wi-Fi 최대 송신 전력:',
                 remember_bssid: 'Wi-Fi 연결 시 BSSID 기억',
                 sleep_mode: '절전 모드 활성화',
-                save: '저장'
+                save: '저장',
+                config_success: '설정이 완료되었습니다!'
             },
             'ms-MY': {
                 title: 'Konfigurasi Rangkaian',
@@ -722,7 +1026,8 @@
                 max_tx_power: 'Kuasa TX Maksimum Wi-Fi:',
                 remember_bssid: 'Ingat BSSID semasa menyambung ke Wi-Fi',
                 sleep_mode: 'Dayakan Mod Tidur',
-                save: 'Simpan'
+                save: 'Simpan',
+                config_success: 'Konfigurasi berjaya!'
             },
             'nb-NO': {
                 title: 'Nettverkskonfigurasjon',
@@ -740,7 +1045,8 @@
                 max_tx_power: 'Wi-Fi maks. sendeeffekt:',
                 remember_bssid: 'Husk BSSID ved tilkobling til Wi-Fi',
                 sleep_mode: 'Aktiver hvilemodus',
-                save: 'Lagre'
+                save: 'Lagre',
+                config_success: 'Konfigurasjonen var vellykket!'
             },
             'nl-NL': {
                 title: 'Netwerkconfiguratie',
@@ -758,7 +1064,8 @@
                 max_tx_power: 'Wi-Fi max. zendvermogen:',
                 remember_bssid: 'BSSID onthouden bij verbinden met Wi-Fi',
                 sleep_mode: 'Slaapmodus inschakelen',
-                save: 'Opslaan'
+                save: 'Opslaan',
+                config_success: 'Configuratie gelukt!'
             },
             'pl-PL': {
                 title: 'Konfiguracja sieci',
@@ -776,7 +1083,8 @@
                 max_tx_power: 'Maksymalna moc nadawania Wi-Fi:',
                 remember_bssid: 'Zapamiętaj BSSID podczas łączenia z Wi-Fi',
                 sleep_mode: 'Włącz tryb uśpienia',
-                save: 'Zapisz'
+                save: 'Zapisz',
+                config_success: 'Konfiguracja zakończona sukcesem!'
             },
             'pt-PT': {
                 title: 'Configuração de rede',
@@ -794,7 +1102,8 @@
                 max_tx_power: 'Potência TX máxima Wi-Fi:',
                 remember_bssid: 'Lembrar BSSID ao ligar ao Wi-Fi',
                 sleep_mode: 'Ativar modo de suspensão',
-                save: 'Guardar'
+                save: 'Guardar',
+                config_success: 'Configuração bem-sucedida!'
             },
             'ro-RO': {
                 title: 'Configurare rețea',
@@ -812,7 +1121,8 @@
                 max_tx_power: 'Putere maximă TX Wi-Fi:',
                 remember_bssid: 'Reține BSSID la conectarea la Wi-Fi',
                 sleep_mode: 'Activează modul de repaus',
-                save: 'Salvare'
+                save: 'Salvare',
+                config_success: 'Configurare reușită!'
             },
             'ru-RU': {
                 title: 'Настройка сети',
@@ -830,7 +1140,8 @@
                 max_tx_power: 'Макс. мощность передачи Wi-Fi:',
                 remember_bssid: 'Запомнить BSSID при подключении к Wi-Fi',
                 sleep_mode: 'Включить режим сна',
-                save: 'Сохранить'
+                save: 'Сохранить',
+                config_success: 'Настройка успешно завершена!'
             },
             'sk-SK': {
                 title: 'Konfigurácia siete',
@@ -848,7 +1159,8 @@
                 max_tx_power: 'Max. vysielací výkon Wi-Fi:',
                 remember_bssid: 'Zapamätať si BSSID pri pripojení k Wi-Fi',
                 sleep_mode: 'Povoliť režim spánku',
-                save: 'Uložiť'
+                save: 'Uložiť',
+                config_success: 'Konfigurácia bola úspešná!'
             },
             'sl-SI': {
                 title: 'Konfiguracija omrežja',
@@ -866,7 +1178,8 @@
                 max_tx_power: 'Wi-Fi maks. oddajna moč:',
                 remember_bssid: 'Zapomni si BSSID ob povezovanju na Wi-Fi',
                 sleep_mode: 'Omogoči način spanja',
-                save: 'Shrani'
+                save: 'Shrani',
+                config_success: 'Konfiguracija uspešna!'
             },
             'sr-RS': {
                 title: 'Конфигурација мреже',
@@ -884,7 +1197,8 @@
                 max_tx_power: 'Wi-Fi максимална снага преноса:',
                 remember_bssid: 'Запамти BSSID приликом повезивања на Wi-Fi',
                 sleep_mode: 'Омогући режим спавања',
-                save: 'Сачувај'
+                save: 'Сачувај',
+                config_success: 'Конфигурација је успешна!'
             },
             'sv-SE': {
                 title: 'Nätverkskonfiguration',
@@ -902,7 +1216,8 @@
                 max_tx_power: 'Wi-Fi max. sändningseffekt:',
                 remember_bssid: 'Kom ihåg BSSID vid anslutning till Wi-Fi',
                 sleep_mode: 'Aktivera viloläge',
-                save: 'Spara'
+                save: 'Spara',
+                config_success: 'Konfigurationen lyckades!'
             },
             'th-TH': {
                 title: 'การกำหนดค่าเครือข่าย',
@@ -920,7 +1235,8 @@
                 max_tx_power: 'กำลังส่งสูงสุด Wi-Fi:',
                 remember_bssid: 'จำ BSSID เมื่อเชื่อมต่อกับ Wi-Fi',
                 sleep_mode: 'เปิดใช้งานโหมดสลีป',
-                save: 'บันทึก'
+                save: 'บันทึก',
+                config_success: 'กำหนดค่าสำเร็จ!'
             },
             'tr-TR': {
                 title: 'Ağ Yapılandırması',
@@ -938,7 +1254,8 @@
                 max_tx_power: 'Wi-Fi Maks. İletim Gücü:',
                 remember_bssid: 'Wi-Fi\'ye bağlanırken BSSID\'yi hatırla',
                 sleep_mode: 'Uyku Modunu Etkinleştir',
-                save: 'Kaydet'
+                save: 'Kaydet',
+                config_success: 'Yapılandırma başarılı!'
             },
             'uk-UA': {
                 title: 'Налаштування мережі',
@@ -956,7 +1273,8 @@
                 max_tx_power: 'Макс. потужність передачі Wi-Fi:',
                 remember_bssid: 'Запам\'ятати BSSID при підключенні до Wi-Fi',
                 sleep_mode: 'Увімкнути режим сну',
-                save: 'Зберегти'
+                save: 'Зберегти',
+                config_success: 'Налаштування успішно завершено!'
             },
             'vi-VN': {
                 title: 'Cấu hình mạng',
@@ -974,7 +1292,8 @@
                 max_tx_power: 'Công suất phát Wi-Fi tối đa:',
                 remember_bssid: 'Ghi nhớ BSSID khi kết nối với Wi-Fi',
                 sleep_mode: 'Bật chế độ ngủ',
-                save: 'Lưu'
+                save: 'Lưu',
+                config_success: 'Cấu hình thành công!'
             },
             'zh-CN': {
                 title: '网络配置',
@@ -992,7 +1311,8 @@
                 max_tx_power: 'Wi-Fi 最大发射功率:',
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
                 sleep_mode: '启用睡眠模式',
-                save: '保存'
+                save: '保存',
+                config_success: '配置成功！'
             },
             'zh-TW': {
                 title: '網路設定',
@@ -1010,7 +1330,8 @@
                 max_tx_power: 'Wi-Fi 最大發射功率:',
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
                 sleep_mode: '啟用睡眠模式',
-                save: '儲存'
+                save: '儲存',
+                config_success: '設定成功！'
             }
         };
 
@@ -1260,8 +1581,11 @@
                             link.textContent += ' 🔒';
                         }
                         
-                        link.addEventListener('click', () => {
+                        link.addEventListener('click', event => {
+                            event.preventDefault();
                             ssid.value = ap.ssid;
+                            ssid.setAttribute('readonly', '');
+                            ssid.blur();
                         });
                         
                         apList.appendChild(link);
@@ -1310,9 +1634,15 @@
                     throw new Error(data.error || 'Connection failed');
                 }
 
-                // Connection successful, redirect to done page
+                // Connection successful, redirect to done page with localized copy.
                 button.disabled = false;
-                window.location.href = '/done.html';
+                const lang = document.getElementById('language').value;
+                const successMessage = (translations[lang] && translations[lang].config_success) ||
+                    translations['en-US'].config_success;
+                const doneUrl = new URL('/done.html', window.location.href);
+                doneUrl.searchParams.set('lang', lang);
+                doneUrl.searchParams.set('message', successMessage);
+                window.location.href = doneUrl.pathname + doneUrl.search;
             } catch (err) {
                 // Hide loading animation on error
                 loadingOverlay.classList.remove('show');
@@ -1466,12 +1796,37 @@
         });
 
         /**
-         * Enable SSID input (fix iOS bug)
+         * SSID input focus handling.
+         * The field stays readonly so the captive-portal webview cannot auto-focus it
+         * and show the on-screen keyboard before the user does anything. We only lift
+         * readonly when the user directly taps the SSID field; selecting an AP or a
+         * scan refresh must not move focus back to SSID.
          */
-        ssid.addEventListener('touchstart', () => {
+        let allowSsidFocus = false;
+        function isSsidInteraction(event) {
+            const target = event.target;
+            return target === ssid || (target.closest && target.closest('label[for="ssid"]'));
+        }
+        ['touchstart', 'mousedown', 'pointerdown'].forEach(eventName => {
+            document.addEventListener(eventName, event => {
+                allowSsidFocus = isSsidInteraction(event);
+                if (allowSsidFocus) {
+                    ssid.removeAttribute('readonly');
+                }
+            }, { capture: true });
+        });
+        ssid.addEventListener('focus', () => {
+            if (!allowSsidFocus) {
+                // Reject auto focus from captive-portal webviews or AP list refreshes.
+                ssid.blur();
+                return;
+            }
             ssid.removeAttribute('readonly');
-            ssid.focus();
-        }, {once: true});
+        });
+        ssid.addEventListener('blur', () => {
+            allowSsidFocus = false;
+            ssid.setAttribute('readonly', '');
+        });
     </script>
 </body>
 </html>
