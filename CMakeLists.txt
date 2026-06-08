@@ -1,6 +1,6 @@
-message("78/esp_wifi_connect: IDF_VER is ${IDF_VER}")
+message("78/esp_wifi_connect: IDF_VERSION_MAJOR is ${IDF_VERSION_MAJOR}")
 
-if(${IDF_VER} STRGREATER_EQUAL "v6.0")
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
     # v6
     message("78/esp_wifi_connect: idf_component_register for v6 used")
 

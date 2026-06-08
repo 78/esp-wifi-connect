@@ -57,6 +57,12 @@ public:
     void OnScanBegin(std::function<void()> on_scan_begin);
     void SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds);
 
+    // How many times to retry the strongest same-SSID AP before falling back to
+    // a weaker one. Only effective when remember_bssid is off (default). A value
+    // of 3 means the driver will attempt the best AP up to 3 extra times before
+    // giving up and trying the next-best BSSID.
+    void SetFailureRetryCnt(uint8_t cnt) { failure_retry_cnt_ = cnt; }
+
 private:
     EventGroupHandle_t event_group_;
     esp_timer_handle_t timer_handle_ = nullptr;
@@ -68,8 +74,9 @@ private:
     std::string ip_address_;
     int8_t max_tx_power_;
     uint8_t remember_bssid_;
+    uint8_t failure_retry_cnt_ = 3;  // Retries on strongest AP before falling back
     int reconnect_count_ = 0;
-    
+
     // Exponential backoff for scan interval
     int scan_min_interval_microseconds_ = 10 * 1000 * 1000;   // Default 10 seconds
     int scan_max_interval_microseconds_ = 300 * 1000 * 1000;  // Default 5 minutes

@@ -14,6 +14,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_advanced.png" width="320" alt="Advanced Configuration">
 
+## Changelog: v3.2.0
+
+- Station mode now connects to the strongest same-SSID AP. `StartConnect()` sets `WIFI_ALL_CHANNEL_SCAN` + `WIFI_CONNECT_AP_BY_SIGNAL` on the station config so the driver picks the AP with the best signal instead of the first match it finds (the previous default was `WIFI_FAST_SCAN`).
+- Added `station_failure_retry_cnt` (default: 3) to `WifiManagerConfig`. The driver retries the strongest AP this many times before falling back to a weaker same-SSID AP, avoiding spurious fallback on a single transient auth failure.
+- Added `show_ota_config` and `show_sleep_config` flags to `WifiManagerConfig`. Both default to `false`, hiding the corresponding fields in the config portal Advanced tab. Set them to `true` to make the fields visible.
+
 ## Changelog: v3.1.0
 
 - Event callback now includes an additional `data` parameter for extra information.
@@ -87,6 +93,14 @@ auto& wifi_manager = WifiManager::GetInstance();
 WifiManagerConfig config;
 config.ssid_prefix = "ESP32";  // AP mode SSID prefix
 config.language = "zh-CN";     // Web UI language
+
+// Optional: tune connection-to-strongest-AP behavior
+// config.station_failure_retry_cnt = 3;  // retries before falling back to weaker AP
+
+// Optional: show advanced fields in the config portal
+// config.show_ota_config = true;    // show Custom OTA URL input
+// config.show_sleep_config = true;  // show Sleep Mode toggle
+
 wifi_manager.Initialize(config);
 
 // Set event callback to handle WiFi events

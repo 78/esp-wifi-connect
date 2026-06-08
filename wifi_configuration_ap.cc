@@ -530,6 +530,8 @@ void WifiConfigurationAp::StartWebServer()
             cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
             cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
             cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
+            cJSON_AddBoolToObject(json, "show_ota_config", this_->show_ota_config_);
+            cJSON_AddBoolToObject(json, "show_sleep_config", this_->show_sleep_config_);
 
             // 发送JSON响应
             char *json_str = cJSON_PrintUnformatted(json);

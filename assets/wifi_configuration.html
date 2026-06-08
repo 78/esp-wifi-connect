@@ -269,14 +269,14 @@
                 <h3 data-lang="advanced_tab">Advanced</h3>
                 <p class="error" style="color: red; text-align: center;" id="advanced_error"></p>
                 
-                <!-- OTA URL -->
-                <p>
+                <!-- OTA URL (visibility controlled by show_ota_config from server) -->
+                <div id="ota_url_row" style="display: none;">
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
                         <button type="button" onclick="clearOtaUrl()" style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; background-color: #f0f0f0; cursor: pointer;">❌</button>
                     </div>
-                </p>
+                </div>
 
                 <!-- Max TX Power -->
                 <p style="display: flex; align-items: center; gap: 10px;">
@@ -304,13 +304,13 @@
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
                 </p>
 
-                <!-- Sleep Mode -->
-                <p style="display: flex; align-items: center; gap: 10px;">
+                <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
+                <div id="sleep_config_row" style="display: none; align-items: center; gap: 10px;">
                     <label for="sleep_mode" style="margin: 0;">
                         <span data-lang="sleep_mode">Enable Sleep Mode</span>
                     </label>
                     <input type="checkbox" id="sleep_mode" name="sleep_mode">
-                </p>
+                </div>
 
                 <p style="text-align: center;">
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
@@ -1403,6 +1403,10 @@
                 const response = await fetch('/advanced/config');
                 const data = await response.json();
                 
+                document.getElementById('ota_url_row').style.display =
+                    data.show_ota_config ? 'block' : 'none';
+                document.getElementById('sleep_config_row').style.display =
+                    data.show_sleep_config ? 'flex' : 'none';
                 if (data.ota_url) {
                     document.getElementById('ota_url').value = data.ota_url;
                 }

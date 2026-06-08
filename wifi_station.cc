@@ -225,10 +225,28 @@ void WifiStation::StartConnect() {
     bzero(&wifi_config, sizeof(wifi_config));
     strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
     strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
+
     if (remember_bssid_) {
+        // Explicit opt-in: pin to this exact AP (BSSID + channel) for the fastest
+        // reconnect. This intentionally disables roaming between same-SSID APs.
         wifi_config.sta.channel = ap_record.channel;
         memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);
         wifi_config.sta.bssid_set = true;
+    } else {
+        // Default: do not lock a BSSID. Ask the driver to scan every channel and
+        // connect to the same-SSID AP with the strongest signal, instead of the
+        // first match found by the default fast scan (which may be a weaker
+        // same-name hotspot). Because no BSSID is pinned, a later reconnect (e.g.
+        // after moving to another room) will scan again and roam to whichever AP
+        // is strongest at that time.
+        wifi_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+        wifi_config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+        // Retry the strongest AP this many times before falling back to a weaker
+        // same-SSID AP. Requires WIFI_ALL_CHANNEL_SCAN (set above). Without this
+        // the driver gives up after a single auth failure and immediately moves on,
+        // which is why we saw it connect to a -79 dBm AP even though a -73 dBm one
+        // was available (the stronger AP rejected the first attempt).
+        wifi_config.sta.failure_retry_cnt = failure_retry_cnt_;
     }
     wifi_config.sta.listen_interval = 10;
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -278,6 +296,7 @@ void WifiStation::SetScanIntervalRange(int min_interval_seconds, int max_interva
     scan_max_interval_microseconds_ = max_interval_seconds * 1000 * 1000;
     scan_current_interval_microseconds_ = scan_min_interval_microseconds_;
 }
+
 
 void WifiStation::SetPowerSaveLevel(WifiPowerSaveLevel level) {
     wifi_ps_type_t ps_type;
