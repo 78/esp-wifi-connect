@@ -56,6 +56,7 @@ public:
     void OnDisconnected(std::function<void(int reason)> on_disconnected);
     void OnScanBegin(std::function<void()> on_scan_begin);
     void SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds);
+    void SetHostname(const std::string& hostname) { hostname_ = hostname; }
 
     // How many times to retry the strongest same-SSID AP before falling back to
     // a weaker one. Only effective when remember_bssid is off (default). A value
@@ -72,6 +73,7 @@ private:
     std::string ssid_;
     std::string password_;
     std::string ip_address_;
+    std::string hostname_;
     int8_t max_tx_power_;
     uint8_t remember_bssid_;
     uint8_t failure_retry_cnt_ = 3;  // Retries on strongest AP before falling back

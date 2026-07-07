@@ -50,6 +50,7 @@ struct WifiManagerConfig {
     // Station mode scan interval with exponential backoff
     int station_scan_min_interval_seconds = 10;   // Initial scan interval (fast retry)
     int station_scan_max_interval_seconds = 300;  // Maximum scan interval (5 minutes)
+    std::string station_hostname;                  // Optional DHCP hostname for station mode
 
     // How many times to retry the strongest same-SSID AP before falling back to
     // a weaker one (requires WIFI_ALL_CHANNEL_SCAN, which is the default when

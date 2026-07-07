@@ -121,6 +121,14 @@ void WifiStation::Start() {
     
     // Create the default WiFi station interface
     station_netif_ = esp_netif_create_default_wifi_sta();
+    if (!hostname_.empty()) {
+        esp_err_t err = esp_netif_set_hostname(station_netif_, hostname_.c_str());
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Station DHCP hostname: %s", hostname_.c_str());
+        } else {
+            ESP_LOGW(TAG, "Failed to set station DHCP hostname: %s", esp_err_to_name(err));
+        }
+    }
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
