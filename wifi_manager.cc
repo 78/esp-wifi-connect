@@ -137,6 +137,7 @@ void WifiManager::StartStation() {
     station_->SetScanIntervalRange(config_.station_scan_min_interval_seconds,
                                    config_.station_scan_max_interval_seconds);
     station_->SetFailureRetryCnt(config_.station_failure_retry_cnt);
+    station_->SetHostname(config_.station_hostname);
 
     // Setup callbacks
     station_->OnScanBegin([this]() {
