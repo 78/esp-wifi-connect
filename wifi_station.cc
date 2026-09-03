@@ -231,8 +231,17 @@ void WifiStation::StartConnect() {
 
     wifi_config_t wifi_config;
     bzero(&wifi_config, sizeof(wifi_config));
-    strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
-    strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
+    size_t ssid_len = ap_record.ssid.size();
+    if (ssid_len > sizeof(wifi_config.sta.ssid)) {
+        ssid_len = sizeof(wifi_config.sta.ssid);
+    }
+    memcpy(wifi_config.sta.ssid, ap_record.ssid.data(), ssid_len);
+
+    size_t password_len = ap_record.password.size();
+    if (password_len > sizeof(wifi_config.sta.password)) {
+        password_len = sizeof(wifi_config.sta.password);
+    }
+    memcpy(wifi_config.sta.password, ap_record.password.data(), password_len);
 
     if (remember_bssid_) {
         // Explicit opt-in: pin to this exact AP (BSSID + channel) for the fastest
