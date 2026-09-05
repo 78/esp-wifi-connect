@@ -32,6 +32,7 @@ WifiConfigurationAp::WifiConfigurationAp()
     event_group_ = xEventGroupCreate();
     language_ = "zh-CN";
     sleep_mode_ = false;
+    static_ip_enabled_ = false;
     instance_any_id_ = nullptr;
     instance_got_ip_ = nullptr;
     max_tx_power_ = 0;
@@ -215,6 +216,23 @@ void WifiConfigurationAp::StartAccessPoint()
         } else {
             sleep_mode_ = true; // 默认值
         }
+
+        // 读取静态IP配置
+        uint8_t static_ip_en = 0;
+        err = nvs_get_u8(nvs, "static_en", &static_ip_en);
+        if (err == ESP_OK) {
+            static_ip_enabled_ = static_ip_en != 0;
+        }
+        char buf[16];
+        size_t len;
+        len = sizeof(buf);
+        if (nvs_get_str(nvs, "static_ip", buf, &len) == ESP_OK) static_ip_ = buf;
+        len = sizeof(buf);
+        if (nvs_get_str(nvs, "static_gw", buf, &len) == ESP_OK) static_gateway_ = buf;
+        len = sizeof(buf);
+        if (nvs_get_str(nvs, "static_mask", buf, &len) == ESP_OK) static_netmask_ = buf;
+        len = sizeof(buf);
+        if (nvs_get_str(nvs, "static_dns", buf, &len) == ESP_OK) static_dns_ = buf;
 
         nvs_close(nvs);
     }
@@ -530,6 +548,15 @@ void WifiConfigurationAp::StartWebServer()
             cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
             cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
             cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
+            cJSON_AddBoolToObject(json, "static_ip_enabled", this_->static_ip_enabled_);
+            if (!this_->static_ip_.empty())
+                cJSON_AddStringToObject(json, "static_ip", this_->static_ip_.c_str());
+            if (!this_->static_gateway_.empty())
+                cJSON_AddStringToObject(json, "static_gateway", this_->static_gateway_.c_str());
+            if (!this_->static_netmask_.empty())
+                cJSON_AddStringToObject(json, "static_netmask", this_->static_netmask_.c_str());
+            if (!this_->static_dns_.empty())
+                cJSON_AddStringToObject(json, "static_dns", this_->static_dns_.c_str());
             cJSON_AddBoolToObject(json, "show_ota_config", this_->show_ota_config_);
             cJSON_AddBoolToObject(json, "show_sleep_config", this_->show_sleep_config_);
 
@@ -644,6 +671,35 @@ void WifiConfigurationAp::StartWebServer()
                 err = nvs_set_u8(nvs, "sleep_mode", this_->sleep_mode_ ? 1 : 0);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to save sleep_mode: %d", err);
+                }
+            }
+
+            // 保存静态IP配置（只有启用时才保存IP字段）
+            cJSON *static_ip_enabled = cJSON_GetObjectItem(json, "static_ip_enabled");
+            if (cJSON_IsBool(static_ip_enabled)) {
+                this_->static_ip_enabled_ = cJSON_IsTrue(static_ip_enabled);
+                err = nvs_set_u8(nvs, "static_en", this_->static_ip_enabled_ ? 1 : 0);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save static_en: %d", err);
+                }
+
+                if (this_->static_ip_enabled_) {
+                    struct { const char* json_key; const char* nvs_key; std::string* dest; } fields[] = {
+                        {"static_ip", "static_ip", &this_->static_ip_},
+                        {"static_gateway", "static_gw", &this_->static_gateway_},
+                        {"static_netmask", "static_mask", &this_->static_netmask_},
+                        {"static_dns", "static_dns", &this_->static_dns_},
+                    };
+                    for (auto &f : fields) {
+                        cJSON *item = cJSON_GetObjectItem(json, f.json_key);
+                        if (cJSON_IsString(item) && item->valuestring) {
+                            *f.dest = item->valuestring;
+                            err = nvs_set_str(nvs, f.nvs_key, f.dest->c_str());
+                            if (err != ESP_OK) {
+                                ESP_LOGE(TAG, "Failed to save %s: %d", f.nvs_key, err);
+                            }
+                        }
+                    }
                 }
             }
 

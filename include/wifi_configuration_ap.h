@@ -73,6 +73,13 @@ private:
     int8_t max_tx_power_;
     bool remember_bssid_;
     bool sleep_mode_;
+
+    // 静态IP配置
+    bool static_ip_enabled_;
+    std::string static_ip_;
+    std::string static_gateway_;
+    std::string static_netmask_;
+    std::string static_dns_;
     bool show_ota_config_ = false;
     bool show_sleep_config_ = false;
 

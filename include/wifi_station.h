@@ -17,6 +17,25 @@ enum class WifiPowerSaveLevel {
     PERFORMANCE,  // No power saving (WIFI_PS_NONE) - full power
 };
 
+// Optional static IP for station mode. All of ip/gateway/netmask must be set
+// for it to take effect; anything else keeps DHCP. dns is optional and defaults
+// to the gateway.
+struct WifiStaticIpConfig {
+    std::string ip;
+    std::string gateway;
+    std::string netmask;
+    std::string dns;
+
+    // Nothing was configured at all, as opposed to a partially filled config.
+    bool IsEmpty() const {
+        return ip.empty() && gateway.empty() && netmask.empty() && dns.empty();
+    }
+
+    bool IsValid() const {
+        return !ip.empty() && !gateway.empty() && !netmask.empty();
+    }
+};
+
 struct WifiApRecord {
     std::string ssid;
     std::string password;
@@ -58,6 +77,10 @@ public:
     void SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds);
     void SetHostname(const std::string& hostname) { hostname_ = hostname; }
 
+    // Static IP for station mode. Must be set before Start(); an empty or
+    // incomplete config leaves the interface on DHCP.
+    void SetStaticIp(const WifiStaticIpConfig& static_ip) { static_ip_ = static_ip; }
+
     // How many times to retry the strongest same-SSID AP before falling back to
     // a weaker one. Only effective when remember_bssid is off (default). A value
     // of 3 means the driver will attempt the best AP up to 3 extra times before
@@ -74,6 +97,7 @@ private:
     std::string password_;
     std::string ip_address_;
     std::string hostname_;
+    WifiStaticIpConfig static_ip_;
     int8_t max_tx_power_;
     uint8_t remember_bssid_;
     uint8_t failure_retry_cnt_ = 3;  // Retries on strongest AP before falling back
@@ -90,6 +114,7 @@ private:
     std::vector<WifiApRecord> connect_queue_;
     bool was_connected_ = false;  // Track if we were connected before disconnection
 
+    void ApplyStaticIp();
     void HandleScanResult();
     void StartConnect();
     void UpdateScanInterval();  // Exponential backoff for scan interval

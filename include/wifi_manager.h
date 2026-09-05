@@ -63,6 +63,15 @@ struct WifiManagerConfig {
 
     // Whether to show the sleep mode toggle in the config portal advanced tab.
     bool show_sleep_config = false;
+
+    // Optional static IP for station mode. Leave every field empty to use DHCP
+    // or the config portal's stored settings; a partially filled config is
+    // rejected and keeps DHCP.
+    WifiStaticIpConfig station_static_ip;
+
+    // Whether an empty station_static_ip falls back to the config portal's
+    // stored settings. Set to false to force DHCP regardless of what is in NVS.
+    bool station_static_ip_from_nvs = true;
 };
 
 /**
