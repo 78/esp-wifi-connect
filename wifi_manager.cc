@@ -11,6 +11,7 @@
 #include <esp_netif.h>
 #include <esp_event.h>
 #include <esp_mac.h>
+#include <nvs.h>
 #include <nvs_flash.h>
 
 #define TAG "WifiManager"
@@ -45,6 +46,35 @@ void WifiManager::NotifyEvent(WifiEvent event, const std::string& data) {
     if (callback) {
         callback(event, data);
     }
+}
+
+// The config portal and any on-device settings UI persist the static IP under
+// the "wifi" namespace. WifiStation itself takes the values through
+// SetStaticIp(), so this is the single place that reads them back.
+static WifiStaticIpConfig LoadStaticIpFromNvs() {
+    WifiStaticIpConfig config;
+    nvs_handle_t nvs;
+    if (nvs_open("wifi", NVS_READONLY, &nvs) != ESP_OK) {
+        return config;
+    }
+    uint8_t enabled = 0;
+    if (nvs_get_u8(nvs, "static_en", &enabled) != ESP_OK || !enabled) {
+        nvs_close(nvs);
+        return config;
+    }
+    auto read = [&nvs](const char* key, std::string& out) {
+        char buf[16] = {0};
+        size_t len = sizeof(buf);
+        if (nvs_get_str(nvs, key, buf, &len) == ESP_OK) {
+            out = buf;
+        }
+    };
+    read("static_ip", config.ip);
+    read("static_gw", config.gateway);
+    read("static_mask", config.netmask);
+    read("static_dns", config.dns);
+    nvs_close(nvs);
+    return config;
 }
 
 bool WifiManager::Initialize(const WifiManagerConfig& config) {
@@ -138,6 +168,20 @@ void WifiManager::StartStation() {
                                    config_.station_scan_max_interval_seconds);
     station_->SetFailureRetryCnt(config_.station_failure_retry_cnt);
     station_->SetHostname(config_.station_hostname);
+
+    // A config from the caller wins. Only a completely empty one falls back to
+    // the config portal's stored settings: a partially filled config is a
+    // mistake, and silently using different values would hide it.
+    WifiStaticIpConfig static_ip = config_.station_static_ip;
+    if (static_ip.IsEmpty() && config_.station_static_ip_from_nvs) {
+        static_ip = LoadStaticIpFromNvs();
+    }
+    if (!static_ip.IsEmpty() && !static_ip.IsValid()) {
+        ESP_LOGE(TAG, "Static IP config is incomplete (ip/gateway/netmask are all "
+                      "required), staying on DHCP");
+        static_ip = WifiStaticIpConfig{};
+    }
+    station_->SetStaticIp(static_ip);
 
     // Setup callbacks
     station_->OnScanBegin([this]() {

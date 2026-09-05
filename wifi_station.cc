@@ -111,6 +111,46 @@ void WifiStation::OnDisconnected(std::function<void(int reason)> on_disconnected
     on_disconnected_ = on_disconnected;
 }
 
+// Applies the caller-provided static IP instead of DHCP. The configuration is
+// injected through SetStaticIp() (see WifiManagerConfig::station_static_ip);
+// this class never reads it from NVS itself.
+void WifiStation::ApplyStaticIp() {
+    if (!static_ip_.IsValid()) {
+        return;  // Keep DHCP
+    }
+    esp_netif_ip_info_t info = {};
+    if (esp_netif_str_to_ip4(static_ip_.ip.c_str(), &info.ip) != ESP_OK ||
+        esp_netif_str_to_ip4(static_ip_.gateway.c_str(), &info.gw) != ESP_OK ||
+        esp_netif_str_to_ip4(static_ip_.netmask.c_str(), &info.netmask) != ESP_OK) {
+        ESP_LOGW(TAG, "Invalid static IP config, falling back to DHCP");
+        return;
+    }
+    esp_err_t err = esp_netif_dhcpc_stop(station_netif_);
+    if (err != ESP_OK && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED) {
+        ESP_LOGW(TAG, "Failed to stop DHCP client: %s, keeping DHCP", esp_err_to_name(err));
+        return;
+    }
+    err = esp_netif_set_ip_info(station_netif_, &info);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to set static IP: %s, reverting to DHCP", esp_err_to_name(err));
+        esp_netif_dhcpc_start(station_netif_);
+        return;
+    }
+    esp_netif_dns_info_t dns_info = {};
+    dns_info.ip.type = ESP_IPADDR_TYPE_V4;
+    if (static_ip_.dns.empty() ||
+        esp_netif_str_to_ip4(static_ip_.dns.c_str(), &dns_info.ip.u_addr.ip4) != ESP_OK) {
+        dns_info.ip.u_addr.ip4 = info.gw;  // default DNS = gateway
+    }
+    err = esp_netif_set_dns_info(station_netif_, ESP_NETIF_DNS_MAIN, &dns_info);
+    if (err != ESP_OK) {
+        // The address itself is already applied; DNS failing is not fatal.
+        ESP_LOGW(TAG, "Failed to set DNS: %s", esp_err_to_name(err));
+    }
+    ESP_LOGI(TAG, "Static IP %s (gw %s) applied, DHCP disabled", static_ip_.ip.c_str(),
+             static_ip_.gateway.c_str());
+}
+
 void WifiStation::Start() {
     // Note: esp_netif_init() and esp_wifi_init() should be called once before calling this method
     // WiFi driver is initialized by WifiManager::Initialize() and kept alive
@@ -121,6 +161,7 @@ void WifiStation::Start() {
     
     // Create the default WiFi station interface
     station_netif_ = esp_netif_create_default_wifi_sta();
+    ApplyStaticIp();
     if (!hostname_.empty()) {
         esp_err_t err = esp_netif_set_hostname(station_netif_, hostname_.c_str());
         if (err == ESP_OK) {
