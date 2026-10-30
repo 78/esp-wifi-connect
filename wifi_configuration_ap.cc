@@ -216,6 +216,18 @@ void WifiConfigurationAp::StartAccessPoint()
             sleep_mode_ = true; // 默认值
         }
 
+        // 读取睡眠定时器设置（分钟）
+        int32_t sleep_dim_minutes = 0;
+        if (nvs_get_i32(nvs, "sleep_dim_min", &sleep_dim_minutes) == ESP_OK &&
+            sleep_dim_minutes >= 0 && sleep_dim_minutes <= 1440) {
+            sleep_dim_minutes_ = sleep_dim_minutes;
+        }
+        int32_t sleep_off_minutes = 0;
+        if (nvs_get_i32(nvs, "sleep_off_min", &sleep_off_minutes) == ESP_OK &&
+            sleep_off_minutes >= 0 && sleep_off_minutes <= 1440) {
+            sleep_off_minutes_ = sleep_off_minutes;
+        }
+
         nvs_close(nvs);
     }
 }
@@ -530,6 +542,8 @@ void WifiConfigurationAp::StartWebServer()
             cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
             cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
             cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
+            cJSON_AddNumberToObject(json, "sleep_dim_minutes", this_->sleep_dim_minutes_);
+            cJSON_AddNumberToObject(json, "sleep_off_minutes", this_->sleep_off_minutes_);
             cJSON_AddBoolToObject(json, "show_ota_config", this_->show_ota_config_);
             cJSON_AddBoolToObject(json, "show_sleep_config", this_->show_sleep_config_);
 
@@ -647,6 +661,39 @@ void WifiConfigurationAp::StartWebServer()
                 }
             }
 
+            // 保存睡眠定时器设置（分钟）
+            cJSON *sleep_dim = cJSON_GetObjectItem(json, "sleep_dim_minutes");
+            cJSON *sleep_off = cJSON_GetObjectItem(json, "sleep_off_minutes");
+            if (cJSON_IsNumber(sleep_dim) && cJSON_IsNumber(sleep_off)) {
+                int dim = sleep_dim->valueint;
+                int off = sleep_off->valueint;
+                if (dim < 0 || dim > 1440 || off < 0 || off > 1440 ||
+                    (dim > 0 && off > 0 && off <= dim)) {
+                    cJSON_Delete(json);
+                    nvs_close(nvs);
+                    httpd_resp_set_type(req, "application/json");
+                    httpd_resp_set_status(req, "400 Bad Request");
+                    httpd_resp_send(req, "{\"success\":false,\"error\":\"Invalid sleep timer values\"}", HTTPD_RESP_USE_STRLEN);
+                    return ESP_FAIL;
+                }
+                this_->sleep_dim_minutes_ = dim;
+                this_->sleep_off_minutes_ = off;
+                // NVS keys are limited to 15 characters.
+                err = nvs_set_i32(nvs, "sleep_dim_min", dim);
+                if (err == ESP_OK) {
+                    err = nvs_set_i32(nvs, "sleep_off_min", off);
+                }
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save sleep timer values: %d", err);
+                    cJSON_Delete(json);
+                    nvs_close(nvs);
+                    httpd_resp_set_type(req, "application/json");
+                    httpd_resp_set_status(req, "500 Internal Server Error");
+                    httpd_resp_send(req, "{\"success\":false,\"error\":\"Failed to save sleep timer values\"}", HTTPD_RESP_USE_STRLEN);
+                    return ESP_FAIL;
+                }
+            }
+
             // 提交更改
             err = nvs_commit(nvs);
             nvs_close(nvs);
@@ -662,8 +709,9 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_set_hdr(req, "Connection", "close");
             httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
 
-            ESP_LOGI(TAG, "Saved settings: ota_url=%s, max_tx_power=%d, remember_bssid=%d, sleep_mode=%d",
-                this_->ota_url_.c_str(), this_->max_tx_power_, this_->remember_bssid_, this_->sleep_mode_);
+            ESP_LOGI(TAG, "Saved settings: ota_url=%s, max_tx_power=%d, remember_bssid=%d, sleep_mode=%d, sleep_dim=%d, sleep_off=%d",
+                this_->ota_url_.c_str(), this_->max_tx_power_, this_->remember_bssid_, this_->sleep_mode_,
+                this_->sleep_dim_minutes_, this_->sleep_off_minutes_);
             return ESP_OK;
         },
         .user_ctx = this

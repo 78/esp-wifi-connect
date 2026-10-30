@@ -74,6 +74,8 @@ private:
     int8_t max_tx_power_;
     bool remember_bssid_;
     bool sleep_mode_;
+    int sleep_dim_minutes_ = 3;
+    int sleep_off_minutes_ = 10;
     bool show_ota_config_ = false;
     bool show_sleep_config_ = false;
 

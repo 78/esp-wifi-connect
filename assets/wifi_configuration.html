@@ -590,7 +590,18 @@
                     <label for="sleep_mode">
                         <span data-lang="sleep_mode">Enable Sleep Mode</span>
                     </label>
-                    <input type="checkbox" id="sleep_mode" name="sleep_mode">
+                    <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
+                </div>
+                <div id="sleep_timers_row" style="display: none; margin: 8px 0;">
+                    <p class="field-inline">
+                        <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes" style="white-space: nowrap;">Screen dim after (min):</label>
+                        <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" value="3" style="width: 70px;">
+                    </p>
+                    <p class="field-inline">
+                        <label for="sleep_off_minutes" data-lang="sleep_off_minutes" style="white-space: nowrap;">Power off after (min):</label>
+                        <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" value="10" style="width: 70px;">
+                    </p>
+                    <p data-lang="sleep_timers_help" style="font-size: 12px; opacity: 0.8; margin: 4px 0 0 0;">Screen dim after — the display goes dark after that many minutes without activity (the device still listens to the wake word and buttons). Power off after — deep sleep after that many minutes without activity (only a button press wakes it). Example: 3 and 10. Set a value to 0 to disable that step.</p>
                 </div>
 
                 <p>
@@ -760,6 +771,9 @@
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
+                sleep_dim_minutes: 'Screen dim after (min):',
+                sleep_off_minutes: 'Power off after (min):',
+                sleep_timers_help: 'Screen dim after — the display goes dark after that many minutes without activity (the device still listens to the wake word and buttons). Power off after — deep sleep after that many minutes without activity (only a button press wakes it). Example: 3 and 10. Set a value to 0 to disable that step.',
                 save: 'Save',
                 config_success: 'Configuration successful!'
             },
@@ -1452,13 +1466,13 @@
             // Update text content
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
-                element.textContent = translations[lang][key];
+                element.textContent = translations[lang][key] || translations['en-US'][key] || element.textContent;
             });
-            
+
             // Update input values
             document.querySelectorAll('[data-lang-value]').forEach(element => {
                 const key = element.getAttribute('data-lang-value');
-                element.value = translations[lang][key];
+                element.value = translations[lang][key] || translations['en-US'][key] || element.value;
             });
             
             // Update AP list text based on 5G support
@@ -1665,10 +1679,23 @@
                 ota_url: document.getElementById('ota_url').value,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
                 remember_bssid: document.getElementById('remember_bssid').checked,
-                sleep_mode: document.getElementById('sleep_mode').checked
+                sleep_mode: document.getElementById('sleep_mode').checked,
+                sleep_dim_minutes: parseInt(document.getElementById('sleep_dim_minutes').value, 10),
+                sleep_off_minutes: parseInt(document.getElementById('sleep_off_minutes').value, 10)
             };
 
             try {
+                if (document.getElementById('sleep_mode').checked) {
+                    const dim = config.sleep_dim_minutes;
+                    const off = config.sleep_off_minutes;
+                    if (!Number.isInteger(dim) || !Number.isInteger(off) || dim < 0 || off < 0 || dim > 1440 || off > 1440) {
+                        throw new Error('Enter whole minutes from 0 to 1440 (0 turns that step off)');
+                    }
+                    if (dim > 0 && off > 0 && off <= dim) {
+                        throw new Error('Power off after must be greater than screen dim after (for example 3 and 10). To turn sleep off completely, set both fields to 0.');
+                    }
+                }
+
                 const response = await fetch('/advanced/submit', {
                     method: 'POST',
                     headers: {
@@ -1726,6 +1753,14 @@
         }
 
         /**
+         * Show or hide the sleep timer fields depending on the sleep mode checkbox
+         */
+        function toggleSleepTimers() {
+            const enabled = document.getElementById('sleep_mode').checked;
+            document.getElementById('sleep_timers_row').style.display = enabled ? 'block' : 'none';
+        }
+
+        /**
          * Load advanced configuration from server
          */
         async function loadAdvancedConfig() {
@@ -1749,6 +1784,13 @@
                 if (data.sleep_mode !== undefined) {
                     document.getElementById('sleep_mode').checked = data.sleep_mode;
                 }
+                if (data.sleep_dim_minutes !== undefined) {
+                    document.getElementById('sleep_dim_minutes').value = data.sleep_dim_minutes;
+                }
+                if (data.sleep_off_minutes !== undefined) {
+                    document.getElementById('sleep_off_minutes').value = data.sleep_off_minutes;
+                }
+                toggleSleepTimers();
             } catch (error) {
                 console.error('Error loading advanced config:', error);
             }
