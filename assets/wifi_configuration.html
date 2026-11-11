@@ -2387,6 +2387,7 @@
                 .then(data => {
                     // Update global 5G support status
                     support5G = data.support_5g;
+                    const lang = document.getElementById('language').value;
                     
                     // Use select_wifi_5g if 5G is supported, otherwise use select_wifi
                     const selectText = support5G ? translations[lang].select_wifi_5g : translations[lang].select_wifi;

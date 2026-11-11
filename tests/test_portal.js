@@ -213,5 +213,18 @@ vm.runInContext(script, context);
     element('language').value = 'ru-RU';
     vm.runInContext('changeLanguage()', context);
     assert.equal(element('advanced_status').textContent, '');
+
+    // A scan started in one language must render in the language selected before it returns.
+    const originalFetch = context.fetch;
+    let finishScan;
+    context.fetch = () => new Promise(resolve => {finishScan = resolve;});
+    element('ap_list').querySelector = () => null;
+    element('language').value = 'en-US';
+    vm.runInContext('loadAPList()', context);
+    element('language').value = 'zh-CN';
+    finishScan({json: async () => ({support_5g: false, aps: []})});
+    await new Promise(setImmediate);
+    assert.ok(element('ap_list').innerHTML.includes(catalogs['zh-CN'].select_wifi));
+    context.fetch = originalFetch;
     console.log(`Portal: ${cases.length} URL cases, timer behavior, Wi-Fi form isolation, and ${Object.keys(catalogs).length} complete locale catalogs with live feedback passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});
