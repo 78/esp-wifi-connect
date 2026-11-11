@@ -14,25 +14,43 @@ const elements = new Map();
 function element(id) {
     if (!elements.has(id)) elements.set(id, {
         value: '', checked: false, disabled: false, textContent: '', style: {},
+        attributes: new Map(),
         classList: {add() {}, remove() {}}, addEventListener() {},
-        setAttribute() {}, removeAttribute() {}, blur() {}, focus() {}
+        setAttribute(key, value) {this.attributes.set(key, value);},
+        getAttribute(key) {return this.attributes.get(key) || null;},
+        removeAttribute(key) {this.attributes.delete(key);}, blur() {}, focus() {}
     });
     return elements.get(id);
 }
 let requests = [];
 let config = {};
+let responseFailure = null;
+let networkFailure = false;
 const context = vm.createContext({
     console, URL, URLSearchParams, setTimeout() {},
+    localStorage: {setItem() {}},
     window: {location: {href: 'http://192.168.4.1/'}, addEventListener() {}},
-    document: {getElementById: element, addEventListener() {}, querySelectorAll() {return [];}},
+    document: {
+        documentElement: {}, getElementById: element, addEventListener() {},
+        querySelectorAll(selector) {
+            return selector === '[data-lang-message]' ? [...elements.values()].filter(el => el.getAttribute('data-lang-message')) : [];
+        }
+    },
     fetch: async (url, options) => {
         requests.push({url, body: options && options.body});
-        return {json: async () => url === '/advanced/config' ? config : {success: true}};
+        if (networkFailure) throw new TypeError('Failed to fetch');
+        return {json: async () => url === '/advanced/config' ? config : responseFailure || {success: true}};
     }
 });
 vm.runInContext(script, context);
 
 (async () => {
+    const catalogs = vm.runInContext('translations', context);
+    const referenceKeys = Object.keys(catalogs['en-US']).sort();
+    for (const [locale, catalog] of Object.entries(catalogs)) {
+        assert.deepEqual(Object.keys(catalog).sort(), referenceKeys, locale);
+        for (const key of referenceKeys) assert.ok(typeof catalog[key] === 'string' && catalog[key].trim(), `${locale}: ${key}`);
+    }
     element('language').value = 'ru-RU';
     element('max_tx_power').value = '80';
     for (const test of cases) {
@@ -150,5 +168,50 @@ vm.runInContext(script, context);
         ssid: 'Huawei-1ct5dn', password: 'test-password'
     });
     assert.match(html, /type="url" id="ota_url"[^>]*maxlength="255"/);
-    console.log(`Portal: ${cases.length} URL cases, sleep timer visibility/defaults/validation, stale fields, and Wi-Fi form isolation passed.`);
+
+    // Every locale renders feedback without an English API/browser error leaking through.
+    await loadSleep();
+    element('ota_url').value = '';
+    for (const [locale, catalog] of Object.entries(catalogs)) {
+        element('language').value = locale;
+        vm.runInContext('changeLanguage()', context);
+        assert.equal(context.document.documentElement.lang, locale);
+        assert.equal(context.document.documentElement.dir, ['ar-SA', 'fa-IR', 'he-IL'].includes(locale) ? 'rtl' : 'ltr');
+        await saveAdvanced();
+        assert.equal(element('advanced_status').textContent, catalog.settings_saved, locale);
+        element('sleep_dim_minutes').value = '1441';
+        await saveAdvanced();
+        assert.equal(element('sleep_timers_error').textContent, catalog.invalid_sleep_minutes, locale);
+        assert.equal(element('advanced_status').textContent, '');
+        element('sleep_dim_minutes').value = '';
+        responseFailure = {success: false, error: 'Failed to save sleep timer values'};
+        await saveAdvanced();
+        assert.equal(element('advanced_error').textContent, catalog.save_failed, locale);
+        responseFailure = {success: false, error: 'Invalid sleep timer values'};
+        await saveAdvanced();
+        assert.equal(element('advanced_error').textContent, catalog.invalid_sleep_timers, locale);
+        responseFailure = {success: false, error: 'OTA URL must be empty or a valid HTTP(S) URL (max 255 bytes)'};
+        await saveAdvanced();
+        assert.equal(element('advanced_error').textContent, catalog.invalid_ota_url, locale);
+        responseFailure = {success: false, error: 'Invalid SSID'};
+        await vm.runInContext('submitForm({preventDefault() {}})', context);
+        assert.equal(element('error').textContent, catalog.invalid_ssid, locale);
+        responseFailure = null;
+        networkFailure = true;
+        await saveAdvanced();
+        assert.equal(element('advanced_error').textContent, catalog.save_failed, locale);
+        await vm.runInContext('submitForm({preventDefault() {}})', context);
+        assert.equal(element('error').textContent, catalog.connection_failed, locale);
+        networkFailure = false;
+    }
+    element('language').value = 'en-US';
+    await saveAdvanced();
+    element('language').value = 'zh-CN';
+    vm.runInContext('changeLanguage()', context);
+    assert.equal(element('advanced_status').textContent, catalogs['zh-CN'].settings_saved);
+    vm.runInContext('clearAdvancedStatus()', context);
+    element('language').value = 'ru-RU';
+    vm.runInContext('changeLanguage()', context);
+    assert.equal(element('advanced_status').textContent, '');
+    console.log(`Portal: ${cases.length} URL cases, timer behavior, Wi-Fi form isolation, and ${Object.keys(catalogs).length} complete locale catalogs with live feedback passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});

@@ -10,6 +10,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_2.jpg" width="320" alt="Wi-Fi Configuration v3.2">
 
+## Changelog: v3.3.3
+
+- Add optional screen-dim and power-off timer overrides to the Advanced tab. Validate timers before changing settings, preserve board defaults, and support restoring defaults with `null`.
+- Group sleep settings, simplify labels and signal indicators, and improve mobile safe-area handling. Show localized save confirmation above the Save button so captive-portal windows cannot clip a fixed bottom toast.
+- Complete the portal's 38 language catalogs, localize validation and request failures, update feedback when switching languages, and support right-to-left layouts.
+
 ## Changelog: v3.3.2
 
 - Validate custom OTA URLs in the config portal and its save endpoint. Empty values select the application's default; nonempty values must be absolute HTTP(S) URLs of at most 255 ASCII bytes, with a host and a valid nonzero port when specified. Percent-encode non-ASCII characters.

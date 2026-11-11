@@ -3,7 +3,7 @@
 <head>
     <title>WiFi Configuration</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
             --bg-grad-1: #eef2ff;
@@ -117,6 +117,9 @@
     <script>
         window.addEventListener('load', function() {
             const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang') || 'en-US';
+            document.documentElement.lang = lang;
+            document.documentElement.dir = ['ar', 'fa', 'he'].includes(lang.split('-')[0]) ? 'rtl' : 'ltr';
             const message = params.get('message') || 'Configuration successful!';
             document.title = message;
             document.getElementById('message').textContent = message;
