@@ -15,7 +15,7 @@ function element(id) {
     if (!elements.has(id)) elements.set(id, {
         value: '', checked: false, disabled: false, textContent: '', style: {},
         classList: {add() {}, remove() {}}, addEventListener() {},
-        setAttribute() {}, removeAttribute() {}, blur() {}
+        setAttribute() {}, removeAttribute() {}, blur() {}, focus() {}
     });
     return elements.get(id);
 }
@@ -114,7 +114,8 @@ vm.runInContext(script, context);
         await loadSleep();
         element('sleep_dim_minutes').value = value;
         assert.deepEqual(await saveAdvanced(), []);
-        assert.ok(element('advanced_error').textContent.length > 0);
+        assert.ok(element('sleep_timers_error').textContent.length > 0);
+        assert.equal(element('advanced_error').textContent, '');
         assert.equal(element('advanced_button').disabled, false);
     }
     await loadSleep();
@@ -128,6 +129,9 @@ vm.runInContext(script, context);
     element('sleep_dim_minutes').value = '10';
     element('sleep_off_minutes').value = '5';
     assert.deepEqual(await saveAdvanced(), []);
+    assert.ok(element('sleep_timers_error').textContent.length > 0);
+    vm.runInContext('clearSleepTimerError()', context);
+    assert.equal(element('sleep_timers_error').textContent, '');
     element('sleep_mode').checked = false;
     vm.runInContext('toggleSleepTimers()', context);
     assert.equal(element('sleep_dim_minutes').disabled, true);

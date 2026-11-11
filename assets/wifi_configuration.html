@@ -4,10 +4,12 @@
     <title>Network Configuration</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
     <style type="text/css">
         /* ========== Design Tokens ========== */
         :root {
+            color-scheme: light dark;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
             --accent-soft: rgba(37, 99, 235, 0.10);
@@ -47,16 +49,25 @@
 
         /* ========== Base Styles ========== */
         * { box-sizing: border-box; }
-        html, body { height: 100%; }
+        html {
+            min-height: 100%;
+            background-color: var(--bg-grad-2);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 12px 16px 32px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            padding-right: max(16px, env(safe-area-inset-right));
+            padding-bottom: max(32px, env(safe-area-inset-bottom));
+            padding-left: max(16px, env(safe-area-inset-left));
             color: var(--text);
             background: linear-gradient(160deg, var(--bg-grad-1), var(--bg-grad-2));
+            background-color: var(--bg-grad-2);
             background-attachment: fixed;
             -webkit-font-smoothing: antialiased;
-            min-height: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
 
         .page {
@@ -325,6 +336,7 @@
         #ota_url_row { margin-bottom: 16px; }
         .field-inline {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 12px;
         }
@@ -346,6 +358,61 @@
             color: var(--text);
             font-weight: 500;
             flex: 1;
+        }
+        .sleep-group {
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            overflow: hidden;
+        }
+        .sleep-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+        }
+        .sleep-header label {
+            flex: 1;
+            margin: 0;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .sleep-body {
+            padding: 16px 14px;
+            border-top: 1px solid var(--border);
+        }
+        .sleep-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .sleep-field { min-width: 0; }
+        .sleep-field label { margin-bottom: 8px; }
+        .sleep-input { position: relative; }
+        .sleep-input input {
+            min-width: 0;
+            padding-right: 48px;
+            font-size: 16px;
+            background: var(--surface);
+        }
+        .sleep-input input::placeholder {
+            color: var(--text-muted);
+            opacity: 1;
+        }
+        .sleep-input input[aria-invalid="true"] { border-color: var(--danger); }
+        .sleep-unit {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .sleep-body .error { text-align: left; margin: 12px 0 0; }
+        @media (max-width: 420px) {
+            .sleep-fields { grid-template-columns: 1fr; }
         }
         input[type="checkbox"] {
             width: 20px;
@@ -590,23 +657,31 @@
                 </div>
 
                 <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
-                <div class="switch-row" id="sleep_config_row" style="display: none;">
-                    <label for="sleep_mode">
-                        <span data-lang="sleep_mode">Enable Sleep Mode</span>
-                    </label>
-                    <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
-                </div>
-                <div id="sleep_timers_row" style="display: none; margin: 8px 0;">
-                    <p class="field-inline">
-                        <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes" style="white-space: nowrap;">Screen dim after (min):</label>
-                        <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" placeholder="Device default" style="width: 110px;" disabled>
-                    </p>
-                    <p class="field-inline">
-                        <label for="sleep_off_minutes" data-lang="sleep_off_minutes" style="white-space: nowrap;">Power off after (min):</label>
-                        <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" placeholder="Device default" style="width: 110px;" disabled>
-                    </p>
-                    <p data-lang="sleep_timers_help" style="font-size: 12px; opacity: 0.8; margin: 4px 0 0 0;">Leave a field blank to use this device's default timeout. Set it to 0 to disable that step. Power saving and wake behavior depend on the device.</p>
-                </div>
+                <section class="sleep-group" id="sleep_config_row" style="display: none;" aria-labelledby="sleep_mode_label">
+                    <div class="sleep-header">
+                        <label for="sleep_mode" id="sleep_mode_label" data-lang="sleep_mode">Enable Sleep Mode</label>
+                        <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
+                    </div>
+                    <div class="sleep-body" id="sleep_timers_row" style="display: none;">
+                        <div class="sleep-fields">
+                            <div class="sleep-field">
+                                <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes">Screen dim after</label>
+                                <div class="sleep-input">
+                                    <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_dim_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
+                                    <span class="sleep-unit" id="sleep_dim_unit" data-lang="sleep_minutes_unit">min</span>
+                                </div>
+                            </div>
+                            <div class="sleep-field">
+                                <label for="sleep_off_minutes" data-lang="sleep_off_minutes">Power off after</label>
+                                <div class="sleep-input">
+                                    <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_off_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
+                                    <span class="sleep-unit" id="sleep_off_unit" data-lang="sleep_minutes_unit">min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="error" id="sleep_timers_error" role="alert" aria-live="polite"></p>
+                    </div>
+                </section>
 
                 <p>
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
@@ -778,9 +853,12 @@
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
-                sleep_dim_minutes: 'Screen dim after (min):',
-                sleep_off_minutes: 'Power off after (min):',
-                sleep_timers_help: 'Leave a field blank to use this device\'s default timeout. Set it to 0 to disable that step. Power saving and wake behavior depend on the device.',
+                sleep_dim_minutes: 'Screen dim after',
+                sleep_off_minutes: 'Power off after',
+                sleep_default: 'Default',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Enter a whole number from 0 to 1440.',
+                invalid_sleep_order: 'Power off must be later than screen dim.',
                 save: 'Save',
                 config_success: 'Configuration successful!'
             },
@@ -1162,6 +1240,12 @@
                 max_tx_power: 'Макс. мощность передачи Wi-Fi:',
                 remember_bssid: 'Запомнить BSSID при подключении к Wi-Fi',
                 sleep_mode: 'Включить режим сна',
+                sleep_dim_minutes: 'Затемнение через',
+                sleep_off_minutes: 'Выключение через',
+                sleep_default: 'Авто',
+                sleep_minutes_unit: 'мин',
+                invalid_sleep_minutes: 'Введите целое число от 0 до 1440.',
+                invalid_sleep_order: 'Время выключения должно быть больше времени затемнения.',
                 save: 'Сохранить',
                 config_success: 'Настройка успешно завершена!'
             },
@@ -1334,6 +1418,12 @@
                 max_tx_power: 'Wi-Fi 最大发射功率:',
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
                 sleep_mode: '启用睡眠模式',
+                sleep_dim_minutes: '屏幕变暗时间',
+                sleep_off_minutes: '关机时间',
+                sleep_default: '默认',
+                sleep_minutes_unit: '分钟',
+                invalid_sleep_minutes: '请输入 0 到 1440 的整数。',
+                invalid_sleep_order: '关机时间必须大于屏幕变暗时间。',
                 save: '保存',
                 config_success: '配置成功！'
             },
@@ -1354,6 +1444,12 @@
                 max_tx_power: 'Wi-Fi 最大發射功率:',
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
                 sleep_mode: '啟用睡眠模式',
+                sleep_dim_minutes: '螢幕變暗時間',
+                sleep_off_minutes: '關機時間',
+                sleep_default: '預設',
+                sleep_minutes_unit: '分鐘',
+                invalid_sleep_minutes: '請輸入 0 到 1440 的整數。',
+                invalid_sleep_order: '關機時間必須大於螢幕變暗時間。',
                 save: '儲存',
                 config_success: '設定成功！'
             }
@@ -1483,6 +1579,10 @@
             document.querySelectorAll('[data-lang-value]').forEach(element => {
                 const key = element.getAttribute('data-lang-value');
                 element.value = translations[lang][key] || translations['en-US'][key] || element.value;
+            });
+            document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-lang-placeholder');
+                element.placeholder = translations[lang][key] || translations['en-US'][key];
             });
             
             // Update AP list text based on 5G support
@@ -1699,6 +1799,7 @@
             const advancedButton = document.getElementById('advanced_button');
             const advancedError = document.getElementById('advanced_error');
             advancedError.textContent = '';
+            clearSleepTimerError();
 
             const otaUrl = document.getElementById('ota_url').value;
             if (!isValidOtaUrl(otaUrl)) {
@@ -1707,8 +1808,6 @@
                     translations['en-US'].invalid_ota_url;
                 return;
             }
-            advancedButton.disabled = true;
-
             const config = {
                 ota_url: otaUrl,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
@@ -1716,27 +1815,38 @@
                 sleep_mode: document.getElementById('sleep_mode').checked
             };
 
-            try {
-                if (showSleepConfig && config.sleep_mode) {
-                    const timers = {};
-                    for (const key of Object.keys(savedSleepTimers)) {
-                        const raw = document.getElementById(key).value.trim();
-                        const value = raw === '' ? null : Number(raw);
-                        if (value !== null && (!Number.isInteger(value) || value < 0 || value > 1440)) {
-                            throw new Error('Enter whole minutes from 0 to 1440, or leave the field blank for the device default');
-                        }
-                        timers[key] = value;
-                        if (value !== savedSleepTimers[key]) {
-                            config[key] = value;
-                        }
+            if (showSleepConfig && config.sleep_mode) {
+                const timers = {};
+                let invalidField = '';
+                let errorKey = '';
+                for (const key of Object.keys(savedSleepTimers)) {
+                    const raw = document.getElementById(key).value.trim();
+                    const value = raw === '' ? null : Number(raw);
+                    if (value !== null && (!Number.isInteger(value) || value < 0 || value > 1440)) {
+                        invalidField = key;
+                        errorKey = 'invalid_sleep_minutes';
+                        break;
                     }
-                    const dim = timers.sleep_dim_minutes;
-                    const off = timers.sleep_off_minutes;
-                    if (dim > 0 && off > 0 && off <= dim) {
-                        throw new Error('Power off after must be greater than screen dim after when both timeouts are set');
-                    }
+                    timers[key] = value;
+                    if (value !== savedSleepTimers[key]) config[key] = value;
                 }
+                if (!errorKey && timers.sleep_dim_minutes > 0 && timers.sleep_off_minutes > 0 &&
+                    timers.sleep_off_minutes <= timers.sleep_dim_minutes) {
+                    invalidField = 'sleep_off_minutes';
+                    errorKey = 'invalid_sleep_order';
+                }
+                if (errorKey) {
+                    const lang = document.getElementById('language').value;
+                    document.getElementById('sleep_timers_error').textContent =
+                        (translations[lang] || {})[errorKey] || translations['en-US'][errorKey];
+                    document.getElementById(invalidField).setAttribute('aria-invalid', 'true');
+                    document.getElementById(invalidField).focus();
+                    return;
+                }
+            }
 
+            advancedButton.disabled = true;
+            try {
                 const response = await fetch('/advanced/submit', {
                     method: 'POST',
                     headers: {
@@ -1807,6 +1917,14 @@
             for (const key of Object.keys(savedSleepTimers)) {
                 document.getElementById(key).disabled = !enabled;
             }
+            clearSleepTimerError();
+        }
+
+        function clearSleepTimerError() {
+            document.getElementById('sleep_timers_error').textContent = '';
+            for (const key of Object.keys(savedSleepTimers)) {
+                document.getElementById(key).removeAttribute('aria-invalid');
+            }
         }
 
         /**
@@ -1821,7 +1939,7 @@
                     data.show_ota_config ? 'block' : 'none';
                 showSleepConfig = Boolean(data.show_sleep_config);
                 document.getElementById('sleep_config_row').style.display =
-                    showSleepConfig ? 'flex' : 'none';
+                    showSleepConfig ? 'block' : 'none';
                 const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
                 document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
                 if (data.max_tx_power) {
