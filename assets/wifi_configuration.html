@@ -4,10 +4,12 @@
     <title>Network Configuration</title>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
     <style type="text/css">
         /* ========== Design Tokens ========== */
         :root {
+            color-scheme: light dark;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
             --accent-soft: rgba(37, 99, 235, 0.10);
@@ -20,7 +22,7 @@
             --text: #0f172a;
             --text-muted: #64748b;
             --danger: #dc2626;
-            --success: #16a34a;
+            --success: #15803d;
             --radius: 14px;
             --radius-sm: 10px;
             --shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
@@ -47,16 +49,25 @@
 
         /* ========== Base Styles ========== */
         * { box-sizing: border-box; }
-        html, body { height: 100%; }
+        html {
+            min-height: 100%;
+            background-color: var(--bg-grad-2);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 12px 16px 32px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            padding-right: max(16px, env(safe-area-inset-right));
+            padding-bottom: max(32px, env(safe-area-inset-bottom));
+            padding-left: max(16px, env(safe-area-inset-left));
             color: var(--text);
             background: linear-gradient(160deg, var(--bg-grad-1), var(--bg-grad-2));
+            background-color: var(--bg-grad-2);
             background-attachment: fixed;
             -webkit-font-smoothing: antialiased;
-            min-height: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
 
         .page {
@@ -113,6 +124,7 @@
         }
         input[type="text"],
         input[type="url"],
+        input[type="number"],
         input[type="password"],
         select {
             width: 100%;
@@ -129,6 +141,7 @@
         }
         input[type="text"]:focus,
         input[type="url"]:focus,
+        input[type="number"]:focus,
         input[type="password"]:focus,
         select:focus {
             border-color: var(--accent);
@@ -178,7 +191,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-left: auto;
+            margin-inline-start: auto;
         }
         .language-switch svg {
             width: 18px;
@@ -192,6 +205,8 @@
             font-size: 13px;
             background-position: right 8px center;
         }
+        [dir="rtl"] select { background-position: left 12px center; padding-left: 36px; padding-right: 12px; }
+        [dir="rtl"] .language-switch select { background-position: left 8px center; padding: 7px 10px 7px 30px; }
 
         /* ========== Tab Styles ========== */
         .tabs {
@@ -318,16 +333,38 @@
             background: var(--accent-soft);
             text-decoration: none;
         }
+        .ap-name {
+            min-width: 0;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ap-details { display: flex; align-items: center; gap: 10px; flex: none; }
+        .signal-bars {
+            direction: ltr;
+            display: inline-flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+        .signal-bars span { width: 4px; background: currentColor; opacity: 0.25; border-radius: 1px; }
+        .signal-bars span:nth-child(1) { height: 5px; }
+        .signal-bars span:nth-child(2) { height: 9px; }
+        .signal-bars span:nth-child(3) { height: 14px; }
+        .signal-bars span.active { opacity: 1; }
 
         /* ========== Advanced rows ========== */
         #ota_url_row { margin-bottom: 16px; }
         .field-inline {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 12px;
         }
         .field-inline label { margin: 0; }
-        .field-inline select { width: auto; min-width: 120px; margin-left: auto; }
+        .field-inline select { width: auto; min-width: 120px; margin-inline-start: auto; }
 
         .switch-row {
             display: flex;
@@ -344,6 +381,61 @@
             color: var(--text);
             font-weight: 500;
             flex: 1;
+        }
+        .sleep-group {
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            overflow: hidden;
+        }
+        .sleep-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+        }
+        .sleep-header label {
+            flex: 1;
+            margin: 0;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .sleep-body {
+            padding: 16px 14px;
+            border-top: 1px solid var(--border);
+        }
+        .sleep-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .sleep-field { min-width: 0; }
+        .sleep-field label { margin-bottom: 8px; }
+        .sleep-input { position: relative; }
+        .sleep-input input {
+            min-width: 0;
+            padding-inline-end: 48px;
+            font-size: 16px;
+            background: var(--surface);
+        }
+        .sleep-input input::placeholder {
+            color: var(--text-muted);
+            opacity: 1;
+        }
+        .sleep-input input[aria-invalid="true"] { border-color: var(--danger); }
+        .sleep-unit {
+            position: absolute;
+            inset-inline-end: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .sleep-body .error { text-align: start; margin: 12px 0 0; }
+        @media (max-width: 420px) {
+            .sleep-fields { grid-template-columns: 1fr; }
         }
         input[type="checkbox"] {
             width: 20px;
@@ -371,31 +463,18 @@
             color: var(--danger);
             border-color: var(--danger);
         }
+        .icon-btn[hidden] { display: none; }
         .icon-btn svg { width: 18px; height: 18px; }
 
-        /* ========== Toast Message Styles ========== */
-        .toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            transform: translateX(-50%) translateY(12px);
-            background: rgba(15, 23, 42, 0.92);
-            color: #fff;
-            padding: 13px 22px;
-            border-radius: 12px;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease, transform 0.25s ease;
+        .save-status {
+            margin: 0 0 12px;
+            color: var(--success);
             font-size: 14px;
-            box-shadow: var(--shadow);
-            max-width: 90vw;
+            font-weight: 500;
             text-align: center;
         }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        .save-status:empty { margin: 0; }
+        .save-status:not(:empty)::before { content: "✓ "; }
 
         /* ========== Loading Spinner Styles ========== */
         .loading-overlay {
@@ -434,9 +513,6 @@
     </style>
 </head>
 <body>
-    <!-- Toast notification -->
-    <div class="toast" id="toast"></div>
-    
     <!-- Loading overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
@@ -529,12 +605,12 @@
             <p class="error" id="error"></p>
             <form action="/submit" method="post" autocomplete="off" onsubmit="submitForm(event)">
                 <p>
-                    <label for="ssid">SSID:</label>
-                    <input type="text" id="ssid" name="ssid" autocomplete="off" autocapitalize="none" spellcheck="false" required readonly>
+                    <label for="ssid" data-lang="ssid">Wi-Fi name:</label>
+                    <input type="text" id="ssid" name="ssid" autocomplete="off" autocapitalize="none" spellcheck="false" dir="auto" required readonly>
                 </p>
                 <p>
                     <label for="password" data-lang="password">Password:</label>
-                    <input type="password" id="password" name="password" autocomplete="off">
+                    <input type="password" id="password" name="password" autocomplete="off" dir="auto">
                 </p>
                 <p>
                     <input type="submit" value="Connect" id="button" data-lang-value="connect">
@@ -546,7 +622,7 @@
 
     <!-- Advanced Configuration Tab -->
     <div id="advanced-tab" class="tab-content">
-        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)">
+        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)" oninput="clearAdvancedStatus()" onchange="clearAdvancedStatus()">
             <div>
                 <p class="error" id="advanced_error"></p>
                 
@@ -554,8 +630,8 @@
                 <div id="ota_url_row" style="display: none;">
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" style="flex: 1;">
-                        <button type="button" class="icon-btn" onclick="clearOtaUrl()" aria-label="Clear">
+                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" dir="ltr" oninput="updateOtaClearButton()" style="flex: 1; min-width: 0;">
+                        <button type="button" class="icon-btn" id="clear_ota_url" onclick="clearOtaUrl()" aria-label="Clear OTA URL" data-lang-aria-label="clear_ota_url" hidden>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
@@ -563,8 +639,8 @@
 
                 <!-- Max TX Power -->
                 <p class="field-inline">
-                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Wi-Fi Max TX Power:</label>
-                    <select id="max_tx_power" name="max_tx_power">
+                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Max TX power:</label>
+                    <select id="max_tx_power" name="max_tx_power" dir="ltr">
                         <option value="8">2 dBm</option>
                         <option value="20">5 dBm</option>
                         <option value="28">7 dBm</option>
@@ -582,19 +658,39 @@
                 <!-- Remember BSSID -->
                 <div class="switch-row">
                     <label for="remember_bssid">
-                        <span data-lang="remember_bssid">Remember BSSID when connecting to Wi-Fi</span>
+                        <span data-lang="remember_bssid">Remember BSSID</span>
                     </label>
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
                 </div>
 
                 <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
-                <div class="switch-row" id="sleep_config_row" style="display: none;">
-                    <label for="sleep_mode">
-                        <span data-lang="sleep_mode">Enable Sleep Mode</span>
-                    </label>
-                    <input type="checkbox" id="sleep_mode" name="sleep_mode">
-                </div>
+                <section class="sleep-group" id="sleep_config_row" style="display: none;" aria-labelledby="sleep_mode_label">
+                    <div class="sleep-header">
+                        <label for="sleep_mode" id="sleep_mode_label" data-lang="sleep_mode">Sleep mode</label>
+                        <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
+                    </div>
+                    <div class="sleep-body" id="sleep_timers_row" style="display: none;">
+                        <div class="sleep-fields">
+                            <div class="sleep-field">
+                                <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes">Screen dim after</label>
+                                <div class="sleep-input">
+                                    <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_dim_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
+                                    <span class="sleep-unit" id="sleep_dim_unit" data-lang="sleep_minutes_unit">min</span>
+                                </div>
+                            </div>
+                            <div class="sleep-field">
+                                <label for="sleep_off_minutes" data-lang="sleep_off_minutes">Power off after</label>
+                                <div class="sleep-input">
+                                    <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_off_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
+                                    <span class="sleep-unit" id="sleep_off_unit" data-lang="sleep_minutes_unit">min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="error" id="sleep_timers_error" role="alert" aria-live="polite"></p>
+                    </div>
+                </section>
 
+                <p class="save-status" id="advanced_status" role="status" aria-live="polite" aria-atomic="true"></p>
                 <p>
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
                 </p>
@@ -607,9 +703,10 @@
     <script type="text/javascript">
         // ========== Global Variables ==========
         const button = document.getElementById('button');
-        const error = document.getElementById('error');
         const ssid = document.getElementById('ssid');
         let support5G = false; // Store 5G support status
+        let showSleepConfig = false;
+        const savedSleepTimers = { sleep_dim_minutes: null, sleep_off_minutes: null };
 
         // ========== Translation Data ==========
         const translations = {
@@ -617,727 +714,1407 @@
                 title: 'تكوين الشبكة',
                 saved_wifi: 'Wi-Fi المحفوظة',
                 new_wifi: 'Wi-Fi جديد',
+                ssid: 'اسم Wi-Fi:',
                 password: 'كلمة المرور:',
                 connect: 'اتصال',
                 connecting: 'جارٍ الاتصال...',
-                select_wifi: 'حدد Wi-Fi 2.4G من القائمة أدناه:',
-                select_wifi_5g: 'حدد Wi-Fi من القائمة أدناه:',
+                select_wifi: 'اختر شبكة Wi-Fi بتردد 2.4 غيغاهرتز:',
+                select_wifi_5g: 'اختر شبكة Wi-Fi:',
+                signal_strong: 'إشارة قوية',
+                signal_fair: 'إشارة متوسطة',
+                signal_weak: 'إشارة ضعيفة',
+                signal_unknown: 'قوة الإشارة غير معروفة',
+                clear_ota_url: 'مسح عنوان OTA',
                 scanning: 'جارٍ المسح...',
                 wifi_tab: 'تكوين Wi-Fi',
                 advanced_tab: 'خيارات متقدمة',
                 ota_url: 'عنوان OTA مخصص:',
-                max_tx_power: 'أقصى قوة إرسال Wi-Fi:',
-                remember_bssid: 'تذكر BSSID عند الاتصال بـ Wi-Fi',
-                sleep_mode: 'تمكين وضع السكون',
+                invalid_ota_url: 'أدخل عنوان HTTP(S) بطول 255 بايت كحد أقصى، أو اترك الحقل فارغًا.',
+                max_tx_power: 'قدرة الإرسال القصوى:',
+                remember_bssid: 'تذكّر BSSID',
+                sleep_mode: 'وضع السكون',
+                sleep_dim_minutes: 'تعتيم الشاشة بعد',
+                sleep_off_minutes: 'إيقاف التشغيل بعد',
+                sleep_default: 'الافتراضي',
+                sleep_minutes_unit: 'دقيقة',
+                invalid_sleep_minutes: 'أدخل عددًا صحيحًا من 0 إلى 1440.',
+                invalid_sleep_order: 'يجب أن يكون وقت إيقاف التشغيل بعد تعتيم الشاشة.',
+                invalid_sleep_timers: 'أدخل عددًا صحيحًا من 0 إلى 1440. يجب أن يكون وقت إيقاف التشغيل بعد تعتيم الشاشة.',
                 save: 'حفظ',
-                config_success: 'تم التكوين بنجاح!'
+                settings_saved: 'تم الحفظ',
+                config_success: 'تم التكوين بنجاح!',
+                save_failed: 'تعذّر الحفظ. حاول مجددًا.',
+                connection_failed: 'تعذّر الاتصال بشبكة Wi-Fi. تحقّق من الاسم وكلمة المرور.',
+                invalid_ssid: 'يجب ألا يتجاوز اسم Wi-Fi ‏32 بايت.'
             },
             'bg-BG': {
                 title: 'Конфигурация на мрежата',
                 saved_wifi: 'Запазени Wi-Fi',
                 new_wifi: 'Нов Wi-Fi',
+                ssid: 'Име на Wi-Fi:',
                 password: 'Парола:',
                 connect: 'Свързване',
                 connecting: 'Свързване...',
-                select_wifi: 'Изберете 2.4G Wi-Fi от списъка по-долу:',
-                select_wifi_5g: 'Изберете Wi-Fi от списъка по-долу:',
+                select_wifi: 'Изберете Wi-Fi на 2,4 GHz:',
+                select_wifi_5g: 'Изберете Wi-Fi:',
+                signal_strong: 'Силен сигнал',
+                signal_fair: 'Среден сигнал',
+                signal_weak: 'Слаб сигнал',
+                signal_unknown: 'Неизвестна сила на сигнала',
+                clear_ota_url: 'Изчистване на OTA адреса',
                 scanning: 'Сканиране...',
                 wifi_tab: 'Конфигурация на Wi-Fi',
                 advanced_tab: 'Разширени',
                 ota_url: 'Персонализиран OTA URL:',
-                max_tx_power: 'Макс. мощност на предаване Wi-Fi:',
-                remember_bssid: 'Запомни BSSID при свързване към Wi-Fi',
-                sleep_mode: 'Активиране на режим на заспиване',
+                invalid_ota_url: 'Въведете HTTP(S) адрес до 255 байта или оставете празно.',
+                max_tx_power: 'Макс. мощност на предаване:',
+                remember_bssid: 'Запомняне на BSSID',
+                sleep_mode: 'Режим на заспиване',
+                sleep_dim_minutes: 'Затъмняване след',
+                sleep_off_minutes: 'Изключване след',
+                sleep_default: 'По подр.',
+                sleep_minutes_unit: 'мин',
+                invalid_sleep_minutes: 'Въведете цяло число от 0 до 1440.',
+                invalid_sleep_order: 'Времето за изключване трябва да е след времето за затъмняване.',
+                invalid_sleep_timers: 'Въведете цяло число от 0 до 1440. Времето за изключване трябва да е след времето за затъмняване.',
                 save: 'Запазване',
-                config_success: 'Конфигурацията е успешна!'
+                settings_saved: 'Запазено',
+                config_success: 'Конфигурацията е успешна!',
+                save_failed: 'Запазването е неуспешно. Опитайте отново.',
+                connection_failed: 'Няма връзка с Wi-Fi. Проверете името и паролата.',
+                invalid_ssid: 'Името на Wi-Fi може да е до 32 байта.'
             },
             'ca-ES': {
                 title: 'Configuració de xarxa',
                 saved_wifi: 'Wi-Fi desats',
                 new_wifi: 'Nou Wi-Fi',
+                ssid: 'Nom del Wi-Fi:',
                 password: 'Contrasenya:',
                 connect: 'Connectar',
                 connecting: 'Connectant...',
-                select_wifi: 'Selecciona un Wi-Fi 2.4G de la llista següent:',
-                select_wifi_5g: 'Selecciona un Wi-Fi de la llista següent:',
+                select_wifi: 'Tria una xarxa Wi-Fi de 2,4 GHz:',
+                select_wifi_5g: 'Tria una xarxa Wi-Fi:',
+                signal_strong: 'Senyal fort',
+                signal_fair: 'Senyal mitjà',
+                signal_weak: 'Senyal feble',
+                signal_unknown: 'Intensitat desconeguda',
+                clear_ota_url: 'Esborra l\'URL OTA',
                 scanning: 'Escanejant...',
                 wifi_tab: 'Configuració Wi-Fi',
                 advanced_tab: 'Avançat',
                 ota_url: 'URL OTA personalitzat:',
-                max_tx_power: 'Potència màxima TX Wi-Fi:',
-                remember_bssid: 'Recordar BSSID en connectar a Wi-Fi',
-                sleep_mode: 'Activar mode de suspensió',
+                invalid_ota_url: 'Introdueix un URL HTTP(S) de fins a 255 bytes o deixa el camp buit.',
+                max_tx_power: 'Potència màxima de transmissió:',
+                remember_bssid: 'Recorda el BSSID',
+                sleep_mode: 'Mode de repòs',
+                sleep_dim_minutes: 'Atenua la pantalla al cap de',
+                sleep_off_minutes: 'Apaga el dispositiu al cap de',
+                sleep_default: 'Per defecte',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Introdueix un enter de 0 a 1440.',
+                invalid_sleep_order: 'L\'apagada ha de ser posterior a l\'atenuació de la pantalla.',
+                invalid_sleep_timers: 'Introdueix un enter de 0 a 1440. L\'apagada ha de ser posterior a l\'atenuació de la pantalla.',
                 save: 'Desar',
-                config_success: 'Configuració completada correctament!'
+                settings_saved: 'Desat',
+                config_success: 'Configuració completada correctament!',
+                save_failed: 'No s\'ha pogut desar. Torna-ho a provar.',
+                connection_failed: 'No s\'ha pogut connectar al Wi-Fi. Comprova el nom i la contrasenya.',
+                invalid_ssid: 'El nom del Wi-Fi pot tenir com a màxim 32 bytes.'
             },
             'cs-CZ': {
                 title: 'Konfigurace sítě',
                 saved_wifi: 'Uložené Wi-Fi',
                 new_wifi: 'Nové Wi-Fi',
+                ssid: 'Název Wi-Fi:',
                 password: 'Heslo:',
                 connect: 'Připojit',
                 connecting: 'Připojování...',
-                select_wifi: 'Vyberte 2.4G Wi-Fi ze seznamu níže:',
-                select_wifi_5g: 'Vyberte Wi-Fi ze seznamu níže:',
+                select_wifi: 'Vyberte Wi-Fi v pásmu 2,4 GHz:',
+                select_wifi_5g: 'Vyberte Wi-Fi:',
+                signal_strong: 'Silný signál',
+                signal_fair: 'Střední signál',
+                signal_weak: 'Slabý signál',
+                signal_unknown: 'Síla signálu není známa',
+                clear_ota_url: 'Vymazat OTA adresu',
                 scanning: 'Skenování...',
                 wifi_tab: 'Konfigurace Wi-Fi',
                 advanced_tab: 'Pokročilé',
                 ota_url: 'Vlastní OTA URL:',
-                max_tx_power: 'Max. vysílací výkon Wi-Fi:',
-                remember_bssid: 'Pamatovat si BSSID při připojení k Wi-Fi',
-                sleep_mode: 'Povolit režim spánku',
+                invalid_ota_url: 'Zadejte HTTP(S) adresu do 255 bajtů, nebo ponechte pole prázdné.',
+                max_tx_power: 'Max. vysílací výkon:',
+                remember_bssid: 'Pamatovat si BSSID',
+                sleep_mode: 'Režim spánku',
+                sleep_dim_minutes: 'Ztlumit displej po',
+                sleep_off_minutes: 'Vypnout zařízení po',
+                sleep_default: 'Výchozí',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Zadejte celé číslo od 0 do 1440.',
+                invalid_sleep_order: 'Vypnutí musí nastat později než ztlumení displeje.',
+                invalid_sleep_timers: 'Zadejte celé číslo od 0 do 1440. Vypnutí musí nastat později než ztlumení displeje.',
                 save: 'Uložit',
-                config_success: 'Konfigurace byla úspěšná!'
+                settings_saved: 'Uloženo',
+                config_success: 'Konfigurace byla úspěšná!',
+                save_failed: 'Uložení se nezdařilo. Zkuste to znovu.',
+                connection_failed: 'Připojení k Wi-Fi se nezdařilo. Zkontrolujte název a heslo.',
+                invalid_ssid: 'Název Wi-Fi může mít nejvýše 32 bajtů.'
             },
             'da-DK': {
                 title: 'Netværkskonfiguration',
                 saved_wifi: 'Gemte Wi-Fi',
                 new_wifi: 'Ny Wi-Fi',
+                ssid: 'Wi-Fi-navn:',
                 password: 'Adgangskode:',
                 connect: 'Forbind',
                 connecting: 'Forbinder...',
-                select_wifi: 'Vælg en 2.4G Wi-Fi fra listen nedenfor:',
-                select_wifi_5g: 'Vælg en Wi-Fi fra listen nedenfor:',
+                select_wifi: 'Vælg et 2,4 GHz Wi-Fi:',
+                select_wifi_5g: 'Vælg et Wi-Fi:',
+                signal_strong: 'Stærkt signal',
+                signal_fair: 'Middel signal',
+                signal_weak: 'Svagt signal',
+                signal_unknown: 'Ukendt signalstyrke',
+                clear_ota_url: 'Ryd OTA-adresse',
                 scanning: 'Scanner...',
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avanceret',
                 ota_url: 'Brugerdefineret OTA URL:',
-                max_tx_power: 'Wi-Fi maks. TX-effekt:',
-                remember_bssid: 'Husk BSSID ved forbindelse til Wi-Fi',
-                sleep_mode: 'Aktiver dvaletilstand',
+                invalid_ota_url: 'Indtast en HTTP(S)-adresse på højst 255 byte, eller lad feltet stå tomt.',
+                max_tx_power: 'Maks. sendeeffekt:',
+                remember_bssid: 'Husk BSSID',
+                sleep_mode: 'Dvaletilstand',
+                sleep_dim_minutes: 'Dæmp skærmen efter',
+                sleep_off_minutes: 'Sluk enheden efter',
+                sleep_default: 'Standard',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Indtast et heltal fra 0 til 1440.',
+                invalid_sleep_order: 'Enheden skal slukke senere, end skærmen dæmpes.',
+                invalid_sleep_timers: 'Indtast et heltal fra 0 til 1440. Enheden skal slukke senere, end skærmen dæmpes.',
                 save: 'Gem',
-                config_success: 'Konfigurationen lykkedes!'
+                settings_saved: 'Gemt',
+                config_success: 'Konfigurationen lykkedes!',
+                save_failed: 'Kunne ikke gemme. Prøv igen.',
+                connection_failed: 'Kunne ikke oprette Wi-Fi-forbindelse. Kontrollér navn og adgangskode.',
+                invalid_ssid: 'Wi-Fi-navnet må højst fylde 32 byte.'
             },
             'de-DE': {
                 title: 'Netzwerk-Konfiguration',
                 saved_wifi: 'Gespeicherte Wi-Fi-Verbindungen',
                 new_wifi: 'Neue Wi-Fi-Verbindung',
+                ssid: 'WLAN-Name:',
                 password: 'Passwort:',
                 connect: 'Verbinden',
                 connecting: 'Verbindung wird hergestellt...',
-                select_wifi: 'Wähle ein 2.4G Wi-Fi aus der Liste:',
-                select_wifi_5g: 'Wähle ein Wi-Fi aus der Liste:',
+                select_wifi: '2,4-GHz-WLAN auswählen:',
+                select_wifi_5g: 'WLAN auswählen:',
+                signal_strong: 'Starkes Signal',
+                signal_fair: 'Mittleres Signal',
+                signal_weak: 'Schwaches Signal',
+                signal_unknown: 'Signalstärke unbekannt',
+                clear_ota_url: 'OTA-URL löschen',
                 scanning: 'Scanne...',
                 wifi_tab: 'Wi-Fi-Konfiguration',
                 advanced_tab: 'Erweitert',
                 ota_url: 'Benutzerdefinierte OTA-URL:',
-                max_tx_power: 'Wi-Fi Max. Sendeleistung:',
-                remember_bssid: 'BSSID beim Verbinden mit Wi-Fi merken',
-                sleep_mode: 'Schlafmodus aktivieren',
+                invalid_ota_url: 'Eine HTTP(S)-URL mit maximal 255 Byte eingeben oder das Feld leer lassen.',
+                max_tx_power: 'Max. Sendeleistung:',
+                remember_bssid: 'BSSID merken',
+                sleep_mode: 'Ruhemodus',
+                sleep_dim_minutes: 'Display dimmen nach',
+                sleep_off_minutes: 'Gerät ausschalten nach',
+                sleep_default: 'Standard',
+                sleep_minutes_unit: 'Min.',
+                invalid_sleep_minutes: 'Eine ganze Zahl von 0 bis 1440 eingeben.',
+                invalid_sleep_order: 'Das Ausschalten muss später als das Dimmen erfolgen.',
+                invalid_sleep_timers: 'Eine ganze Zahl von 0 bis 1440 eingeben. Das Ausschalten muss später als das Dimmen erfolgen.',
                 save: 'Speichern',
-                config_success: 'Konfiguration erfolgreich!'
+                settings_saved: 'Gespeichert',
+                config_success: 'Konfiguration erfolgreich!',
+                save_failed: 'Speichern fehlgeschlagen. Erneut versuchen.',
+                connection_failed: 'WLAN-Verbindung fehlgeschlagen. Name und Passwort prüfen.',
+                invalid_ssid: 'Der WLAN-Name darf maximal 32 Byte lang sein.'
             },
             'el-GR': {
                 title: 'Διαμόρφωση δικτύου',
                 saved_wifi: 'Αποθηκευμένα Wi-Fi',
                 new_wifi: 'Νέο Wi-Fi',
+                ssid: 'Όνομα Wi-Fi:',
                 password: 'Κωδικός πρόσβασης:',
                 connect: 'Σύνδεση',
                 connecting: 'Σύνδεση...',
-                select_wifi: 'Επιλέξτε ένα 2.4G Wi-Fi από την παρακάτω λίστα:',
-                select_wifi_5g: 'Επιλέξτε ένα Wi-Fi από την παρακάτω λίστα:',
+                select_wifi: 'Επιλέξτε Wi-Fi 2,4 GHz:',
+                select_wifi_5g: 'Επιλέξτε Wi-Fi:',
+                signal_strong: 'Ισχυρό σήμα',
+                signal_fair: 'Μέτριο σήμα',
+                signal_weak: 'Ασθενές σήμα',
+                signal_unknown: 'Άγνωστη ισχύς σήματος',
+                clear_ota_url: 'Διαγραφή URL OTA',
                 scanning: 'Σάρωση...',
                 wifi_tab: 'Διαμόρφωση Wi-Fi',
                 advanced_tab: 'Για προχωρημένους',
                 ota_url: 'Προσαρμοσμένη διεύθυνση OTA:',
-                max_tx_power: 'Μέγιστη ισχύς μετάδοσης Wi-Fi:',
-                remember_bssid: 'Απομνημόνευση BSSID κατά τη σύνδεση σε Wi-Fi',
-                sleep_mode: 'Ενεργοποίηση λειτουργίας αναστολής',
+                invalid_ota_url: 'Εισαγάγετε URL HTTP(S) έως 255 byte ή αφήστε το πεδίο κενό.',
+                max_tx_power: 'Μέγ. ισχύς εκπομπής:',
+                remember_bssid: 'Απομνημόνευση BSSID',
+                sleep_mode: 'Λειτουργία ύπνου',
+                sleep_dim_minutes: 'Μείωση φωτεινότητας μετά από',
+                sleep_off_minutes: 'Απενεργοποίηση μετά από',
+                sleep_default: 'Προεπιλ.',
+                sleep_minutes_unit: 'λεπτά',
+                invalid_sleep_minutes: 'Εισαγάγετε έναν ακέραιο από 0 έως 1440.',
+                invalid_sleep_order: 'Η απενεργοποίηση πρέπει να γίνεται μετά τη μείωση φωτεινότητας.',
+                invalid_sleep_timers: 'Εισαγάγετε έναν ακέραιο από 0 έως 1440. Η απενεργοποίηση πρέπει να γίνεται μετά τη μείωση φωτεινότητας.',
                 save: 'Αποθήκευση',
-                config_success: 'Η διαμόρφωση ολοκληρώθηκε με επιτυχία!'
+                settings_saved: 'Αποθηκεύτηκε',
+                config_success: 'Η διαμόρφωση ολοκληρώθηκε με επιτυχία!',
+                save_failed: 'Η αποθήκευση απέτυχε. Δοκιμάστε ξανά.',
+                connection_failed: 'Η σύνδεση Wi-Fi απέτυχε. Ελέγξτε το όνομα και τον κωδικό.',
+                invalid_ssid: 'Το όνομα Wi-Fi μπορεί να έχει έως 32 byte.'
             },
             'en-US': {
                 title: 'Network Configuration',
                 saved_wifi: 'Saved Wi-Fi',
                 new_wifi: 'New Wi-Fi',
+                ssid: 'Wi-Fi name:',
                 password: 'Password:',
                 connect: 'Connect',
                 connecting: 'Connecting...',
-                select_wifi: 'Select a 2.4G Wi-Fi from the list below:',
-                select_wifi_5g: 'Select a Wi-Fi from the list below:',
+                select_wifi: 'Choose a 2.4 GHz Wi-Fi:',
+                select_wifi_5g: 'Choose a Wi-Fi:',
+                signal_strong: 'Strong signal',
+                signal_fair: 'Fair signal',
+                signal_weak: 'Weak signal',
+                signal_unknown: 'Signal unavailable',
+                clear_ota_url: 'Clear OTA URL',
                 scanning: 'Scanning...',
                 wifi_tab: 'Wi-Fi Config',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
-                invalid_ota_url: 'Enter a valid HTTP(S) URL (max 255 bytes), or leave it empty to use the default.',
-                max_tx_power: 'Wi-Fi Max TX Power:',
-                remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
-                sleep_mode: 'Enable Sleep Mode',
+                invalid_ota_url: 'Enter an HTTP(S) URL (max 255 bytes), or leave the field blank.',
+                max_tx_power: 'Max TX power:',
+                remember_bssid: 'Remember BSSID',
+                sleep_mode: 'Sleep mode',
+                sleep_dim_minutes: 'Screen dim after',
+                sleep_off_minutes: 'Power off after',
+                sleep_default: 'Default',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Enter a whole number from 0 to 1440.',
+                invalid_sleep_order: 'Power off must be later than screen dim.',
+                invalid_sleep_timers: 'Enter a whole number from 0 to 1440. Power off must be later than screen dim.',
                 save: 'Save',
-                config_success: 'Configuration successful!'
+                settings_saved: 'Saved',
+                config_success: 'Configuration successful!',
+                save_failed: 'Could not save. Try again.',
+                connection_failed: 'Could not connect to Wi-Fi. Check the name and password.',
+                invalid_ssid: 'The Wi-Fi name must be at most 32 bytes.'
             },
             'es-ES': {
                 title: 'Configuración de red',
                 saved_wifi: 'Wi-Fi guardados',
                 new_wifi: 'Nuevo Wi-Fi',
+                ssid: 'Nombre de Wi-Fi:',
                 password: 'Contraseña:',
                 connect: 'Conectar',
                 connecting: 'Conectando...',
-                select_wifi: 'Seleccione un Wi-Fi 2.4G de la lista a continuación:',
-                select_wifi_5g: 'Seleccione un Wi-Fi de la lista a continuación:',
+                select_wifi: 'Elige una red Wi-Fi de 2,4 GHz:',
+                select_wifi_5g: 'Elige una red Wi-Fi:',
+                signal_strong: 'Señal fuerte',
+                signal_fair: 'Señal media',
+                signal_weak: 'Señal débil',
+                signal_unknown: 'Intensidad desconocida',
+                clear_ota_url: 'Borrar URL OTA',
                 scanning: 'Escaneando...',
                 wifi_tab: 'Configuración Wi-Fi',
                 advanced_tab: 'Avanzado',
                 ota_url: 'URL OTA personalizada:',
-                max_tx_power: 'Potencia máxima TX Wi-Fi:',
-                remember_bssid: 'Recordar BSSID al conectarse a Wi-Fi',
-                sleep_mode: 'Activar modo de suspensión',
+                invalid_ota_url: 'Introduce una URL HTTP(S) de hasta 255 bytes o deja el campo vacío.',
+                max_tx_power: 'Potencia máxima de transmisión:',
+                remember_bssid: 'Recordar BSSID',
+                sleep_mode: 'Modo de suspensión',
+                sleep_dim_minutes: 'Atenuar pantalla tras',
+                sleep_off_minutes: 'Apagar dispositivo tras',
+                sleep_default: 'Predet.',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Introduce un número entero de 0 a 1440.',
+                invalid_sleep_order: 'El apagado debe ser posterior a la atenuación de la pantalla.',
+                invalid_sleep_timers: 'Introduce un número entero de 0 a 1440. El apagado debe ser posterior a la atenuación de la pantalla.',
                 save: 'Guardar',
-                config_success: '¡Configuración exitosa!'
+                settings_saved: 'Guardado',
+                config_success: '¡Configuración exitosa!',
+                save_failed: 'No se ha podido guardar. Inténtalo de nuevo.',
+                connection_failed: 'No se ha podido conectar al Wi-Fi. Comprueba el nombre y la contraseña.',
+                invalid_ssid: 'El nombre de Wi-Fi puede tener como máximo 32 bytes.'
             },
             'fa-IR': {
                 title: 'پیکربندی شبکه',
                 saved_wifi: 'Wi-Fi ذخیره شده',
                 new_wifi: 'Wi-Fi جدید',
+                ssid: 'نام Wi-Fi:',
                 password: 'رمز عبور:',
                 connect: 'اتصال',
                 connecting: 'در حال اتصال...',
-                select_wifi: 'یک Wi-Fi 2.4G از لیست زیر انتخاب کنید:',
-                select_wifi_5g: 'یک Wi-Fi از لیست زیر انتخاب کنید:',
+                select_wifi: 'یک شبکهٔ Wi-Fi با فرکانس 2.4 گیگاهرتز انتخاب کنید:',
+                select_wifi_5g: 'یک شبکهٔ Wi-Fi انتخاب کنید:',
+                signal_strong: 'سیگنال قوی',
+                signal_fair: 'سیگنال متوسط',
+                signal_weak: 'سیگنال ضعیف',
+                signal_unknown: 'قدرت سیگنال نامشخص',
+                clear_ota_url: 'پاک کردن نشانی OTA',
                 scanning: 'در حال اسکن...',
                 wifi_tab: 'پیکربندی Wi-Fi',
                 advanced_tab: 'پیشرفته',
                 ota_url: 'آدرس OTA سفارشی:',
-                max_tx_power: 'حداکثر قدرت انتقال Wi-Fi:',
-                remember_bssid: 'به خاطر سپردن BSSID هنگام اتصال به Wi-Fi',
-                sleep_mode: 'فعال کردن حالت خواب',
+                invalid_ota_url: 'یک نشانی HTTP(S) با حداکثر 255 بایت وارد کنید یا فیلد را خالی بگذارید.',
+                max_tx_power: 'حداکثر توان ارسال:',
+                remember_bssid: 'ذخیرهٔ BSSID',
+                sleep_mode: 'حالت خواب',
+                sleep_dim_minutes: 'کم‌نور شدن صفحه پس از',
+                sleep_off_minutes: 'خاموش شدن دستگاه پس از',
+                sleep_default: 'پیش‌فرض',
+                sleep_minutes_unit: 'دقیقه',
+                invalid_sleep_minutes: 'یک عدد صحیح از 0 تا 1440 وارد کنید.',
+                invalid_sleep_order: 'زمان خاموش شدن باید بیشتر از زمان کم‌نور شدن صفحه باشد.',
+                invalid_sleep_timers: 'یک عدد صحیح از 0 تا 1440 وارد کنید. زمان خاموش شدن باید بیشتر از زمان کم‌نور شدن صفحه باشد.',
                 save: 'ذخیره',
-                config_success: 'پیکربندی با موفقیت انجام شد!'
+                settings_saved: 'ذخیره شد',
+                config_success: 'پیکربندی با موفقیت انجام شد!',
+                save_failed: 'ذخیره نشد. دوباره تلاش کنید.',
+                connection_failed: 'اتصال به Wi-Fi برقرار نشد. نام و گذرواژه را بررسی کنید.',
+                invalid_ssid: 'نام Wi-Fi باید حداکثر 32 بایت باشد.'
             },
             'fi-FI': {
                 title: 'Verkon määritys',
                 saved_wifi: 'Tallennetut Wi-Fi',
                 new_wifi: 'Uusi Wi-Fi',
+                ssid: 'Wi-Fi-verkon nimi:',
                 password: 'Salasana:',
                 connect: 'Yhdistä',
                 connecting: 'Yhdistetään...',
-                select_wifi: 'Valitse 2.4G Wi-Fi alla olevasta luettelosta:',
-                select_wifi_5g: 'Valitse Wi-Fi alla olevasta luettelosta:',
+                select_wifi: 'Valitse 2,4 GHz:n Wi-Fi-verkko:',
+                select_wifi_5g: 'Valitse Wi-Fi-verkko:',
+                signal_strong: 'Vahva signaali',
+                signal_fair: 'Kohtalainen signaali',
+                signal_weak: 'Heikko signaali',
+                signal_unknown: 'Signaalin voimakkuus ei tiedossa',
+                clear_ota_url: 'Tyhjennä OTA-osoite',
                 scanning: 'Etsitään...',
                 wifi_tab: 'Wi-Fi-määritys',
                 advanced_tab: 'Lisäasetukset',
                 ota_url: 'Mukautettu OTA-osoite:',
-                max_tx_power: 'Wi-Fi maks. lähetysteho:',
-                remember_bssid: 'Muista BSSID yhdistettäessä Wi-Fi-verkkoon',
-                sleep_mode: 'Ota lepotila käyttöön',
+                invalid_ota_url: 'Anna enintään 255 tavun HTTP(S)-osoite tai jätä kenttä tyhjäksi.',
+                max_tx_power: 'Suurin lähetysteho:',
+                remember_bssid: 'Muista BSSID',
+                sleep_mode: 'Lepotila',
+                sleep_dim_minutes: 'Himmennä näyttö viiveellä',
+                sleep_off_minutes: 'Sammuta laite viiveellä',
+                sleep_default: 'Oletus',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Anna kokonaisluku väliltä 0–1440.',
+                invalid_sleep_order: 'Sammutusviiveen on oltava näytön himmennysviivettä pidempi.',
+                invalid_sleep_timers: 'Anna kokonaisluku väliltä 0–1440. Sammutusviiveen on oltava näytön himmennysviivettä pidempi.',
                 save: 'Tallenna',
-                config_success: 'Määritys onnistui!'
+                settings_saved: 'Tallennettu',
+                config_success: 'Määritys onnistui!',
+                save_failed: 'Tallennus epäonnistui. Yritä uudelleen.',
+                connection_failed: 'Wi-Fi-yhteys epäonnistui. Tarkista nimi ja salasana.',
+                invalid_ssid: 'Wi-Fi-verkon nimi saa olla enintään 32 tavua.'
             },
             'fil-PH': {
                 title: 'Pagsasaayos ng Network',
                 saved_wifi: 'Naka-save na Wi-Fi',
                 new_wifi: 'Bagong Wi-Fi',
+                ssid: 'Pangalan ng Wi-Fi:',
                 password: 'Password:',
                 connect: 'Kumonekta',
                 connecting: 'Kumukonekta...',
-                select_wifi: 'Pumili ng 2.4G Wi-Fi mula sa listahan sa ibaba:',
-                select_wifi_5g: 'Pumili ng Wi-Fi mula sa listahan sa ibaba:',
+                select_wifi: 'Pumili ng 2.4 GHz Wi-Fi:',
+                select_wifi_5g: 'Pumili ng Wi-Fi:',
+                signal_strong: 'Malakas na signal',
+                signal_fair: 'Katamtamang signal',
+                signal_weak: 'Mahinang signal',
+                signal_unknown: 'Hindi alam ang lakas ng signal',
+                clear_ota_url: 'Burahin ang OTA URL',
                 scanning: 'Nag-scan...',
                 wifi_tab: 'Pagsasaayos ng Wi-Fi',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
-                max_tx_power: 'Wi-Fi Max TX Power:',
-                remember_bssid: 'Tandaan ang BSSID kapag kumokonekta sa Wi-Fi',
-                sleep_mode: 'I-enable ang Sleep Mode',
+                invalid_ota_url: 'Maglagay ng HTTP(S) URL na hanggang 255 byte o iwanang blangko.',
+                max_tx_power: 'Pinakamataas na lakas ng pagpapadala:',
+                remember_bssid: 'Tandaan ang BSSID',
+                sleep_mode: 'Mode ng pagtulog',
+                sleep_dim_minutes: 'Padilimin ang screen pagkalipas ng',
+                sleep_off_minutes: 'Patayin ang device pagkalipas ng',
+                sleep_default: 'Pauna',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Maglagay ng buong bilang mula 0 hanggang 1440.',
+                invalid_sleep_order: 'Dapat mas huli ang pagpatay kaysa sa pagdilim ng screen.',
+                invalid_sleep_timers: 'Maglagay ng buong bilang mula 0 hanggang 1440. Dapat mas huli ang pagpatay kaysa sa pagdilim ng screen.',
                 save: 'I-save',
-                config_success: 'Matagumpay ang configuration!'
+                settings_saved: 'Na-save',
+                config_success: 'Matagumpay ang configuration!',
+                save_failed: 'Hindi na-save. Subukang muli.',
+                connection_failed: 'Hindi makakonekta sa Wi-Fi. Suriin ang pangalan at password.',
+                invalid_ssid: 'Hindi dapat lumampas sa 32 byte ang pangalan ng Wi-Fi.'
             },
             'fr-FR': {
                 title: 'Configuration réseau',
                 saved_wifi: 'Wi-Fi enregistrés',
                 new_wifi: 'Nouveau Wi-Fi',
+                ssid: 'Nom du Wi-Fi :',
                 password: 'Mot de passe:',
                 connect: 'Connecter',
                 connecting: 'Connexion en cours...',
-                select_wifi: 'Sélectionnez un Wi-Fi 2.4G dans la liste ci-dessous:',
-                select_wifi_5g: 'Sélectionnez un Wi-Fi dans la liste ci-dessous:',
+                select_wifi: 'Choisissez un Wi-Fi 2,4 GHz :',
+                select_wifi_5g: 'Choisissez un Wi-Fi :',
+                signal_strong: 'Signal fort',
+                signal_fair: 'Signal moyen',
+                signal_weak: 'Signal faible',
+                signal_unknown: 'Puissance du signal inconnue',
+                clear_ota_url: 'Effacer l\'URL OTA',
                 scanning: 'Analyse en cours...',
                 wifi_tab: 'Configuration Wi-Fi',
                 advanced_tab: 'Avancé',
                 ota_url: 'URL OTA personnalisée:',
-                max_tx_power: 'Puissance TX maximale Wi-Fi:',
-                remember_bssid: 'Mémoriser le BSSID lors de la connexion au Wi-Fi',
-                sleep_mode: 'Activer le mode veille',
+                invalid_ota_url: 'Saisissez une URL HTTP(S) de 255 octets maximum ou laissez le champ vide.',
+                max_tx_power: 'Puissance d\'émission maximale :',
+                remember_bssid: 'Mémoriser le BSSID',
+                sleep_mode: 'Mode veille',
+                sleep_dim_minutes: 'Atténuer l\'écran après',
+                sleep_off_minutes: 'Éteindre l\'appareil après',
+                sleep_default: 'Par défaut',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Saisissez un entier de 0 à 1440.',
+                invalid_sleep_order: 'L\'extinction doit avoir lieu après l\'atténuation de l\'écran.',
+                invalid_sleep_timers: 'Saisissez un entier de 0 à 1440. L\'extinction doit avoir lieu après l\'atténuation de l\'écran.',
                 save: 'Enregistrer',
-                config_success: 'Configuration réussie !'
+                settings_saved: 'Enregistré',
+                config_success: 'Configuration réussie !',
+                save_failed: 'Échec de l\'enregistrement. Réessayez.',
+                connection_failed: 'Connexion Wi-Fi impossible. Vérifiez le nom et le mot de passe.',
+                invalid_ssid: 'Le nom du Wi-Fi ne doit pas dépasser 32 octets.'
             },
             'he-IL': {
                 title: 'הגדרות רשת',
                 saved_wifi: 'Wi-Fi שמורים',
                 new_wifi: 'Wi-Fi חדש',
+                ssid: 'שם רשת Wi-Fi:',
                 password: 'סיסמה:',
                 connect: 'התחבר',
                 connecting: 'מתחבר...',
-                select_wifi: 'בחר Wi-Fi 2.4G מהרשימה למטה:',
-                select_wifi_5g: 'בחר Wi-Fi מהרשימה למטה:',
+                select_wifi: 'בחרו רשת Wi-Fi בתדר 2.4 GHz:',
+                select_wifi_5g: 'בחרו רשת Wi-Fi:',
+                signal_strong: 'אות חזק',
+                signal_fair: 'אות בינוני',
+                signal_weak: 'אות חלש',
+                signal_unknown: 'עוצמת האות לא ידועה',
+                clear_ota_url: 'ניקוי כתובת OTA',
                 scanning: 'סורק...',
                 wifi_tab: 'הגדרות Wi-Fi',
                 advanced_tab: 'מתקדם',
                 ota_url: 'כתובת OTA מותאמת אישית:',
-                max_tx_power: 'הספק שידור מקסימלי Wi-Fi:',
-                remember_bssid: 'זכור BSSID בעת התחברות ל-Wi-Fi',
-                sleep_mode: 'הפעל מצב שינה',
+                invalid_ota_url: 'יש להזין כתובת HTTP(S) באורך של עד 255 בתים, או להשאיר את השדה ריק.',
+                max_tx_power: 'עוצמת שידור מרבית:',
+                remember_bssid: 'שמירת BSSID',
+                sleep_mode: 'מצב שינה',
+                sleep_dim_minutes: 'עמעום המסך לאחר',
+                sleep_off_minutes: 'כיבוי המכשיר לאחר',
+                sleep_default: 'ברירת מחדל',
+                sleep_minutes_unit: 'דק׳',
+                invalid_sleep_minutes: 'יש להזין מספר שלם בין 0 ל־1440.',
+                invalid_sleep_order: 'הכיבוי חייב להתרחש לאחר עמעום המסך.',
+                invalid_sleep_timers: 'יש להזין מספר שלם בין 0 ל־1440. הכיבוי חייב להתרחש לאחר עמעום המסך.',
                 save: 'שמור',
-                config_success: 'ההגדרה הושלמה בהצלחה!'
+                settings_saved: 'נשמר',
+                config_success: 'ההגדרה הושלמה בהצלחה!',
+                save_failed: 'השמירה נכשלה. נסו שוב.',
+                connection_failed: 'החיבור ל־Wi-Fi נכשל. בדקו את שם הרשת והסיסמה.',
+                invalid_ssid: 'שם רשת ה־Wi-Fi מוגבל ל־32 בתים.'
             },
             'hi-IN': {
                 title: 'नेटवर्क कॉन्फ़िगरेशन',
                 saved_wifi: 'सहेजे गए Wi-Fi',
                 new_wifi: 'नया Wi-Fi',
+                ssid: 'Wi-Fi का नाम:',
                 password: 'पासवर्ड:',
                 connect: 'कनेक्ट करें',
                 connecting: 'कनेक्ट हो रहा है...',
-                select_wifi: 'नीचे दी गई सूची से 2.4G Wi-Fi चुनें:',
-                select_wifi_5g: 'नीचे दी गई सूची से Wi-Fi चुनें:',
+                select_wifi: '2.4 GHz Wi-Fi चुनें:',
+                select_wifi_5g: 'Wi-Fi चुनें:',
+                signal_strong: 'मज़बूत सिग्नल',
+                signal_fair: 'मध्यम सिग्नल',
+                signal_weak: 'कमज़ोर सिग्नल',
+                signal_unknown: 'सिग्नल की शक्ति अज्ञात है',
+                clear_ota_url: 'OTA पता साफ़ करें',
                 scanning: 'स्कैन कर रहा है...',
                 wifi_tab: 'Wi-Fi कॉन्फ़िगरेशन',
                 advanced_tab: 'उन्नत',
                 ota_url: 'कस्टम OTA URL:',
-                max_tx_power: 'Wi-Fi अधिकतम TX पावर:',
-                remember_bssid: 'Wi-Fi से कनेक्ट करते समय BSSID याद रखें',
-                sleep_mode: 'स्लीप मोड सक्षम करें',
+                invalid_ota_url: 'अधिकतम 255 बाइट का HTTP(S) पता दर्ज करें या फ़ील्ड खाली छोड़ दें।',
+                max_tx_power: 'अधिकतम प्रेषण शक्ति:',
+                remember_bssid: 'BSSID याद रखें',
+                sleep_mode: 'स्लीप मोड',
+                sleep_dim_minutes: 'स्क्रीन मंद होने का समय',
+                sleep_off_minutes: 'डिवाइस बंद होने का समय',
+                sleep_default: 'डिफ़ॉल्ट',
+                sleep_minutes_unit: 'मिनट',
+                invalid_sleep_minutes: '0 से 1440 के बीच पूर्णांक दर्ज करें।',
+                invalid_sleep_order: 'बंद होने का समय स्क्रीन मंद होने के समय से अधिक होना चाहिए।',
+                invalid_sleep_timers: '0 से 1440 के बीच पूर्णांक दर्ज करें। बंद होने का समय स्क्रीन मंद होने के समय से अधिक होना चाहिए।',
                 save: 'सहेजें',
-                config_success: 'कॉन्फ़िगरेशन सफल!'
+                settings_saved: 'सहेजा गया',
+                config_success: 'कॉन्फ़िगरेशन सफल!',
+                save_failed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+                connection_failed: 'Wi-Fi से कनेक्ट नहीं हो सका। नाम और पासवर्ड जाँचें।',
+                invalid_ssid: 'Wi-Fi का नाम अधिकतम 32 बाइट का होना चाहिए।'
             },
             'hr-HR': {
                 title: 'Konfiguracija mreže',
                 saved_wifi: 'Spremljene Wi-Fi mreže',
                 new_wifi: 'Nova Wi-Fi mreža',
+                ssid: 'Naziv Wi-Fi mreže:',
                 password: 'Lozinka:',
                 connect: 'Poveži',
                 connecting: 'Povezivanje...',
-                select_wifi: 'Odaberite 2.4G Wi-Fi s popisa ispod:',
-                select_wifi_5g: 'Odaberite Wi-Fi s popisa ispod:',
+                select_wifi: 'Odaberite Wi-Fi na 2,4 GHz:',
+                select_wifi_5g: 'Odaberite Wi-Fi:',
+                signal_strong: 'Jak signal',
+                signal_fair: 'Srednji signal',
+                signal_weak: 'Slab signal',
+                signal_unknown: 'Nepoznata jačina signala',
+                clear_ota_url: 'Očisti OTA adresu',
                 scanning: 'Skeniranje...',
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
                 ota_url: 'Prilagođeni OTA URL:',
-                max_tx_power: 'Wi-Fi maksimalna TX snaga:',
-                remember_bssid: 'Zapamti BSSID pri povezivanju na Wi-Fi',
-                sleep_mode: 'Omogući način spavanja',
+                invalid_ota_url: 'Unesite HTTP(S) adresu do 255 bajtova ili ostavite polje prazno.',
+                max_tx_power: 'Maks. snaga odašiljanja:',
+                remember_bssid: 'Zapamti BSSID',
+                sleep_mode: 'Način mirovanja',
+                sleep_dim_minutes: 'Zatamni zaslon nakon',
+                sleep_off_minutes: 'Isključi uređaj nakon',
+                sleep_default: 'Zadano',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Unesite cijeli broj od 0 do 1440.',
+                invalid_sleep_order: 'Isključivanje mora biti nakon zatamnjenja zaslona.',
+                invalid_sleep_timers: 'Unesite cijeli broj od 0 do 1440. Isključivanje mora biti nakon zatamnjenja zaslona.',
                 save: 'Spremi',
-                config_success: 'Konfiguracija uspješna!'
+                settings_saved: 'Spremljeno',
+                config_success: 'Konfiguracija uspješna!',
+                save_failed: 'Spremanje nije uspjelo. Pokušajte ponovno.',
+                connection_failed: 'Povezivanje s Wi-Fi mrežom nije uspjelo. Provjerite naziv i lozinku.',
+                invalid_ssid: 'Naziv Wi-Fi mreže može imati najviše 32 bajta.'
             },
             'hu-HU': {
                 title: 'Hálózati konfiguráció',
                 saved_wifi: 'Mentett Wi-Fi hálózatok',
                 new_wifi: 'Új Wi-Fi hálózat',
+                ssid: 'Wi-Fi-hálózat neve:',
                 password: 'Jelszó:',
                 connect: 'Csatlakozás',
                 connecting: 'Csatlakozás...',
-                select_wifi: 'Válasszon egy 2.4G Wi-Fi hálózatot az alábbi listából:',
-                select_wifi_5g: 'Válasszon egy Wi-Fi hálózatot az alábbi listából:',
+                select_wifi: 'Válasszon 2,4 GHz-es Wi-Fi-t:',
+                select_wifi_5g: 'Válasszon Wi-Fi-t:',
+                signal_strong: 'Erős jel',
+                signal_fair: 'Közepes jel',
+                signal_weak: 'Gyenge jel',
+                signal_unknown: 'Ismeretlen jelerősség',
+                clear_ota_url: 'OTA-cím törlése',
                 scanning: 'Keresés...',
                 wifi_tab: 'Wi-Fi konfiguráció',
                 advanced_tab: 'Speciális',
                 ota_url: 'Egyéni OTA URL:',
-                max_tx_power: 'Wi-Fi max. adási teljesítmény:',
-                remember_bssid: 'BSSID megjegyzése Wi-Fi csatlakozáskor',
-                sleep_mode: 'Alvó mód engedélyezése',
+                invalid_ota_url: 'Adjon meg egy legfeljebb 255 bájtos HTTP(S)-címet, vagy hagyja üresen a mezőt.',
+                max_tx_power: 'Max. adási teljesítmény:',
+                remember_bssid: 'BSSID megjegyzése',
+                sleep_mode: 'Alvó mód',
+                sleep_dim_minutes: 'Kijelző halványítása ennyi idő után',
+                sleep_off_minutes: 'Kikapcsolás ennyi idő után',
+                sleep_default: 'Alapért.',
+                sleep_minutes_unit: 'perc',
+                invalid_sleep_minutes: 'Adjon meg egy egész számot 0 és 1440 között.',
+                invalid_sleep_order: 'A kikapcsolásnak a kijelző halványítása után kell történnie.',
+                invalid_sleep_timers: 'Adjon meg egy egész számot 0 és 1440 között. A kikapcsolásnak a kijelző halványítása után kell történnie.',
                 save: 'Mentés',
-                config_success: 'Sikeres konfiguráció!'
+                settings_saved: 'Mentve',
+                config_success: 'Sikeres konfiguráció!',
+                save_failed: 'A mentés sikertelen. Próbálja újra.',
+                connection_failed: 'A Wi-Fi-kapcsolat sikertelen. Ellenőrizze a nevet és a jelszót.',
+                invalid_ssid: 'A Wi-Fi-hálózat neve legfeljebb 32 bájt lehet.'
             },
             'id-ID': {
                 title: 'Konfigurasi Jaringan',
                 saved_wifi: 'Wi-Fi Tersimpan',
                 new_wifi: 'Wi-Fi Baru',
+                ssid: 'Nama Wi-Fi:',
                 password: 'Kata Sandi:',
                 connect: 'Hubungkan',
                 connecting: 'Menghubungkan...',
-                select_wifi: 'Pilih Wi-Fi 2.4G dari daftar di bawah:',
-                select_wifi_5g: 'Pilih Wi-Fi dari daftar di bawah:',
+                select_wifi: 'Pilih Wi-Fi 2,4 GHz:',
+                select_wifi_5g: 'Pilih Wi-Fi:',
+                signal_strong: 'Sinyal kuat',
+                signal_fair: 'Sinyal sedang',
+                signal_weak: 'Sinyal lemah',
+                signal_unknown: 'Kekuatan sinyal tidak diketahui',
+                clear_ota_url: 'Hapus URL OTA',
                 scanning: 'Memindai...',
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
                 ota_url: 'URL OTA Kustom:',
-                max_tx_power: 'Daya Pancar Maks Wi-Fi:',
-                remember_bssid: 'Ingat BSSID saat menghubungkan ke Wi-Fi',
-                sleep_mode: 'Aktifkan Mode Tidur',
+                invalid_ota_url: 'Masukkan URL HTTP(S) maksimal 255 byte atau biarkan kosong.',
+                max_tx_power: 'Daya pancar maksimum:',
+                remember_bssid: 'Ingat BSSID',
+                sleep_mode: 'Mode tidur',
+                sleep_dim_minutes: 'Redupkan layar setelah',
+                sleep_off_minutes: 'Matikan perangkat setelah',
+                sleep_default: 'Bawaan',
+                sleep_minutes_unit: 'menit',
+                invalid_sleep_minutes: 'Masukkan bilangan bulat dari 0 hingga 1440.',
+                invalid_sleep_order: 'Waktu mati harus lebih lama daripada waktu peredupan layar.',
+                invalid_sleep_timers: 'Masukkan bilangan bulat dari 0 hingga 1440. Waktu mati harus lebih lama daripada waktu peredupan layar.',
                 save: 'Simpan',
-                config_success: 'Konfigurasi berhasil!'
+                settings_saved: 'Tersimpan',
+                config_success: 'Konfigurasi berhasil!',
+                save_failed: 'Gagal menyimpan. Coba lagi.',
+                connection_failed: 'Gagal terhubung ke Wi-Fi. Periksa nama dan kata sandi.',
+                invalid_ssid: 'Nama Wi-Fi maksimal 32 byte.'
             },
             'it-IT': {
                 title: 'Configurazione di rete',
                 saved_wifi: 'Wi-Fi salvate',
                 new_wifi: 'Nuova Wi-Fi',
+                ssid: 'Nome Wi-Fi:',
                 password: 'Password:',
                 connect: 'Connetti',
                 connecting: 'Connessione in corso...',
-                select_wifi: 'Seleziona una Wi-Fi 2.4G dall\'elenco sottostante:',
-                select_wifi_5g: 'Seleziona una Wi-Fi dall\'elenco sottostante:',
+                select_wifi: 'Scegli una rete Wi-Fi a 2,4 GHz:',
+                select_wifi_5g: 'Scegli una rete Wi-Fi:',
+                signal_strong: 'Segnale forte',
+                signal_fair: 'Segnale medio',
+                signal_weak: 'Segnale debole',
+                signal_unknown: 'Intensità del segnale sconosciuta',
+                clear_ota_url: 'Cancella URL OTA',
                 scanning: 'Scansione in corso...',
                 wifi_tab: 'Configurazione Wi-Fi',
                 advanced_tab: 'Avanzate',
                 ota_url: 'URL OTA personalizzato:',
-                max_tx_power: 'Potenza TX massima Wi-Fi:',
-                remember_bssid: 'Ricorda BSSID durante la connessione al Wi-Fi',
-                sleep_mode: 'Abilita modalità sospensione',
+                invalid_ota_url: 'Inserisci un URL HTTP(S) di massimo 255 byte o lascia il campo vuoto.',
+                max_tx_power: 'Potenza massima di trasmissione:',
+                remember_bssid: 'Ricorda BSSID',
+                sleep_mode: 'Modalità sospensione',
+                sleep_dim_minutes: 'Attenua schermo dopo',
+                sleep_off_minutes: 'Spegni dispositivo dopo',
+                sleep_default: 'Predef.',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Inserisci un numero intero da 0 a 1440.',
+                invalid_sleep_order: 'Lo spegnimento deve avvenire dopo l\'attenuazione dello schermo.',
+                invalid_sleep_timers: 'Inserisci un numero intero da 0 a 1440. Lo spegnimento deve avvenire dopo l\'attenuazione dello schermo.',
                 save: 'Salva',
-                config_success: 'Configurazione riuscita!'
+                settings_saved: 'Salvato',
+                config_success: 'Configurazione riuscita!',
+                save_failed: 'Salvataggio non riuscito. Riprova.',
+                connection_failed: 'Connessione Wi-Fi non riuscita. Controlla il nome e la password.',
+                invalid_ssid: 'Il nome Wi-Fi non può superare 32 byte.'
             },
             'ja-JP': {
                 title: 'ネットワーク設定',
                 saved_wifi: '保存済みのWi-Fi',
                 new_wifi: '新しいWi-Fi',
+                ssid: 'Wi-Fi 名:',
                 password: 'パスワード:',
                 connect: '接続',
                 connecting: '接続中...',
-                select_wifi: '以下のリストから2.4G Wi-Fiを選択してください:',
-                select_wifi_5g: '以下のリストからWi-Fiを選択してください:',
+                select_wifi: '2.4 GHz の Wi-Fi を選択:',
+                select_wifi_5g: 'Wi-Fi を選択:',
+                signal_strong: '電波が強い',
+                signal_fair: '電波は中程度',
+                signal_weak: '電波が弱い',
+                signal_unknown: '電波強度が不明',
+                clear_ota_url: 'OTA URL を消去',
                 scanning: 'スキャン中...',
                 wifi_tab: 'Wi-Fi設定',
                 advanced_tab: '詳細設定',
                 ota_url: 'カスタムOTA URL:',
-                max_tx_power: 'Wi-Fi最大送信電力:',
-                remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
-                sleep_mode: 'スリープモードを有効にする',
+                invalid_ota_url: '255 バイト以内の HTTP(S) URL を入力するか、空欄にしてください。',
+                max_tx_power: '最大送信電力:',
+                remember_bssid: 'BSSID を記憶',
+                sleep_mode: 'スリープモード',
+                sleep_dim_minutes: '画面減光まで',
+                sleep_off_minutes: '電源オフまで',
+                sleep_default: '既定',
+                sleep_minutes_unit: '分',
+                invalid_sleep_minutes: '0 から 1440 までの整数を入力してください。',
+                invalid_sleep_order: '電源オフの時間は画面減光の時間より長くしてください。',
+                invalid_sleep_timers: '0 から 1440 までの整数を入力してください。 電源オフの時間は画面減光の時間より長くしてください。',
                 save: '保存',
-                config_success: '設定が完了しました！'
+                settings_saved: '保存しました',
+                config_success: '設定が完了しました！',
+                save_failed: '保存できませんでした。もう一度お試しください。',
+                connection_failed: 'Wi-Fi に接続できませんでした。名前とパスワードを確認してください。',
+                invalid_ssid: 'Wi-Fi 名は 32 バイト以内にしてください。'
             },
             'ko-KR': {
                 title: '네트워크 구성',
                 saved_wifi: '저장된 Wi-Fi',
                 new_wifi: '새 Wi-Fi',
+                ssid: 'Wi-Fi 이름:',
                 password: '비밀번호:',
                 connect: '연결',
                 connecting: '연결 중...',
-                select_wifi: '아래 목록에서 2.4G Wi-Fi를 선택하세요:',
-                select_wifi_5g: '아래 목록에서 Wi-Fi를 선택하세요:',
+                select_wifi: '2.4 GHz Wi-Fi 선택:',
+                select_wifi_5g: 'Wi-Fi 선택:',
+                signal_strong: '강한 신호',
+                signal_fair: '보통 신호',
+                signal_weak: '약한 신호',
+                signal_unknown: '신호 세기를 알 수 없음',
+                clear_ota_url: 'OTA URL 지우기',
                 scanning: '스캔 중...',
                 wifi_tab: 'Wi-Fi 구성',
                 advanced_tab: '고급',
                 ota_url: '사용자 정의 OTA URL:',
-                max_tx_power: 'Wi-Fi 최대 송신 전력:',
-                remember_bssid: 'Wi-Fi 연결 시 BSSID 기억',
-                sleep_mode: '절전 모드 활성화',
+                invalid_ota_url: '최대 255바이트의 HTTP(S) URL을 입력하거나 비워 두세요.',
+                max_tx_power: '최대 송신 출력:',
+                remember_bssid: 'BSSID 기억',
+                sleep_mode: '절전 모드',
+                sleep_dim_minutes: '화면 어두워짐까지',
+                sleep_off_minutes: '전원 꺼짐까지',
+                sleep_default: '기본값',
+                sleep_minutes_unit: '분',
+                invalid_sleep_minutes: '0부터 1440까지의 정수를 입력하세요.',
+                invalid_sleep_order: '전원이 꺼지는 시간은 화면이 어두워지는 시간보다 길어야 합니다.',
+                invalid_sleep_timers: '0부터 1440까지의 정수를 입력하세요. 전원이 꺼지는 시간은 화면이 어두워지는 시간보다 길어야 합니다.',
                 save: '저장',
-                config_success: '설정이 완료되었습니다!'
+                settings_saved: '저장됨',
+                config_success: '설정이 완료되었습니다!',
+                save_failed: '저장하지 못했습니다. 다시 시도하세요.',
+                connection_failed: 'Wi-Fi에 연결하지 못했습니다. 이름과 비밀번호를 확인하세요.',
+                invalid_ssid: 'Wi-Fi 이름은 최대 32바이트여야 합니다.'
             },
             'ms-MY': {
                 title: 'Konfigurasi Rangkaian',
                 saved_wifi: 'Wi-Fi Tersimpan',
                 new_wifi: 'Wi-Fi Baharu',
+                ssid: 'Nama Wi-Fi:',
                 password: 'Kata Laluan:',
                 connect: 'Sambung',
                 connecting: 'Menyambung...',
-                select_wifi: 'Pilih Wi-Fi 2.4G dari senarai di bawah:',
-                select_wifi_5g: 'Pilih Wi-Fi dari senarai di bawah:',
+                select_wifi: 'Pilih Wi-Fi 2.4 GHz:',
+                select_wifi_5g: 'Pilih Wi-Fi:',
+                signal_strong: 'Isyarat kuat',
+                signal_fair: 'Isyarat sederhana',
+                signal_weak: 'Isyarat lemah',
+                signal_unknown: 'Kekuatan isyarat tidak diketahui',
+                clear_ota_url: 'Kosongkan URL OTA',
                 scanning: 'Mengimbas...',
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
                 ota_url: 'URL OTA Tersuai:',
-                max_tx_power: 'Kuasa TX Maksimum Wi-Fi:',
-                remember_bssid: 'Ingat BSSID semasa menyambung ke Wi-Fi',
-                sleep_mode: 'Dayakan Mod Tidur',
+                invalid_ota_url: 'Masukkan URL HTTP(S) sehingga 255 bait atau biarkan kosong.',
+                max_tx_power: 'Kuasa pancaran maksimum:',
+                remember_bssid: 'Ingat BSSID',
+                sleep_mode: 'Mod tidur',
+                sleep_dim_minutes: 'Malapkan skrin selepas',
+                sleep_off_minutes: 'Matikan peranti selepas',
+                sleep_default: 'Lalai',
+                sleep_minutes_unit: 'minit',
+                invalid_sleep_minutes: 'Masukkan nombor bulat dari 0 hingga 1440.',
+                invalid_sleep_order: 'Masa peranti dimatikan mesti lebih lama daripada masa skrin dimalapkan.',
+                invalid_sleep_timers: 'Masukkan nombor bulat dari 0 hingga 1440. Masa peranti dimatikan mesti lebih lama daripada masa skrin dimalapkan.',
                 save: 'Simpan',
-                config_success: 'Konfigurasi berjaya!'
+                settings_saved: 'Disimpan',
+                config_success: 'Konfigurasi berjaya!',
+                save_failed: 'Gagal menyimpan. Cuba lagi.',
+                connection_failed: 'Gagal menyambung ke Wi-Fi. Semak nama dan kata laluan.',
+                invalid_ssid: 'Nama Wi-Fi mestilah tidak melebihi 32 bait.'
             },
             'nb-NO': {
                 title: 'Nettverkskonfigurasjon',
                 saved_wifi: 'Lagrede Wi-Fi',
                 new_wifi: 'Nytt Wi-Fi',
+                ssid: 'Wi-Fi-navn:',
                 password: 'Passord:',
                 connect: 'Koble til',
                 connecting: 'Kobler til...',
-                select_wifi: 'Velg et 2.4G Wi-Fi fra listen nedenfor:',
-                select_wifi_5g: 'Velg et Wi-Fi fra listen nedenfor:',
+                select_wifi: 'Velg et 2,4 GHz Wi-Fi:',
+                select_wifi_5g: 'Velg et Wi-Fi:',
+                signal_strong: 'Sterkt signal',
+                signal_fair: 'Middels signal',
+                signal_weak: 'Svakt signal',
+                signal_unknown: 'Ukjent signalstyrke',
+                clear_ota_url: 'Tøm OTA-adresse',
                 scanning: 'Skanner...',
                 wifi_tab: 'Wi-Fi-konfigurasjon',
                 advanced_tab: 'Avansert',
                 ota_url: 'Egendefinert OTA-URL:',
-                max_tx_power: 'Wi-Fi maks. sendeeffekt:',
-                remember_bssid: 'Husk BSSID ved tilkobling til Wi-Fi',
-                sleep_mode: 'Aktiver hvilemodus',
+                invalid_ota_url: 'Skriv inn en HTTP(S)-adresse på maks. 255 byte, eller la feltet stå tomt.',
+                max_tx_power: 'Maks. sendeeffekt:',
+                remember_bssid: 'Husk BSSID',
+                sleep_mode: 'Hvilemodus',
+                sleep_dim_minutes: 'Demp skjermen etter',
+                sleep_off_minutes: 'Slå av enheten etter',
+                sleep_default: 'Standard',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Skriv inn et heltall fra 0 til 1440.',
+                invalid_sleep_order: 'Enheten må slås av senere enn skjermen dempes.',
+                invalid_sleep_timers: 'Skriv inn et heltall fra 0 til 1440. Enheten må slås av senere enn skjermen dempes.',
                 save: 'Lagre',
-                config_success: 'Konfigurasjonen var vellykket!'
+                settings_saved: 'Lagret',
+                config_success: 'Konfigurasjonen var vellykket!',
+                save_failed: 'Kunne ikke lagre. Prøv igjen.',
+                connection_failed: 'Kunne ikke koble til Wi-Fi. Kontroller navn og passord.',
+                invalid_ssid: 'Wi-Fi-navnet kan være på maksimalt 32 byte.'
             },
             'nl-NL': {
                 title: 'Netwerkconfiguratie',
                 saved_wifi: 'Opgeslagen Wi-Fi',
                 new_wifi: 'Nieuwe Wi-Fi',
+                ssid: 'Wi-Fi-naam:',
                 password: 'Wachtwoord:',
                 connect: 'Verbinden',
                 connecting: 'Verbinden...',
-                select_wifi: 'Selecteer een 2.4G Wi-Fi uit de onderstaande lijst:',
-                select_wifi_5g: 'Selecteer een Wi-Fi uit de onderstaande lijst:',
+                select_wifi: 'Kies een 2,4 GHz-wifinetwerk:',
+                select_wifi_5g: 'Kies een wifinetwerk:',
+                signal_strong: 'Sterk signaal',
+                signal_fair: 'Gemiddeld signaal',
+                signal_weak: 'Zwak signaal',
+                signal_unknown: 'Signaalsterkte onbekend',
+                clear_ota_url: 'OTA-URL wissen',
                 scanning: 'Scannen...',
                 wifi_tab: 'Wi-Fi-configuratie',
                 advanced_tab: 'Geavanceerd',
                 ota_url: 'Aangepaste OTA-URL:',
-                max_tx_power: 'Wi-Fi max. zendvermogen:',
-                remember_bssid: 'BSSID onthouden bij verbinden met Wi-Fi',
-                sleep_mode: 'Slaapmodus inschakelen',
+                invalid_ota_url: 'Voer een HTTP(S)-URL van maximaal 255 bytes in of laat het veld leeg.',
+                max_tx_power: 'Max. zendvermogen:',
+                remember_bssid: 'BSSID onthouden',
+                sleep_mode: 'Slaapstand',
+                sleep_dim_minutes: 'Scherm dimmen na',
+                sleep_off_minutes: 'Apparaat uitschakelen na',
+                sleep_default: 'Standaard',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Voer een geheel getal van 0 tot 1440 in.',
+                invalid_sleep_order: 'Uitschakelen moet later plaatsvinden dan het dimmen van het scherm.',
+                invalid_sleep_timers: 'Voer een geheel getal van 0 tot 1440 in. Uitschakelen moet later plaatsvinden dan het dimmen van het scherm.',
                 save: 'Opslaan',
-                config_success: 'Configuratie gelukt!'
+                settings_saved: 'Opgeslagen',
+                config_success: 'Configuratie gelukt!',
+                save_failed: 'Opslaan mislukt. Probeer het opnieuw.',
+                connection_failed: 'Verbinden met Wi-Fi mislukt. Controleer de naam en het wachtwoord.',
+                invalid_ssid: 'De Wi-Fi-naam mag maximaal 32 bytes lang zijn.'
             },
             'pl-PL': {
                 title: 'Konfiguracja sieci',
                 saved_wifi: 'Zapisane Wi-Fi',
                 new_wifi: 'Nowe Wi-Fi',
+                ssid: 'Nazwa Wi-Fi:',
                 password: 'Hasło:',
                 connect: 'Połącz',
                 connecting: 'Łączenie...',
-                select_wifi: 'Wybierz Wi-Fi 2.4G z poniższej listy:',
-                select_wifi_5g: 'Wybierz Wi-Fi z poniższej listy:',
+                select_wifi: 'Wybierz Wi-Fi w paśmie 2,4 GHz:',
+                select_wifi_5g: 'Wybierz Wi-Fi:',
+                signal_strong: 'Silny sygnał',
+                signal_fair: 'Średni sygnał',
+                signal_weak: 'Słaby sygnał',
+                signal_unknown: 'Nieznana siła sygnału',
+                clear_ota_url: 'Wyczyść adres OTA',
                 scanning: 'Skanowanie...',
                 wifi_tab: 'Konfiguracja Wi-Fi',
                 advanced_tab: 'Zaawansowane',
                 ota_url: 'Niestandardowy adres URL OTA:',
-                max_tx_power: 'Maksymalna moc nadawania Wi-Fi:',
-                remember_bssid: 'Zapamiętaj BSSID podczas łączenia z Wi-Fi',
-                sleep_mode: 'Włącz tryb uśpienia',
+                invalid_ota_url: 'Wpisz adres HTTP(S) o długości do 255 bajtów lub pozostaw pole puste.',
+                max_tx_power: 'Maks. moc nadawania:',
+                remember_bssid: 'Zapamiętaj BSSID',
+                sleep_mode: 'Tryb uśpienia',
+                sleep_dim_minutes: 'Przyciemnij ekran po',
+                sleep_off_minutes: 'Wyłącz urządzenie po',
+                sleep_default: 'Domyślne',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Wpisz liczbę całkowitą od 0 do 1440.',
+                invalid_sleep_order: 'Wyłączenie musi nastąpić później niż przyciemnienie ekranu.',
+                invalid_sleep_timers: 'Wpisz liczbę całkowitą od 0 do 1440. Wyłączenie musi nastąpić później niż przyciemnienie ekranu.',
                 save: 'Zapisz',
-                config_success: 'Konfiguracja zakończona sukcesem!'
+                settings_saved: 'Zapisano',
+                config_success: 'Konfiguracja zakończona sukcesem!',
+                save_failed: 'Nie udało się zapisać. Spróbuj ponownie.',
+                connection_failed: 'Nie udało się połączyć z Wi-Fi. Sprawdź nazwę i hasło.',
+                invalid_ssid: 'Nazwa Wi-Fi może mieć najwyżej 32 bajty.'
             },
             'pt-PT': {
                 title: 'Configuração de rede',
                 saved_wifi: 'Wi-Fi guardadas',
                 new_wifi: 'Nova Wi-Fi',
+                ssid: 'Nome da rede Wi-Fi:',
                 password: 'Palavra-passe:',
                 connect: 'Ligar',
                 connecting: 'A ligar...',
-                select_wifi: 'Selecione uma Wi-Fi 2.4G da lista abaixo:',
-                select_wifi_5g: 'Selecione uma Wi-Fi da lista abaixo:',
+                select_wifi: 'Escolha uma rede Wi-Fi de 2,4 GHz:',
+                select_wifi_5g: 'Escolha uma rede Wi-Fi:',
+                signal_strong: 'Sinal forte',
+                signal_fair: 'Sinal médio',
+                signal_weak: 'Sinal fraco',
+                signal_unknown: 'Intensidade do sinal desconhecida',
+                clear_ota_url: 'Limpar URL OTA',
                 scanning: 'A procurar...',
                 wifi_tab: 'Configuração Wi-Fi',
                 advanced_tab: 'Avançado',
                 ota_url: 'URL OTA personalizado:',
-                max_tx_power: 'Potência TX máxima Wi-Fi:',
-                remember_bssid: 'Lembrar BSSID ao ligar ao Wi-Fi',
-                sleep_mode: 'Ativar modo de suspensão',
+                invalid_ota_url: 'Introduza um URL HTTP(S) até 255 bytes ou deixe o campo vazio.',
+                max_tx_power: 'Potência máxima de transmissão:',
+                remember_bssid: 'Memorizar BSSID',
+                sleep_mode: 'Modo de suspensão',
+                sleep_dim_minutes: 'Reduzir brilho após',
+                sleep_off_minutes: 'Desligar dispositivo após',
+                sleep_default: 'Predef.',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Introduza um número inteiro de 0 a 1440.',
+                invalid_sleep_order: 'O dispositivo deve desligar-se depois de o brilho ser reduzido.',
+                invalid_sleep_timers: 'Introduza um número inteiro de 0 a 1440. O dispositivo deve desligar-se depois de o brilho ser reduzido.',
                 save: 'Guardar',
-                config_success: 'Configuração bem-sucedida!'
+                settings_saved: 'Guardado',
+                config_success: 'Configuração bem-sucedida!',
+                save_failed: 'Não foi possível guardar. Tente novamente.',
+                connection_failed: 'Não foi possível ligar ao Wi-Fi. Verifique o nome e a palavra-passe.',
+                invalid_ssid: 'O nome da rede Wi-Fi pode ter, no máximo, 32 bytes.'
             },
             'ro-RO': {
                 title: 'Configurare rețea',
                 saved_wifi: 'Wi-Fi salvate',
                 new_wifi: 'Wi-Fi nou',
+                ssid: 'Nume Wi-Fi:',
                 password: 'Parolă:',
                 connect: 'Conectare',
                 connecting: 'Se conectează...',
-                select_wifi: 'Selectați o Wi-Fi 2.4G din lista de mai jos:',
-                select_wifi_5g: 'Selectați o Wi-Fi din lista de mai jos:',
+                select_wifi: 'Alegeți o rețea Wi-Fi de 2,4 GHz:',
+                select_wifi_5g: 'Alegeți o rețea Wi-Fi:',
+                signal_strong: 'Semnal puternic',
+                signal_fair: 'Semnal mediu',
+                signal_weak: 'Semnal slab',
+                signal_unknown: 'Intensitate necunoscută',
+                clear_ota_url: 'Șterge URL-ul OTA',
                 scanning: 'Se scanează...',
                 wifi_tab: 'Configurare Wi-Fi',
                 advanced_tab: 'Avansat',
                 ota_url: 'URL OTA personalizat:',
-                max_tx_power: 'Putere maximă TX Wi-Fi:',
-                remember_bssid: 'Reține BSSID la conectarea la Wi-Fi',
-                sleep_mode: 'Activează modul de repaus',
+                invalid_ota_url: 'Introduceți un URL HTTP(S) de cel mult 255 de octeți sau lăsați câmpul gol.',
+                max_tx_power: 'Putere maximă de transmisie:',
+                remember_bssid: 'Memorează BSSID',
+                sleep_mode: 'Mod repaus',
+                sleep_dim_minutes: 'Reduce luminozitatea după',
+                sleep_off_minutes: 'Oprește dispozitivul după',
+                sleep_default: 'Implicit',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Introduceți un număr întreg de la 0 la 1440.',
+                invalid_sleep_order: 'Oprirea trebuie să aibă loc după reducerea luminozității.',
+                invalid_sleep_timers: 'Introduceți un număr întreg de la 0 la 1440. Oprirea trebuie să aibă loc după reducerea luminozității.',
                 save: 'Salvare',
-                config_success: 'Configurare reușită!'
+                settings_saved: 'Salvat',
+                config_success: 'Configurare reușită!',
+                save_failed: 'Salvarea a eșuat. Încercați din nou.',
+                connection_failed: 'Conectarea la Wi-Fi a eșuat. Verificați numele și parola.',
+                invalid_ssid: 'Numele Wi-Fi poate avea cel mult 32 de octeți.'
             },
             'ru-RU': {
                 title: 'Настройка сети',
                 saved_wifi: 'Сохраненные Wi-Fi',
                 new_wifi: 'Новая Wi-Fi',
+                ssid: 'Имя Wi-Fi:',
                 password: 'Пароль:',
                 connect: 'Подключить',
                 connecting: 'Подключение...',
-                select_wifi: 'Выберите Wi-Fi 2.4G из списка ниже:',
-                select_wifi_5g: 'Выберите Wi-Fi из списка ниже:',
+                select_wifi: 'Выберите Wi-Fi 2,4 ГГц:',
+                select_wifi_5g: 'Выберите Wi-Fi:',
+                signal_strong: 'Сильный сигнал',
+                signal_fair: 'Средний сигнал',
+                signal_weak: 'Слабый сигнал',
+                signal_unknown: 'Уровень сигнала неизвестен',
+                clear_ota_url: 'Очистить URL OTA',
                 scanning: 'Сканирование...',
                 wifi_tab: 'Настройка Wi-Fi',
                 advanced_tab: 'Дополнительно',
                 ota_url: 'Пользовательский URL OTA:',
-                invalid_ota_url: 'Введите корректный HTTP(S) URL (до 255 байт) или оставьте поле пустым для адреса по умолчанию.',
-                max_tx_power: 'Макс. мощность передачи Wi-Fi:',
-                remember_bssid: 'Запомнить BSSID при подключении к Wi-Fi',
-                sleep_mode: 'Включить режим сна',
+                invalid_ota_url: 'Введите HTTP(S) URL длиной до 255 байт или оставьте поле пустым.',
+                max_tx_power: 'Макс. мощность передачи:',
+                remember_bssid: 'Запомнить BSSID',
+                sleep_mode: 'Режим сна',
+                sleep_dim_minutes: 'Затемнение через',
+                sleep_off_minutes: 'Выключение через',
+                sleep_default: 'По умолч.',
+                sleep_minutes_unit: 'мин',
+                invalid_sleep_minutes: 'Введите целое число от 0 до 1440.',
+                invalid_sleep_order: 'Время выключения должно быть больше времени затемнения.',
+                invalid_sleep_timers: 'Введите целое число от 0 до 1440. Время выключения должно быть больше времени затемнения.',
                 save: 'Сохранить',
-                config_success: 'Настройка успешно завершена!'
+                settings_saved: 'Сохранено',
+                config_success: 'Настройка успешно завершена!',
+                save_failed: 'Не удалось сохранить. Повторите попытку.',
+                connection_failed: 'Не удалось подключиться к Wi-Fi. Проверьте имя и пароль.',
+                invalid_ssid: 'Имя Wi-Fi должно занимать не более 32 байт.'
             },
             'sk-SK': {
                 title: 'Konfigurácia siete',
                 saved_wifi: 'Uložené Wi-Fi',
                 new_wifi: 'Nové Wi-Fi',
+                ssid: 'Názov Wi-Fi:',
                 password: 'Heslo:',
                 connect: 'Pripojiť',
                 connecting: 'Pripájanie...',
-                select_wifi: 'Vyberte 2.4G Wi-Fi zo zoznamu nižšie:',
-                select_wifi_5g: 'Vyberte Wi-Fi zo zoznamu nižšie:',
+                select_wifi: 'Vyberte Wi-Fi v pásme 2,4 GHz:',
+                select_wifi_5g: 'Vyberte Wi-Fi:',
+                signal_strong: 'Silný signál',
+                signal_fair: 'Stredný signál',
+                signal_weak: 'Slabý signál',
+                signal_unknown: 'Neznáma sila signálu',
+                clear_ota_url: 'Vymazať OTA adresu',
                 scanning: 'Skenovanie...',
                 wifi_tab: 'Konfigurácia Wi-Fi',
                 advanced_tab: 'Pokročilé',
                 ota_url: 'Vlastná URL OTA:',
-                max_tx_power: 'Max. vysielací výkon Wi-Fi:',
-                remember_bssid: 'Zapamätať si BSSID pri pripojení k Wi-Fi',
-                sleep_mode: 'Povoliť režim spánku',
+                invalid_ota_url: 'Zadajte HTTP(S) adresu s najviac 255 bajtmi alebo nechajte pole prázdne.',
+                max_tx_power: 'Max. vysielací výkon:',
+                remember_bssid: 'Zapamätať BSSID',
+                sleep_mode: 'Režim spánku',
+                sleep_dim_minutes: 'Stlmiť displej po',
+                sleep_off_minutes: 'Vypnúť zariadenie po',
+                sleep_default: 'Predvol.',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Zadajte celé číslo od 0 do 1440.',
+                invalid_sleep_order: 'Vypnutie musí nastať neskôr než stlmenie displeja.',
+                invalid_sleep_timers: 'Zadajte celé číslo od 0 do 1440. Vypnutie musí nastať neskôr než stlmenie displeja.',
                 save: 'Uložiť',
-                config_success: 'Konfigurácia bola úspešná!'
+                settings_saved: 'Uložené',
+                config_success: 'Konfigurácia bola úspešná!',
+                save_failed: 'Uloženie zlyhalo. Skúste to znova.',
+                connection_failed: 'Pripojenie k Wi-Fi zlyhalo. Skontrolujte názov a heslo.',
+                invalid_ssid: 'Názov Wi-Fi môže mať najviac 32 bajtov.'
             },
             'sl-SI': {
                 title: 'Konfiguracija omrežja',
                 saved_wifi: 'Shranjeni Wi-Fi',
                 new_wifi: 'Nov Wi-Fi',
+                ssid: 'Ime Wi-Fi:',
                 password: 'Geslo:',
                 connect: 'Poveži',
                 connecting: 'Povezovanje...',
-                select_wifi: 'Izberite 2.4G Wi-Fi s spodnjega seznama:',
-                select_wifi_5g: 'Izberite Wi-Fi s spodnjega seznama:',
+                select_wifi: 'Izberite omrežje Wi-Fi 2,4 GHz:',
+                select_wifi_5g: 'Izberite omrežje Wi-Fi:',
+                signal_strong: 'Močan signal',
+                signal_fair: 'Srednje močan signal',
+                signal_weak: 'Šibek signal',
+                signal_unknown: 'Neznana moč signala',
+                clear_ota_url: 'Počisti naslov OTA',
                 scanning: 'Iskanje...',
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
                 ota_url: 'Prilagojen URL OTA:',
-                max_tx_power: 'Wi-Fi maks. oddajna moč:',
-                remember_bssid: 'Zapomni si BSSID ob povezovanju na Wi-Fi',
-                sleep_mode: 'Omogoči način spanja',
+                invalid_ota_url: 'Vnesite naslov HTTP(S) z največ 255 bajti ali pustite polje prazno.',
+                max_tx_power: 'Največja oddajna moč:',
+                remember_bssid: 'Zapomni si BSSID',
+                sleep_mode: 'Način spanja',
+                sleep_dim_minutes: 'Zatemni zaslon po',
+                sleep_off_minutes: 'Izklopi napravo po',
+                sleep_default: 'Privzeto',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Vnesite celo število od 0 do 1440.',
+                invalid_sleep_order: 'Izklop mora biti poznejši od zatemnitve zaslona.',
+                invalid_sleep_timers: 'Vnesite celo število od 0 do 1440. Izklop mora biti poznejši od zatemnitve zaslona.',
                 save: 'Shrani',
-                config_success: 'Konfiguracija uspešna!'
+                settings_saved: 'Shranjeno',
+                config_success: 'Konfiguracija uspešna!',
+                save_failed: 'Shranjevanje ni uspelo. Poskusite znova.',
+                connection_failed: 'Povezava z Wi-Fi ni uspela. Preverite ime in geslo.',
+                invalid_ssid: 'Ime Wi-Fi ima lahko največ 32 bajtov.'
             },
             'sr-RS': {
                 title: 'Конфигурација мреже',
                 saved_wifi: 'Сачуване Wi-Fi мреже',
                 new_wifi: 'Нова Wi-Fi мрежа',
+                ssid: 'Назив Wi-Fi мреже:',
                 password: 'Лозинка:',
                 connect: 'Повежи',
                 connecting: 'Повезивање...',
-                select_wifi: 'Изаберите 2.4G Wi-Fi са листе испод:',
-                select_wifi_5g: 'Изаберите Wi-Fi са листе испод:',
+                select_wifi: 'Изаберите Wi-Fi на 2,4 GHz:',
+                select_wifi_5g: 'Изаберите Wi-Fi:',
+                signal_strong: 'Јак сигнал',
+                signal_fair: 'Средњи сигнал',
+                signal_weak: 'Слаб сигнал',
+                signal_unknown: 'Непозната јачина сигнала',
+                clear_ota_url: 'Обриши OTA адресу',
                 scanning: 'Скенирање...',
                 wifi_tab: 'Конфигурација Wi-Fi',
                 advanced_tab: 'Напредно',
                 ota_url: 'Прилагођени OTA URL:',
-                max_tx_power: 'Wi-Fi максимална снага преноса:',
-                remember_bssid: 'Запамти BSSID приликом повезивања на Wi-Fi',
-                sleep_mode: 'Омогући режим спавања',
+                invalid_ota_url: 'Унесите HTTP(S) адресу до 255 бајтова или оставите поље празно.',
+                max_tx_power: 'Макс. снага предаје:',
+                remember_bssid: 'Запамти BSSID',
+                sleep_mode: 'Режим спавања',
+                sleep_dim_minutes: 'Затамни екран након',
+                sleep_off_minutes: 'Искључи уређај након',
+                sleep_default: 'Подразум.',
+                sleep_minutes_unit: 'мин',
+                invalid_sleep_minutes: 'Унесите цео број од 0 до 1440.',
+                invalid_sleep_order: 'Искључивање мора бити касније од затамњења екрана.',
+                invalid_sleep_timers: 'Унесите цео број од 0 до 1440. Искључивање мора бити касније од затамњења екрана.',
                 save: 'Сачувај',
-                config_success: 'Конфигурација је успешна!'
+                settings_saved: 'Сачувано',
+                config_success: 'Конфигурација је успешна!',
+                save_failed: 'Чување није успело. Покушајте поново.',
+                connection_failed: 'Повезивање на Wi-Fi није успело. Проверите назив и лозинку.',
+                invalid_ssid: 'Назив Wi-Fi мреже може имати највише 32 бајта.'
             },
             'sv-SE': {
                 title: 'Nätverkskonfiguration',
                 saved_wifi: 'Sparade Wi-Fi',
                 new_wifi: 'Nytt Wi-Fi',
+                ssid: 'Wi-Fi-namn:',
                 password: 'Lösenord:',
                 connect: 'Anslut',
                 connecting: 'Ansluter...',
-                select_wifi: 'Välj ett 2.4G Wi-Fi från listan nedan:',
-                select_wifi_5g: 'Välj ett Wi-Fi från listan nedan:',
+                select_wifi: 'Välj ett 2,4 GHz-Wi-Fi:',
+                select_wifi_5g: 'Välj ett Wi-Fi:',
+                signal_strong: 'Stark signal',
+                signal_fair: 'Medelstark signal',
+                signal_weak: 'Svag signal',
+                signal_unknown: 'Okänd signalstyrka',
+                clear_ota_url: 'Rensa OTA-adress',
                 scanning: 'Söker...',
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avancerat',
                 ota_url: 'Anpassad OTA-URL:',
-                max_tx_power: 'Wi-Fi max. sändningseffekt:',
-                remember_bssid: 'Kom ihåg BSSID vid anslutning till Wi-Fi',
-                sleep_mode: 'Aktivera viloläge',
+                invalid_ota_url: 'Ange en HTTP(S)-adress på högst 255 byte eller lämna fältet tomt.',
+                max_tx_power: 'Max. sändningseffekt:',
+                remember_bssid: 'Kom ihåg BSSID',
+                sleep_mode: 'Viloläge',
+                sleep_dim_minutes: 'Dimma skärmen efter',
+                sleep_off_minutes: 'Stäng av enheten efter',
+                sleep_default: 'Standard',
+                sleep_minutes_unit: 'min',
+                invalid_sleep_minutes: 'Ange ett heltal från 0 till 1440.',
+                invalid_sleep_order: 'Enheten måste stängas av senare än skärmen dimmas.',
+                invalid_sleep_timers: 'Ange ett heltal från 0 till 1440. Enheten måste stängas av senare än skärmen dimmas.',
                 save: 'Spara',
-                config_success: 'Konfigurationen lyckades!'
+                settings_saved: 'Sparat',
+                config_success: 'Konfigurationen lyckades!',
+                save_failed: 'Det gick inte att spara. Försök igen.',
+                connection_failed: 'Det gick inte att ansluta till Wi-Fi. Kontrollera namn och lösenord.',
+                invalid_ssid: 'Wi-Fi-namnet får vara högst 32 byte.'
             },
             'th-TH': {
                 title: 'การกำหนดค่าเครือข่าย',
                 saved_wifi: 'Wi-Fi ที่บันทึกไว้',
                 new_wifi: 'Wi-Fi ใหม่',
+                ssid: 'ชื่อ Wi-Fi:',
                 password: 'รหัสผ่าน:',
                 connect: 'เชื่อมต่อ',
                 connecting: 'กำลังเชื่อมต่อ...',
-                select_wifi: 'เลือก Wi-Fi 2.4G จากรายการด้านล่าง:',
-                select_wifi_5g: 'เลือก Wi-Fi จากรายการด้านล่าง:',
+                select_wifi: 'เลือก Wi-Fi ย่าน 2.4 GHz:',
+                select_wifi_5g: 'เลือก Wi-Fi:',
+                signal_strong: 'สัญญาณแรง',
+                signal_fair: 'สัญญาณปานกลาง',
+                signal_weak: 'สัญญาณอ่อน',
+                signal_unknown: 'ไม่ทราบความแรงของสัญญาณ',
+                clear_ota_url: 'ล้าง URL OTA',
                 scanning: 'กำลังสแกน...',
                 wifi_tab: 'การกำหนดค่า Wi-Fi',
                 advanced_tab: 'ขั้นสูง',
                 ota_url: 'URL OTA กำหนดเอง:',
-                max_tx_power: 'กำลังส่งสูงสุด Wi-Fi:',
-                remember_bssid: 'จำ BSSID เมื่อเชื่อมต่อกับ Wi-Fi',
-                sleep_mode: 'เปิดใช้งานโหมดสลีป',
+                invalid_ota_url: 'ป้อน URL HTTP(S) ไม่เกิน 255 ไบต์ หรือเว้นว่างไว้',
+                max_tx_power: 'กำลังส่งสูงสุด:',
+                remember_bssid: 'จดจำ BSSID',
+                sleep_mode: 'โหมดพักเครื่อง',
+                sleep_dim_minutes: 'หรี่หน้าจอหลังจาก',
+                sleep_off_minutes: 'ปิดเครื่องหลังจาก',
+                sleep_default: 'ค่าเริ่มต้น',
+                sleep_minutes_unit: 'นาที',
+                invalid_sleep_minutes: 'ป้อนจำนวนเต็มตั้งแต่ 0 ถึง 1440',
+                invalid_sleep_order: 'เวลาปิดเครื่องต้องมากกว่าเวลาหรี่หน้าจอ',
+                invalid_sleep_timers: 'ป้อนจำนวนเต็มตั้งแต่ 0 ถึง 1440 เวลาปิดเครื่องต้องมากกว่าเวลาหรี่หน้าจอ',
                 save: 'บันทึก',
-                config_success: 'กำหนดค่าสำเร็จ!'
+                settings_saved: 'บันทึกแล้ว',
+                config_success: 'กำหนดค่าสำเร็จ!',
+                save_failed: 'บันทึกไม่สำเร็จ โปรดลองอีกครั้ง',
+                connection_failed: 'เชื่อมต่อ Wi-Fi ไม่สำเร็จ ตรวจสอบชื่อและรหัสผ่าน',
+                invalid_ssid: 'ชื่อ Wi-Fi ต้องไม่เกิน 32 ไบต์'
             },
             'tr-TR': {
                 title: 'Ağ Yapılandırması',
                 saved_wifi: 'Kaydedilmiş Wi-Fi',
                 new_wifi: 'Yeni Wi-Fi',
+                ssid: 'Wi-Fi adı:',
                 password: 'Şifre:',
                 connect: 'Bağlan',
                 connecting: 'Bağlanıyor...',
-                select_wifi: 'Aşağıdaki listeden bir 2.4G Wi-Fi seçin:',
-                select_wifi_5g: 'Aşağıdaki listeden bir Wi-Fi seçin:',
+                select_wifi: '2,4 GHz Wi-Fi seçin:',
+                select_wifi_5g: 'Wi-Fi seçin:',
+                signal_strong: 'Güçlü sinyal',
+                signal_fair: 'Orta sinyal',
+                signal_weak: 'Zayıf sinyal',
+                signal_unknown: 'Sinyal gücü bilinmiyor',
+                clear_ota_url: 'OTA adresini temizle',
                 scanning: 'Taranıyor...',
                 wifi_tab: 'Wi-Fi Yapılandırması',
                 advanced_tab: 'Gelişmiş',
                 ota_url: 'Özel OTA URL:',
-                max_tx_power: 'Wi-Fi Maks. İletim Gücü:',
-                remember_bssid: 'Wi-Fi\'ye bağlanırken BSSID\'yi hatırla',
-                sleep_mode: 'Uyku Modunu Etkinleştir',
+                invalid_ota_url: 'En fazla 255 baytlık bir HTTP(S) adresi girin veya alanı boş bırakın.',
+                max_tx_power: 'En yüksek iletim gücü:',
+                remember_bssid: 'BSSID\'yi hatırla',
+                sleep_mode: 'Uyku modu',
+                sleep_dim_minutes: 'Ekranı karartma süresi',
+                sleep_off_minutes: 'Kapanma süresi',
+                sleep_default: 'Varsayılan',
+                sleep_minutes_unit: 'dk',
+                invalid_sleep_minutes: '0 ile 1440 arasında bir tam sayı girin.',
+                invalid_sleep_order: 'Kapanma süresi ekranı karartma süresinden uzun olmalıdır.',
+                invalid_sleep_timers: '0 ile 1440 arasında bir tam sayı girin. Kapanma süresi ekranı karartma süresinden uzun olmalıdır.',
                 save: 'Kaydet',
-                config_success: 'Yapılandırma başarılı!'
+                settings_saved: 'Kaydedildi',
+                config_success: 'Yapılandırma başarılı!',
+                save_failed: 'Kaydedilemedi. Tekrar deneyin.',
+                connection_failed: 'Wi-Fi\'ye bağlanılamadı. Adı ve parolayı kontrol edin.',
+                invalid_ssid: 'Wi-Fi adı en fazla 32 bayt olmalıdır.'
             },
             'uk-UA': {
                 title: 'Налаштування мережі',
                 saved_wifi: 'Збережені Wi-Fi',
                 new_wifi: 'Нова Wi-Fi',
+                ssid: 'Назва Wi-Fi:',
                 password: 'Пароль:',
                 connect: 'Підключити',
                 connecting: 'Підключення...',
-                select_wifi: 'Виберіть Wi-Fi 2.4G зі списку нижче:',
-                select_wifi_5g: 'Виберіть Wi-Fi зі списку нижче:',
+                select_wifi: 'Виберіть Wi-Fi 2,4 ГГц:',
+                select_wifi_5g: 'Виберіть Wi-Fi:',
+                signal_strong: 'Сильний сигнал',
+                signal_fair: 'Середній сигнал',
+                signal_weak: 'Слабкий сигнал',
+                signal_unknown: 'Рівень сигналу невідомий',
+                clear_ota_url: 'Очистити URL OTA',
                 scanning: 'Сканування...',
                 wifi_tab: 'Налаштування Wi-Fi',
                 advanced_tab: 'Додатково',
                 ota_url: 'Користувацька URL-адреса OTA:',
-                max_tx_power: 'Макс. потужність передачі Wi-Fi:',
-                remember_bssid: 'Запам\'ятати BSSID при підключенні до Wi-Fi',
-                sleep_mode: 'Увімкнути режим сну',
+                invalid_ota_url: 'Введіть HTTP(S) URL завдовжки до 255 байтів або залиште поле порожнім.',
+                max_tx_power: 'Макс. потужність передавання:',
+                remember_bssid: 'Запам\'ятати BSSID',
+                sleep_mode: 'Режим сну',
+                sleep_dim_minutes: 'Затемнення через',
+                sleep_off_minutes: 'Вимкнення через',
+                sleep_default: 'Типово',
+                sleep_minutes_unit: 'хв',
+                invalid_sleep_minutes: 'Введіть ціле число від 0 до 1440.',
+                invalid_sleep_order: 'Час вимкнення має бути більшим за час затемнення.',
+                invalid_sleep_timers: 'Введіть ціле число від 0 до 1440. Час вимкнення має бути більшим за час затемнення.',
                 save: 'Зберегти',
-                config_success: 'Налаштування успішно завершено!'
+                settings_saved: 'Збережено',
+                config_success: 'Налаштування успішно завершено!',
+                save_failed: 'Не вдалося зберегти. Спробуйте ще раз.',
+                connection_failed: 'Не вдалося підключитися до Wi-Fi. Перевірте назву та пароль.',
+                invalid_ssid: 'Назва Wi-Fi має займати не більше 32 байтів.'
             },
             'vi-VN': {
                 title: 'Cấu hình mạng',
                 saved_wifi: 'Wi-Fi đã lưu',
                 new_wifi: 'Wi-Fi mới',
+                ssid: 'Tên Wi-Fi:',
                 password: 'Mật khẩu:',
                 connect: 'Kết nối',
                 connecting: 'Đang kết nối...',
-                select_wifi: 'Chọn Wi-Fi 2.4G từ danh sách bên dưới:',
-                select_wifi_5g: 'Chọn Wi-Fi từ danh sách bên dưới:',
+                select_wifi: 'Chọn Wi-Fi 2,4 GHz:',
+                select_wifi_5g: 'Chọn Wi-Fi:',
+                signal_strong: 'Tín hiệu mạnh',
+                signal_fair: 'Tín hiệu trung bình',
+                signal_weak: 'Tín hiệu yếu',
+                signal_unknown: 'Chưa rõ cường độ tín hiệu',
+                clear_ota_url: 'Xóa URL OTA',
                 scanning: 'Đang quét...',
                 wifi_tab: 'Cấu hình Wi-Fi',
                 advanced_tab: 'Tùy chọn nâng cao',
                 ota_url: 'Địa chỉ OTA tùy chỉnh:',
-                max_tx_power: 'Công suất phát Wi-Fi tối đa:',
-                remember_bssid: 'Ghi nhớ BSSID khi kết nối với Wi-Fi',
-                sleep_mode: 'Bật chế độ ngủ',
+                invalid_ota_url: 'Nhập URL HTTP(S) tối đa 255 byte hoặc để trống.',
+                max_tx_power: 'Công suất phát tối đa:',
+                remember_bssid: 'Ghi nhớ BSSID',
+                sleep_mode: 'Chế độ ngủ',
+                sleep_dim_minutes: 'Làm mờ màn hình sau',
+                sleep_off_minutes: 'Tắt thiết bị sau',
+                sleep_default: 'Mặc định',
+                sleep_minutes_unit: 'phút',
+                invalid_sleep_minutes: 'Nhập số nguyên từ 0 đến 1440.',
+                invalid_sleep_order: 'Thời gian tắt phải lớn hơn thời gian làm mờ màn hình.',
+                invalid_sleep_timers: 'Nhập số nguyên từ 0 đến 1440. Thời gian tắt phải lớn hơn thời gian làm mờ màn hình.',
                 save: 'Lưu',
-                config_success: 'Cấu hình thành công!'
+                settings_saved: 'Đã lưu',
+                config_success: 'Cấu hình thành công!',
+                save_failed: 'Không lưu được. Hãy thử lại.',
+                connection_failed: 'Không kết nối được Wi-Fi. Kiểm tra tên và mật khẩu.',
+                invalid_ssid: 'Tên Wi-Fi không được vượt quá 32 byte.'
             },
             'zh-CN': {
                 title: '网络配置',
                 saved_wifi: '已保存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid: 'Wi-Fi 名称:',
                 password: '密码:',
                 connect: '连接',
                 connecting: '正在连接...',
-                select_wifi: '从下面列表选择 2.4G Wi-Fi:',
-                select_wifi_5g: '从下面列表选择 Wi-Fi:',
+                select_wifi: '选择 2.4GHz Wi-Fi:',
+                select_wifi_5g: '选择 Wi-Fi:',
+                signal_strong: '信号强',
+                signal_fair: '信号中等',
+                signal_weak: '信号弱',
+                signal_unknown: '信号强度未知',
+                clear_ota_url: '清除 OTA 地址',
                 scanning: '扫描中...',
                 wifi_tab: 'Wi-Fi 配置',
                 advanced_tab: '高级选项',
                 ota_url: '自定义 OTA 地址:',
-                invalid_ota_url: '请输入有效的 HTTP(S) 地址（最多 255 字节），或留空使用默认地址。',
-                max_tx_power: 'Wi-Fi 最大发射功率:',
-                remember_bssid: '连接 Wi-Fi 时记住 BSSID',
-                sleep_mode: '启用睡眠模式',
+                invalid_ota_url: '请输入 HTTP(S) 地址（最多 255 字节），或留空。',
+                max_tx_power: '最大发射功率:',
+                remember_bssid: '记住 BSSID',
+                sleep_mode: '睡眠模式',
+                sleep_dim_minutes: '屏幕变暗时间',
+                sleep_off_minutes: '关机时间',
+                sleep_default: '默认',
+                sleep_minutes_unit: '分钟',
+                invalid_sleep_minutes: '请输入 0 到 1440 的整数。',
+                invalid_sleep_order: '关机时间必须大于屏幕变暗时间。',
+                invalid_sleep_timers: '请输入 0 到 1440 的整数。 关机时间必须大于屏幕变暗时间。',
                 save: '保存',
-                config_success: '配置成功！'
+                settings_saved: '已保存',
+                config_success: '配置成功！',
+                save_failed: '保存失败，请重试。',
+                connection_failed: '连接 Wi-Fi 失败，请检查名称和密码。',
+                invalid_ssid: 'Wi-Fi 名称最多为 32 字节。'
             },
             'zh-TW': {
                 title: '網路設定',
                 saved_wifi: '已儲存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid: 'Wi-Fi 名稱:',
                 password: '密碼:',
                 connect: '連接',
                 connecting: '正在連接...',
-                select_wifi: '從下方列表選擇 2.4G Wi-Fi:',
-                select_wifi_5g: '從下方列表選擇 Wi-Fi:',
+                select_wifi: '選擇 2.4GHz Wi-Fi:',
+                select_wifi_5g: '選擇 Wi-Fi:',
+                signal_strong: '訊號強',
+                signal_fair: '訊號中等',
+                signal_weak: '訊號弱',
+                signal_unknown: '訊號強度未知',
+                clear_ota_url: '清除 OTA 位址',
                 scanning: '掃描中...',
                 wifi_tab: 'Wi-Fi 設定',
                 advanced_tab: '進階選項',
                 ota_url: '自定義 OTA 位址:',
-                invalid_ota_url: '請輸入有效的 HTTP(S) 位址（最多 255 位元組），或留空使用預設位址。',
-                max_tx_power: 'Wi-Fi 最大發射功率:',
-                remember_bssid: '連接 Wi-Fi 時記住 BSSID',
-                sleep_mode: '啟用睡眠模式',
+                invalid_ota_url: '請輸入 HTTP(S) 位址（最多 255 位元組），或留空。',
+                max_tx_power: '最大發射功率:',
+                remember_bssid: '記住 BSSID',
+                sleep_mode: '睡眠模式',
+                sleep_dim_minutes: '螢幕變暗時間',
+                sleep_off_minutes: '關機時間',
+                sleep_default: '預設',
+                sleep_minutes_unit: '分鐘',
+                invalid_sleep_minutes: '請輸入 0 到 1440 的整數。',
+                invalid_sleep_order: '關機時間必須大於螢幕變暗時間。',
+                invalid_sleep_timers: '請輸入 0 到 1440 的整數。 關機時間必須大於螢幕變暗時間。',
                 save: '儲存',
-                config_success: '設定成功！'
+                settings_saved: '已儲存',
+                config_success: '設定成功！',
+                save_failed: '儲存失敗，請重試。',
+                connection_failed: '連線 Wi-Fi 失敗，請檢查名稱和密碼。',
+                invalid_ssid: 'Wi-Fi 名稱最多為 32 位元組。'
             }
         };
 
@@ -1421,6 +2198,34 @@
         };
 
         // ========== Helper Functions ==========
+
+        function translate(key) {
+            const lang = document.getElementById('language').value;
+            return (translations[lang] || {})[key] || translations['en-US'][key];
+        }
+
+        function showLocalizedMessage(id, key) {
+            const element = document.getElementById(id);
+            element.setAttribute('data-lang-message', key);
+            element.textContent = translate(key);
+        }
+
+        function clearLocalizedMessage(id) {
+            const element = document.getElementById(id);
+            element.removeAttribute('data-lang-message');
+            element.textContent = '';
+        }
+
+        function responseError(message, fallbackKey) {
+            const keys = {
+                'Invalid SSID': 'invalid_ssid',
+                'OTA URL must be empty or a valid HTTP(S) URL (max 255 bytes)': 'invalid_ota_url',
+                'Invalid sleep timer values': 'invalid_sleep_timers'
+            };
+            const error = new Error(message || fallbackKey);
+            error.translationKey = Object.prototype.hasOwnProperty.call(keys, message) ? keys[message] : fallbackKey;
+            return error;
+        }
         
         /**
          * Get supported language code from browser language
@@ -1454,17 +2259,30 @@
             
             // Set page title
             document.title = translations[lang].title;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = ['ar-SA', 'fa-IR', 'he-IL'].includes(lang) ? 'rtl' : 'ltr';
             
             // Update text content
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
-                element.textContent = translations[lang][key];
+                element.textContent = translations[lang][key] || translations['en-US'][key] || element.textContent;
             });
-            
+
             // Update input values
             document.querySelectorAll('[data-lang-value]').forEach(element => {
                 const key = element.getAttribute('data-lang-value');
-                element.value = translations[lang][key];
+                element.value = translations[lang][key] || translations['en-US'][key] || element.value;
+            });
+            document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-lang-placeholder');
+                element.placeholder = translations[lang][key] || translations['en-US'][key];
+            });
+            document.querySelectorAll('[data-lang-aria-label]').forEach(element => {
+                const key = element.getAttribute('data-lang-aria-label');
+                element.setAttribute('aria-label', translations[lang][key] || translations['en-US'][key]);
+            });
+            document.querySelectorAll('[data-lang-message]').forEach(element => {
+                element.textContent = translate(element.getAttribute('data-lang-message'));
             });
             
             // Update AP list text based on 5G support
@@ -1569,6 +2387,7 @@
                 .then(data => {
                     // Update global 5G support status
                     support5G = data.support_5g;
+                    const lang = document.getElementById('language').value;
                     
                     // Use select_wifi_5g if 5G is supported, otherwise use select_wifi
                     const selectText = support5G ? translations[lang].select_wifi_5g : translations[lang].select_wifi;
@@ -1578,14 +2397,31 @@
                     data.aps.forEach(ap => {
                         const link = document.createElement('a');
                         link.href = '#';
-                        link.textContent = ap.ssid + ' (' + ap.rssi + ' dBm)';
-                        
-                        // Add lock icon for secured networks
-                        if (ap.authmode === 0) {
-                            link.textContent += ' 🌐';
-                        } else {
-                            link.textContent += ' 🔒';
+                        const name = document.createElement('span');
+                        name.className = 'ap-name';
+                        name.setAttribute('dir', 'auto');
+                        name.textContent = ap.ssid;
+                        link.appendChild(name);
+
+                        const details = document.createElement('span');
+                        details.className = 'ap-details';
+                        const signal = document.createElement('span');
+                        signal.className = 'signal-bars';
+                        const strength = Number.isFinite(ap.rssi) ? (ap.rssi >= -55 ? 3 : ap.rssi >= -70 ? 2 : 1) : 0;
+                        const signalKey = ['signal_unknown', 'signal_weak', 'signal_fair', 'signal_strong'][strength];
+                        signal.setAttribute('role', 'img');
+                        signal.setAttribute('data-lang-aria-label', signalKey);
+                        signal.setAttribute('aria-label', translations[lang][signalKey] || translations['en-US'][signalKey]);
+                        for (let i = 0; i < 3; i++) {
+                            const bar = document.createElement('span');
+                            if (i < strength) bar.className = 'active';
+                            signal.appendChild(bar);
                         }
+                        details.appendChild(signal);
+                        const security = document.createElement('span');
+                        security.textContent = ap.authmode === 0 ? '🌐' : '🔒';
+                        details.appendChild(security);
+                        link.appendChild(details);
                         
                         link.addEventListener('click', event => {
                             event.preventDefault();
@@ -1615,7 +2451,7 @@
         async function submitForm(event) {
             event.preventDefault();
             button.disabled = true;
-            error.textContent = '';
+            clearLocalizedMessage('error');
 
             // Show loading animation
             const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1637,7 +2473,7 @@
 
                 const data = await response.json();
                 if (!data.success) {
-                    throw new Error(data.error || 'Connection failed');
+                    throw responseError(data.error, 'connection_failed');
                 }
 
                 // Connection successful, redirect to done page with localized copy.
@@ -1652,7 +2488,7 @@
             } catch (err) {
                 // Hide loading animation on error
                 loadingOverlay.classList.remove('show');
-                error.textContent = err.message;
+                showLocalizedMessage('error', (err && err.translationKey) || 'connection_failed');
                 button.disabled = false;
             }
         }
@@ -1679,18 +2515,15 @@
         async function submitAdvancedForm(event) {
             event.preventDefault();
             const advancedButton = document.getElementById('advanced_button');
-            const advancedError = document.getElementById('advanced_error');
-            advancedError.textContent = '';
+            clearLocalizedMessage('advanced_error');
+            clearAdvancedStatus();
+            clearSleepTimerError();
 
             const otaUrl = document.getElementById('ota_url').value;
             if (!isValidOtaUrl(otaUrl)) {
-                const lang = document.getElementById('language').value;
-                advancedError.textContent = (translations[lang] || {}).invalid_ota_url ||
-                    translations['en-US'].invalid_ota_url;
+                showLocalizedMessage('advanced_error', 'invalid_ota_url');
                 return;
             }
-            advancedButton.disabled = true;
-
             const config = {
                 ota_url: otaUrl,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
@@ -1698,6 +2531,35 @@
                 sleep_mode: document.getElementById('sleep_mode').checked
             };
 
+            if (showSleepConfig && config.sleep_mode) {
+                const timers = {};
+                let invalidField = '';
+                let errorKey = '';
+                for (const key of Object.keys(savedSleepTimers)) {
+                    const raw = document.getElementById(key).value.trim();
+                    const value = raw === '' ? null : Number(raw);
+                    if (value !== null && (!Number.isInteger(value) || value < 0 || value > 1440)) {
+                        invalidField = key;
+                        errorKey = 'invalid_sleep_minutes';
+                        break;
+                    }
+                    timers[key] = value;
+                    if (value !== savedSleepTimers[key]) config[key] = value;
+                }
+                if (!errorKey && timers.sleep_dim_minutes > 0 && timers.sleep_off_minutes > 0 &&
+                    timers.sleep_off_minutes <= timers.sleep_dim_minutes) {
+                    invalidField = 'sleep_off_minutes';
+                    errorKey = 'invalid_sleep_order';
+                }
+                if (errorKey) {
+                    showLocalizedMessage('sleep_timers_error', errorKey);
+                    document.getElementById(invalidField).setAttribute('aria-invalid', 'true');
+                    document.getElementById(invalidField).focus();
+                    return;
+                }
+            }
+
+            advancedButton.disabled = true;
             try {
                 const response = await fetch('/advanced/submit', {
                     method: 'POST',
@@ -1709,13 +2571,18 @@
 
                 const data = await response.json();
                 if (!data.success) {
-                    throw new Error(data.error || 'Save failed');
+                    throw responseError(data.error, 'save_failed');
                 }
 
+                for (const key of Object.keys(savedSleepTimers)) {
+                    if (Object.prototype.hasOwnProperty.call(config, key)) {
+                        savedSleepTimers[key] = config[key];
+                    }
+                }
                 advancedButton.disabled = false;
-                showToast('Configuration saved');
+                showLocalizedMessage('advanced_status', 'settings_saved');
             } catch (err) {
-                advancedError.textContent = err.message;
+                showLocalizedMessage('advanced_error', (err && err.translationKey) || 'save_failed');
                 advancedButton.disabled = false;
             }
         }
@@ -1743,32 +2610,46 @@
             document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
 
+        function clearAdvancedStatus() {
+            clearLocalizedMessage('advanced_status');
+        }
+
         /**
-         * Show toast notification
+         * Show or hide the sleep timer fields depending on the sleep mode checkbox
          */
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+        function toggleSleepTimers() {
+            const enabled = showSleepConfig && document.getElementById('sleep_mode').checked;
+            document.getElementById('sleep_timers_row').style.display = enabled ? 'block' : 'none';
+            for (const key of Object.keys(savedSleepTimers)) {
+                document.getElementById(key).disabled = !enabled;
+            }
+            clearSleepTimerError();
+        }
+
+        function clearSleepTimerError() {
+            clearLocalizedMessage('sleep_timers_error');
+            for (const key of Object.keys(savedSleepTimers)) {
+                document.getElementById(key).removeAttribute('aria-invalid');
+            }
         }
 
         /**
          * Load advanced configuration from server
          */
         async function loadAdvancedConfig() {
+            clearAdvancedStatus();
             try {
                 const response = await fetch('/advanced/config');
                 const data = await response.json();
                 
                 document.getElementById('ota_url_row').style.display =
                     data.show_ota_config ? 'block' : 'none';
+                showSleepConfig = Boolean(data.show_sleep_config);
                 document.getElementById('sleep_config_row').style.display =
-                    data.show_sleep_config ? 'flex' : 'none';
+                    showSleepConfig ? 'block' : 'none';
                 const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
                 document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
+                updateOtaClearButton();
                 if (data.max_tx_power) {
                     document.getElementById('max_tx_power').value = data.max_tx_power;
                 }
@@ -1778,6 +2659,12 @@
                 if (data.sleep_mode !== undefined) {
                     document.getElementById('sleep_mode').checked = data.sleep_mode;
                 }
+                for (const key of Object.keys(savedSleepTimers)) {
+                    const value = data[key];
+                    savedSleepTimers[key] = Number.isInteger(value) && value >= 0 && value <= 1440 ? value : null;
+                    document.getElementById(key).value = savedSleepTimers[key] === null ? '' : String(savedSleepTimers[key]);
+                }
+                toggleSleepTimers();
             } catch (error) {
                 console.error('Error loading advanced config:', error);
             }
@@ -1788,6 +2675,12 @@
          */
         function clearOtaUrl() {
             document.getElementById('ota_url').value = '';
+            clearAdvancedStatus();
+            updateOtaClearButton();
+        }
+
+        function updateOtaClearButton() {
+            document.getElementById('clear_ota_url').hidden = document.getElementById('ota_url').value === '';
         }
 
         // ========== Initialization ==========

@@ -10,6 +10,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_2.jpg" width="320" alt="Wi-Fi Configuration v3.2">
 
+## Changelog: v3.3.3
+
+- Add optional screen-dim and power-off timer overrides to the Advanced tab. Validate timers before changing settings, preserve board defaults, and support restoring defaults with `null`.
+- Group sleep settings, simplify labels and signal indicators, and improve mobile safe-area handling. Show localized save confirmation above the Save button so captive-portal windows cannot clip a fixed bottom toast.
+- Complete the portal's 38 language catalogs, localize validation and request failures, update feedback when switching languages, and support right-to-left layouts.
+
 ## Changelog: v3.3.2
 
 - Validate custom OTA URLs in the config portal and its save endpoint. Empty values select the application's default; nonempty values must be absolute HTTP(S) URLs of at most 255 ASCII bytes, with a host and a valid nonzero port when specified. Percent-encode non-ASCII characters.
@@ -83,6 +89,14 @@ The Wi-Fi credentials are stored in the flash under the "wifi" namespace.
 The keys are "ssid", "ssid1", ... "ssid9", "password", "password1", ... "password9", and "channel", "channel1", ... "channel9". Channel is a `uint8` (0 = unknown; 1-14 = 2.4 GHz; 36-177 = 5 GHz).
 
 ## Usage
+
+### Optional sleep timer overrides
+
+When `show_sleep_config` is enabled, the Advanced tab exposes screen dim and power-off timeouts. Leave a field blank to preserve the application's board-specific default; `0` disables that step. Explicit overrides are whole minutes from `0` to `1440`. If both overrides are positive, power off must be later than screen dim. The application remains responsible for implementing the power-saving and wake behavior.
+
+`GET /advanced/config` returns `sleep_dim_minutes` and `sleep_off_minutes` as integers, or `null` when there is no override. For `POST /advanced/submit`, an omitted field preserves its existing override, an integer sets it, and `null` removes it. Overrides use the existing `wifi` namespace keys `sleep_dim_min` / `sleep_off_min`; restoring a board default erases the corresponding key. The portal submits timer fields only when the user changes an enabled, visible control, so saving unrelated settings never installs new global timeouts. Applications that do not read these optional keys keep their current behavior.
+
+### Host regression tests
 
 Host regression tests (requires Node.js, a C/C++ compiler, an exported ESP-IDF environment, and `CJSON_DIR` pointing to a cJSON source directory):
 
