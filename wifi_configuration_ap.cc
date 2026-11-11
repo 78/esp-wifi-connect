@@ -1,4 +1,5 @@
 #include "wifi_configuration_ap.h"
+#include "ota_url.h"
 #include <cstdio>
 #include <memory>
 #include <freertos/FreeRTOS.h>
@@ -178,15 +179,18 @@ void WifiConfigurationAp::StartAccessPoint()
     ESP_LOGI(TAG, "Access Point started with SSID %s", ssid.c_str());
 
     // 加载高级配置
+    ota_url_.clear();
     nvs_handle_t nvs;
     esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
     if (err == ESP_OK) {
         // 读取OTA URL
-        char ota_url[256] = {0};
+        char ota_url[wifi_config::kMaxOtaUrlLength + 1] = {0};
         size_t ota_url_size = sizeof(ota_url);
         err = nvs_get_str(nvs, "ota_url", ota_url, &ota_url_size);
-        if (err == ESP_OK) {
+        if (err == ESP_OK && wifi_config::IsValidOtaUrl(ota_url)) {
             ota_url_ = ota_url;
+        } else if (err == ESP_OK || err == ESP_ERR_NVS_INVALID_LENGTH) {
+            ESP_LOGW(TAG, "Ignoring invalid saved OTA URL; using the application default");
         }
 
         // 读取WiFi功率
@@ -536,9 +540,7 @@ void WifiConfigurationAp::StartWebServer()
             }
 
             // 添加配置项到JSON
-            if (!this_->ota_url_.empty()) {
-                cJSON_AddStringToObject(json, "ota_url", this_->ota_url_.c_str());
-            }
+            cJSON_AddStringToObject(json, "ota_url", this_->ota_url_.c_str());
             cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
             cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
             cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
@@ -606,6 +608,20 @@ void WifiConfigurationAp::StartWebServer()
             // 获取当前对象
             auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
 
+            // Reject invalid URLs before opening NVS or changing any settings.
+            cJSON* ota_url = cJSON_GetObjectItemCaseSensitive(json, "ota_url");
+            if (ota_url && (!cJSON_IsString(ota_url) || !ota_url->valuestring ||
+                            !wifi_config::IsValidOtaUrl(ota_url->valuestring))) {
+                cJSON_Delete(json);
+                httpd_resp_set_status(req, "400 Bad Request");
+                httpd_resp_set_type(req, "application/json");
+                httpd_resp_send(req,
+                                "{\"success\":false,\"error\":\"OTA URL must be empty or a valid "
+                                "HTTP(S) URL (max 255 bytes)\"}",
+                                HTTPD_RESP_USE_STRLEN);
+                return ESP_OK;
+            }
+
             // 打开NVS
             nvs_handle_t nvs;
             esp_err_t err = nvs_open("wifi", NVS_READWRITE, &nvs);
@@ -616,12 +632,15 @@ void WifiConfigurationAp::StartWebServer()
             }
 
             // 保存OTA URL
-            cJSON *ota_url = cJSON_GetObjectItem(json, "ota_url");
-            if (cJSON_IsString(ota_url) && ota_url->valuestring) {
-                this_->ota_url_ = ota_url->valuestring;
-                err = nvs_set_str(nvs, "ota_url", this_->ota_url_.c_str());
+            if (ota_url) {
+                err = nvs_set_str(nvs, "ota_url", ota_url->valuestring);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to save OTA URL: %d", err);
+                    nvs_close(nvs);
+                    cJSON_Delete(json);
+                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                        "Failed to save OTA URL");
+                    return ESP_FAIL;
                 }
             }
 
@@ -696,6 +715,9 @@ void WifiConfigurationAp::StartWebServer()
 
             // 提交更改
             err = nvs_commit(nvs);
+            if (err == ESP_OK && ota_url) {
+                this_->ota_url_ = ota_url->valuestring;
+            }
             nvs_close(nvs);
             cJSON_Delete(json);
 

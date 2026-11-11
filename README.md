@@ -10,6 +10,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_2.jpg" width="320" alt="Wi-Fi Configuration v3.2">
 
+## Changelog: v3.3.2
+
+- Validate custom OTA URLs in the config portal and its save endpoint. Empty values select the application's default; nonempty values must be absolute HTTP(S) URLs of at most 255 ASCII bytes, with a host and a valid nonzero port when specified. Percent-encode non-ASCII characters.
+- Reject invalid OTA settings before modifying NVS, and clear stale/autofilled input when loading an empty configuration.
+- Ignore invalid OTA URLs already in NVS when opening the portal. Applications reading `wifi/ota_url` directly should use `wifi_config::IsValidOtaUrl()` from `ota_url.h` and fall back to their default URL when it returns false. This also covers devices that connect without reopening the portal. Valid custom URLs and existing NVS keys are preserved.
+
 ## Changelog: v3.3.1
 
 - Bound SSID/password copies into `wifi_config` so a full 32-byte SSID no longer overflows with `strcpy`.
@@ -77,6 +83,12 @@ The Wi-Fi credentials are stored in the flash under the "wifi" namespace.
 The keys are "ssid", "ssid1", ... "ssid9", "password", "password1", ... "password9", and "channel", "channel1", ... "channel9". Channel is a `uint8` (0 = unknown; 1-14 = 2.4 GHz; 36-177 = 5 GHz).
 
 ## Usage
+
+Host regression tests (requires Node.js, a C/C++ compiler, an exported ESP-IDF environment, and `CJSON_DIR` pointing to a cJSON source directory):
+
+```sh
+CJSON_DIR=/path/to/cJSON python3 -m unittest discover -s tests -v
+```
 
 ```cpp
 #include <wifi_manager.h>

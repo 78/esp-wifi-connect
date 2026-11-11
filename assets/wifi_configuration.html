@@ -112,6 +112,7 @@
             color: var(--text-muted);
         }
         input[type="text"],
+        input[type="url"],
         input[type="password"],
         select {
             width: 100%;
@@ -127,6 +128,7 @@
             appearance: none;
         }
         input[type="text"]:focus,
+        input[type="url"]:focus,
         input[type="password"]:focus,
         select:focus {
             border-color: var(--accent);
@@ -525,14 +527,14 @@
         <div class="section">
             <h3 data-lang="new_wifi">New Wi-Fi</h3>
             <p class="error" id="error"></p>
-            <form action="/submit" method="post" onsubmit="submitForm(event)">
+            <form action="/submit" method="post" autocomplete="off" onsubmit="submitForm(event)">
                 <p>
                     <label for="ssid">SSID:</label>
-                    <input type="text" id="ssid" name="ssid" required readonly>
+                    <input type="text" id="ssid" name="ssid" autocomplete="off" autocapitalize="none" spellcheck="false" required readonly>
                 </p>
                 <p>
                     <label for="password" data-lang="password">Password:</label>
-                    <input type="password" id="password" name="password">
+                    <input type="password" id="password" name="password" autocomplete="off">
                 </p>
                 <p>
                     <input type="submit" value="Connect" id="button" data-lang-value="connect">
@@ -544,7 +546,7 @@
 
     <!-- Advanced Configuration Tab -->
     <div id="advanced-tab" class="tab-content">
-        <form action="/advanced/submit" method="post" onsubmit="submitAdvancedForm(event)">
+        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)">
             <div>
                 <p class="error" id="advanced_error"></p>
                 
@@ -552,7 +554,7 @@
                 <div id="ota_url_row" style="display: none;">
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
+                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" style="flex: 1;">
                         <button type="button" class="icon-btn" onclick="clearOtaUrl()" aria-label="Clear">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
@@ -768,6 +770,7 @@
                 wifi_tab: 'Wi-Fi Config',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
+                invalid_ota_url: 'Enter a valid HTTP(S) URL (max 255 bytes), or leave it empty to use the default.',
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
@@ -1151,6 +1154,7 @@
                 wifi_tab: 'Настройка Wi-Fi',
                 advanced_tab: 'Дополнительно',
                 ota_url: 'Пользовательский URL OTA:',
+                invalid_ota_url: 'Введите корректный HTTP(S) URL (до 255 байт) или оставьте поле пустым для адреса по умолчанию.',
                 max_tx_power: 'Макс. мощность передачи Wi-Fi:',
                 remember_bssid: 'Запомнить BSSID при подключении к Wi-Fi',
                 sleep_mode: 'Включить режим сна',
@@ -1322,6 +1326,7 @@
                 wifi_tab: 'Wi-Fi 配置',
                 advanced_tab: '高级选项',
                 ota_url: '自定义 OTA 地址:',
+                invalid_ota_url: '请输入有效的 HTTP(S) 地址（最多 255 字节），或留空使用默认地址。',
                 max_tx_power: 'Wi-Fi 最大发射功率:',
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
                 sleep_mode: '启用睡眠模式',
@@ -1341,6 +1346,7 @@
                 wifi_tab: 'Wi-Fi 設定',
                 advanced_tab: '進階選項',
                 ota_url: '自定義 OTA 位址:',
+                invalid_ota_url: '請輸入有效的 HTTP(S) 位址（最多 255 位元組），或留空使用預設位址。',
                 max_tx_power: 'Wi-Fi 最大發射功率:',
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
                 sleep_mode: '啟用睡眠模式',
@@ -1668,15 +1674,39 @@
         /**
          * Submit advanced configuration form
          */
+        function isValidOtaUrl(value) {
+            if (value === '') return true;
+            if (typeof value !== 'string' || value.length > 255 ||
+                !/^https?:\/\/[^/?#]+/i.test(value) || /[^\x21-\x7e]|\\/.test(value) ||
+                /%(?![0-9a-f]{2})/i.test(value)) {
+                return false;
+            }
+            try {
+                const url = new URL(value);
+                return (url.protocol === 'http:' || url.protocol === 'https:') &&
+                    url.hostname !== '' && url.port !== '0';
+            } catch (_) {
+                return false;
+            }
+        }
+
         async function submitAdvancedForm(event) {
             event.preventDefault();
             const advancedButton = document.getElementById('advanced_button');
             const advancedError = document.getElementById('advanced_error');
-            advancedButton.disabled = true;
             advancedError.textContent = '';
 
+            const otaUrl = document.getElementById('ota_url').value;
+            if (!isValidOtaUrl(otaUrl)) {
+                const lang = document.getElementById('language').value;
+                advancedError.textContent = (translations[lang] || {}).invalid_ota_url ||
+                    translations['en-US'].invalid_ota_url;
+                return;
+            }
+            advancedButton.disabled = true;
+
             const config = {
-                ota_url: document.getElementById('ota_url').value,
+                ota_url: otaUrl,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
                 remember_bssid: document.getElementById('remember_bssid').checked,
                 sleep_mode: document.getElementById('sleep_mode').checked,
@@ -1772,9 +1802,8 @@
                     data.show_ota_config ? 'block' : 'none';
                 document.getElementById('sleep_config_row').style.display =
                     data.show_sleep_config ? 'flex' : 'none';
-                if (data.ota_url) {
-                    document.getElementById('ota_url').value = data.ota_url;
-                }
+                const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
+                document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
                 if (data.max_tx_power) {
                     document.getElementById('max_tx_power').value = data.max_tx_power;
                 }
@@ -1834,6 +1863,7 @@
         window.addEventListener('pageshow', (event) => {
             if (event.persisted) {
                 loadSavedList();
+                loadAdvancedConfig();
             }
         });
 
