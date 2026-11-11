@@ -22,7 +22,7 @@
             --text: #0f172a;
             --text-muted: #64748b;
             --danger: #dc2626;
-            --success: #16a34a;
+            --success: #15803d;
             --radius: 14px;
             --radius-sm: 10px;
             --shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
@@ -463,29 +463,15 @@
         .icon-btn[hidden] { display: none; }
         .icon-btn svg { width: 18px; height: 18px; }
 
-        /* ========== Toast Message Styles ========== */
-        .toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            transform: translateX(-50%) translateY(12px);
-            background: rgba(15, 23, 42, 0.92);
-            color: #fff;
-            padding: 13px 22px;
-            border-radius: 12px;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease, transform 0.25s ease;
+        .save-status {
+            margin: 0 0 12px;
+            color: var(--success);
             font-size: 14px;
-            box-shadow: var(--shadow);
-            max-width: 90vw;
+            font-weight: 500;
             text-align: center;
         }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        .save-status:empty { display: none; }
+        .save-status:not(:empty)::before { content: "✓ "; }
 
         /* ========== Loading Spinner Styles ========== */
         .loading-overlay {
@@ -524,9 +510,6 @@
     </style>
 </head>
 <body>
-    <!-- Toast notification -->
-    <div class="toast" id="toast"></div>
-    
     <!-- Loading overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
@@ -636,7 +619,7 @@
 
     <!-- Advanced Configuration Tab -->
     <div id="advanced-tab" class="tab-content">
-        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)">
+        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)" oninput="clearAdvancedStatus()" onchange="clearAdvancedStatus()">
             <div>
                 <p class="error" id="advanced_error"></p>
                 
@@ -704,6 +687,7 @@
                     </div>
                 </section>
 
+                <p class="save-status" id="advanced_status" role="status" aria-live="polite" aria-atomic="true"></p>
                 <p>
                     <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
                 </p>
@@ -887,6 +871,7 @@
                 invalid_sleep_minutes: 'Enter a whole number from 0 to 1440.',
                 invalid_sleep_order: 'Power off must be later than screen dim.',
                 save: 'Save',
+                settings_saved: 'Saved',
                 config_success: 'Configuration successful!'
             },
             'es-ES': {
@@ -1280,6 +1265,7 @@
                 invalid_sleep_minutes: 'Введите целое число от 0 до 1440.',
                 invalid_sleep_order: 'Время выключения должно быть больше времени затемнения.',
                 save: 'Сохранить',
+                settings_saved: 'Сохранено',
                 config_success: 'Настройка успешно завершена!'
             },
             'sk-SK': {
@@ -1464,6 +1450,7 @@
                 invalid_sleep_minutes: '请输入 0 到 1440 的整数。',
                 invalid_sleep_order: '关机时间必须大于屏幕变暗时间。',
                 save: '保存',
+                settings_saved: '已保存',
                 config_success: '配置成功！'
             },
             'zh-TW': {
@@ -1496,6 +1483,7 @@
                 invalid_sleep_minutes: '請輸入 0 到 1440 的整數。',
                 invalid_sleep_order: '關機時間必須大於螢幕變暗時間。',
                 save: '儲存',
+                settings_saved: '已儲存',
                 config_success: '設定成功！'
             }
         };
@@ -1864,6 +1852,7 @@
             const advancedButton = document.getElementById('advanced_button');
             const advancedError = document.getElementById('advanced_error');
             advancedError.textContent = '';
+            clearAdvancedStatus();
             clearSleepTimerError();
 
             const otaUrl = document.getElementById('ota_url').value;
@@ -1931,7 +1920,9 @@
                     }
                 }
                 advancedButton.disabled = false;
-                showToast('Configuration saved');
+                const lang = document.getElementById('language').value;
+                document.getElementById('advanced_status').textContent =
+                    (translations[lang] || {}).settings_saved || translations['en-US'].settings_saved;
             } catch (err) {
                 advancedError.textContent = err.message;
                 advancedButton.disabled = false;
@@ -1961,16 +1952,8 @@
             document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
 
-        /**
-         * Show toast notification
-         */
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+        function clearAdvancedStatus() {
+            document.getElementById('advanced_status').textContent = '';
         }
 
         /**
@@ -1996,6 +1979,7 @@
          * Load advanced configuration from server
          */
         async function loadAdvancedConfig() {
+            clearAdvancedStatus();
             try {
                 const response = await fetch('/advanced/config');
                 const data = await response.json();
@@ -2033,6 +2017,7 @@
          */
         function clearOtaUrl() {
             document.getElementById('ota_url').value = '';
+            clearAdvancedStatus();
             updateOtaClearButton();
         }
 
