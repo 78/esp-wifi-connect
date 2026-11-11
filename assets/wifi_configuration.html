@@ -331,6 +331,26 @@
             background: var(--accent-soft);
             text-decoration: none;
         }
+        .ap-name {
+            min-width: 0;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ap-details { display: flex; align-items: center; gap: 10px; flex: none; }
+        .signal-bars {
+            display: inline-flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+        .signal-bars span { width: 4px; background: currentColor; opacity: 0.25; border-radius: 1px; }
+        .signal-bars span:nth-child(1) { height: 5px; }
+        .signal-bars span:nth-child(2) { height: 9px; }
+        .signal-bars span:nth-child(3) { height: 14px; }
+        .signal-bars span.active { opacity: 1; }
 
         /* ========== Advanced rows ========== */
         #ota_url_row { margin-bottom: 16px; }
@@ -440,6 +460,7 @@
             color: var(--danger);
             border-color: var(--danger);
         }
+        .icon-btn[hidden] { display: none; }
         .icon-btn svg { width: 18px; height: 18px; }
 
         /* ========== Toast Message Styles ========== */
@@ -598,7 +619,7 @@
             <p class="error" id="error"></p>
             <form action="/submit" method="post" autocomplete="off" onsubmit="submitForm(event)">
                 <p>
-                    <label for="ssid">SSID:</label>
+                    <label for="ssid" data-lang="ssid">Wi-Fi name:</label>
                     <input type="text" id="ssid" name="ssid" autocomplete="off" autocapitalize="none" spellcheck="false" required readonly>
                 </p>
                 <p>
@@ -623,8 +644,8 @@
                 <div id="ota_url_row" style="display: none;">
                     <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" style="flex: 1;">
-                        <button type="button" class="icon-btn" onclick="clearOtaUrl()" aria-label="Clear">
+                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" oninput="updateOtaClearButton()" style="flex: 1; min-width: 0;">
+                        <button type="button" class="icon-btn" id="clear_ota_url" onclick="clearOtaUrl()" aria-label="Clear OTA URL" data-lang-aria-label="clear_ota_url" hidden>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
@@ -632,7 +653,7 @@
 
                 <!-- Max TX Power -->
                 <p class="field-inline">
-                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Wi-Fi Max TX Power:</label>
+                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Max TX power:</label>
                     <select id="max_tx_power" name="max_tx_power">
                         <option value="8">2 dBm</option>
                         <option value="20">5 dBm</option>
@@ -651,7 +672,7 @@
                 <!-- Remember BSSID -->
                 <div class="switch-row">
                     <label for="remember_bssid">
-                        <span data-lang="remember_bssid">Remember BSSID when connecting to Wi-Fi</span>
+                        <span data-lang="remember_bssid">Remember BSSID</span>
                     </label>
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
                 </div>
@@ -659,7 +680,7 @@
                 <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
                 <section class="sleep-group" id="sleep_config_row" style="display: none;" aria-labelledby="sleep_mode_label">
                     <div class="sleep-header">
-                        <label for="sleep_mode" id="sleep_mode_label" data-lang="sleep_mode">Enable Sleep Mode</label>
+                        <label for="sleep_mode" id="sleep_mode_label" data-lang="sleep_mode">Sleep mode</label>
                         <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
                     </div>
                     <div class="sleep-body" id="sleep_timers_row" style="display: none;">
@@ -840,19 +861,25 @@
                 title: 'Network Configuration',
                 saved_wifi: 'Saved Wi-Fi',
                 new_wifi: 'New Wi-Fi',
+                ssid: 'Wi-Fi name:',
                 password: 'Password:',
                 connect: 'Connect',
                 connecting: 'Connecting...',
-                select_wifi: 'Select a 2.4G Wi-Fi from the list below:',
-                select_wifi_5g: 'Select a Wi-Fi from the list below:',
+                select_wifi: 'Choose a 2.4 GHz Wi-Fi:',
+                select_wifi_5g: 'Choose a Wi-Fi:',
+                signal_strong: 'Strong signal',
+                signal_fair: 'Fair signal',
+                signal_weak: 'Weak signal',
+                signal_unknown: 'Signal unavailable',
+                clear_ota_url: 'Clear OTA URL',
                 scanning: 'Scanning...',
                 wifi_tab: 'Wi-Fi Config',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
                 invalid_ota_url: 'Enter a valid HTTP(S) URL (max 255 bytes), or leave it empty to use the default.',
-                max_tx_power: 'Wi-Fi Max TX Power:',
-                remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
-                sleep_mode: 'Enable Sleep Mode',
+                max_tx_power: 'Max TX power:',
+                remember_bssid: 'Remember BSSID',
+                sleep_mode: 'Sleep mode',
                 sleep_dim_minutes: 'Screen dim after',
                 sleep_off_minutes: 'Power off after',
                 sleep_default: 'Default',
@@ -1227,19 +1254,25 @@
                 title: 'Настройка сети',
                 saved_wifi: 'Сохраненные Wi-Fi',
                 new_wifi: 'Новая Wi-Fi',
+                ssid: 'Имя Wi-Fi:',
                 password: 'Пароль:',
                 connect: 'Подключить',
                 connecting: 'Подключение...',
-                select_wifi: 'Выберите Wi-Fi 2.4G из списка ниже:',
-                select_wifi_5g: 'Выберите Wi-Fi из списка ниже:',
+                select_wifi: 'Выберите Wi-Fi 2,4 ГГц:',
+                select_wifi_5g: 'Выберите Wi-Fi:',
+                signal_strong: 'Сильный сигнал',
+                signal_fair: 'Средний сигнал',
+                signal_weak: 'Слабый сигнал',
+                signal_unknown: 'Уровень сигнала неизвестен',
+                clear_ota_url: 'Очистить URL OTA',
                 scanning: 'Сканирование...',
                 wifi_tab: 'Настройка Wi-Fi',
                 advanced_tab: 'Дополнительно',
                 ota_url: 'Пользовательский URL OTA:',
                 invalid_ota_url: 'Введите корректный HTTP(S) URL (до 255 байт) или оставьте поле пустым для адреса по умолчанию.',
-                max_tx_power: 'Макс. мощность передачи Wi-Fi:',
-                remember_bssid: 'Запомнить BSSID при подключении к Wi-Fi',
-                sleep_mode: 'Включить режим сна',
+                max_tx_power: 'Макс. мощность передачи:',
+                remember_bssid: 'Запомнить BSSID',
+                sleep_mode: 'Режим сна',
                 sleep_dim_minutes: 'Затемнение через',
                 sleep_off_minutes: 'Выключение через',
                 sleep_default: 'Авто',
@@ -1405,19 +1438,25 @@
                 title: '网络配置',
                 saved_wifi: '已保存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid: 'Wi-Fi 名称:',
                 password: '密码:',
                 connect: '连接',
                 connecting: '正在连接...',
-                select_wifi: '从下面列表选择 2.4G Wi-Fi:',
-                select_wifi_5g: '从下面列表选择 Wi-Fi:',
+                select_wifi: '选择 2.4GHz Wi-Fi:',
+                select_wifi_5g: '选择 Wi-Fi:',
+                signal_strong: '信号强',
+                signal_fair: '信号中等',
+                signal_weak: '信号弱',
+                signal_unknown: '信号强度未知',
+                clear_ota_url: '清除 OTA 地址',
                 scanning: '扫描中...',
                 wifi_tab: 'Wi-Fi 配置',
                 advanced_tab: '高级选项',
                 ota_url: '自定义 OTA 地址:',
                 invalid_ota_url: '请输入有效的 HTTP(S) 地址（最多 255 字节），或留空使用默认地址。',
-                max_tx_power: 'Wi-Fi 最大发射功率:',
-                remember_bssid: '连接 Wi-Fi 时记住 BSSID',
-                sleep_mode: '启用睡眠模式',
+                max_tx_power: '最大发射功率:',
+                remember_bssid: '记住 BSSID',
+                sleep_mode: '睡眠模式',
                 sleep_dim_minutes: '屏幕变暗时间',
                 sleep_off_minutes: '关机时间',
                 sleep_default: '默认',
@@ -1431,19 +1470,25 @@
                 title: '網路設定',
                 saved_wifi: '已儲存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid: 'Wi-Fi 名稱:',
                 password: '密碼:',
                 connect: '連接',
                 connecting: '正在連接...',
-                select_wifi: '從下方列表選擇 2.4G Wi-Fi:',
-                select_wifi_5g: '從下方列表選擇 Wi-Fi:',
+                select_wifi: '選擇 2.4GHz Wi-Fi:',
+                select_wifi_5g: '選擇 Wi-Fi:',
+                signal_strong: '訊號強',
+                signal_fair: '訊號中等',
+                signal_weak: '訊號弱',
+                signal_unknown: '訊號強度未知',
+                clear_ota_url: '清除 OTA 位址',
                 scanning: '掃描中...',
                 wifi_tab: 'Wi-Fi 設定',
                 advanced_tab: '進階選項',
                 ota_url: '自定義 OTA 位址:',
                 invalid_ota_url: '請輸入有效的 HTTP(S) 位址（最多 255 位元組），或留空使用預設位址。',
-                max_tx_power: 'Wi-Fi 最大發射功率:',
-                remember_bssid: '連接 Wi-Fi 時記住 BSSID',
-                sleep_mode: '啟用睡眠模式',
+                max_tx_power: '最大發射功率:',
+                remember_bssid: '記住 BSSID',
+                sleep_mode: '睡眠模式',
                 sleep_dim_minutes: '螢幕變暗時間',
                 sleep_off_minutes: '關機時間',
                 sleep_default: '預設',
@@ -1584,6 +1629,10 @@
                 const key = element.getAttribute('data-lang-placeholder');
                 element.placeholder = translations[lang][key] || translations['en-US'][key];
             });
+            document.querySelectorAll('[data-lang-aria-label]').forEach(element => {
+                const key = element.getAttribute('data-lang-aria-label');
+                element.setAttribute('aria-label', translations[lang][key] || translations['en-US'][key]);
+            });
             
             // Update AP list text based on 5G support
             const apList = document.getElementById('ap_list');
@@ -1696,14 +1745,30 @@
                     data.aps.forEach(ap => {
                         const link = document.createElement('a');
                         link.href = '#';
-                        link.textContent = ap.ssid + ' (' + ap.rssi + ' dBm)';
-                        
-                        // Add lock icon for secured networks
-                        if (ap.authmode === 0) {
-                            link.textContent += ' 🌐';
-                        } else {
-                            link.textContent += ' 🔒';
+                        const name = document.createElement('span');
+                        name.className = 'ap-name';
+                        name.textContent = ap.ssid;
+                        link.appendChild(name);
+
+                        const details = document.createElement('span');
+                        details.className = 'ap-details';
+                        const signal = document.createElement('span');
+                        signal.className = 'signal-bars';
+                        const strength = Number.isFinite(ap.rssi) ? (ap.rssi >= -55 ? 3 : ap.rssi >= -70 ? 2 : 1) : 0;
+                        const signalKey = ['signal_unknown', 'signal_weak', 'signal_fair', 'signal_strong'][strength];
+                        signal.setAttribute('role', 'img');
+                        signal.setAttribute('data-lang-aria-label', signalKey);
+                        signal.setAttribute('aria-label', translations[lang][signalKey] || translations['en-US'][signalKey]);
+                        for (let i = 0; i < 3; i++) {
+                            const bar = document.createElement('span');
+                            if (i < strength) bar.className = 'active';
+                            signal.appendChild(bar);
                         }
+                        details.appendChild(signal);
+                        const security = document.createElement('span');
+                        security.textContent = ap.authmode === 0 ? '🌐' : '🔒';
+                        details.appendChild(security);
+                        link.appendChild(details);
                         
                         link.addEventListener('click', event => {
                             event.preventDefault();
@@ -1942,6 +2007,7 @@
                     showSleepConfig ? 'block' : 'none';
                 const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
                 document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
+                updateOtaClearButton();
                 if (data.max_tx_power) {
                     document.getElementById('max_tx_power').value = data.max_tx_power;
                 }
@@ -1967,6 +2033,11 @@
          */
         function clearOtaUrl() {
             document.getElementById('ota_url').value = '';
+            updateOtaClearButton();
+        }
+
+        function updateOtaClearButton() {
+            document.getElementById('clear_ota_url').hidden = document.getElementById('ota_url').value === '';
         }
 
         // ========== Initialization ==========
