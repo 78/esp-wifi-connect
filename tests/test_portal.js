@@ -60,6 +60,81 @@ vm.runInContext(script, context);
     vm.runInContext('clearOtaUrl()', context);
     assert.equal(element('ota_url').value, '');
 
+    async function loadSleep(overrides = {}) {
+        config = {show_sleep_config: true, sleep_mode: true,
+            sleep_dim_minutes: null, sleep_off_minutes: null, ...overrides};
+        await vm.runInContext('loadAdvancedConfig()', context);
+    }
+    async function saveAdvanced() {
+        requests = [];
+        await vm.runInContext('submitAdvancedForm({preventDefault() {}})', context);
+        return requests.filter(x => x.url === '/advanced/submit').map(x => JSON.parse(x.body));
+    }
+    function assertNoTimers(payload) {
+        assert.equal(Object.hasOwn(payload, 'sleep_dim_minutes'), false);
+        assert.equal(Object.hasOwn(payload, 'sleep_off_minutes'), false);
+    }
+
+    // Hidden/disabled controls cannot block unrelated saves or install overrides.
+    await loadSleep({show_sleep_config: false});
+    assert.equal(element('sleep_config_row').style.display, 'none');
+    assert.equal(element('sleep_timers_row').style.display, 'none');
+    for (const key of ['sleep_dim_minutes', 'sleep_off_minutes']) {
+        assert.equal(element(key).disabled, true);
+        element(key).value = 'invalid';
+    }
+    assertNoTimers((await saveAdvanced())[0]);
+
+    // Missing overrides stay blank; saving a different setting preserves board defaults.
+    await loadSleep();
+    assert.equal(element('sleep_timers_row').style.display, 'block');
+    assert.equal(element('sleep_dim_minutes').value, '');
+    assert.equal(element('sleep_off_minutes').value, '');
+    assert.equal(element('sleep_dim_minutes').disabled, false);
+    element('max_tx_power').value = '20';
+    assertNoTimers((await saveAdvanced())[0]);
+
+    element('sleep_dim_minutes').value = '3';
+    let payload = (await saveAdvanced())[0];
+    assert.equal(payload.sleep_dim_minutes, 3);
+    assert.equal(Object.hasOwn(payload, 'sleep_off_minutes'), false);
+    assertNoTimers((await saveAdvanced())[0]); // Successful saves update the baseline.
+    element('sleep_dim_minutes').value = '';
+    payload = (await saveAdvanced())[0];
+    assert.equal(payload.sleep_dim_minutes, null); // Erase just this override.
+    assertNoTimers((await saveAdvanced())[0]);
+
+    await loadSleep({sleep_dim_minutes: 3, sleep_off_minutes: 10});
+    element('sleep_off_minutes').value = '20';
+    payload = (await saveAdvanced())[0];
+    assert.equal(payload.sleep_off_minutes, 20);
+    assert.equal(Object.hasOwn(payload, 'sleep_dim_minutes'), false);
+
+    for (const value of ['-1', '-0.5', '1.9', '1441', 'Infinity', 'invalid']) {
+        await loadSleep();
+        element('sleep_dim_minutes').value = value;
+        assert.deepEqual(await saveAdvanced(), []);
+        assert.ok(element('advanced_error').textContent.length > 0);
+        assert.equal(element('advanced_button').disabled, false);
+    }
+    await loadSleep();
+    element('sleep_dim_minutes').value = '0';
+    element('sleep_off_minutes').value = '0';
+    payload = (await saveAdvanced())[0];
+    assert.equal(payload.sleep_dim_minutes, 0);
+    assert.equal(payload.sleep_off_minutes, 0);
+
+    await loadSleep();
+    element('sleep_dim_minutes').value = '10';
+    element('sleep_off_minutes').value = '5';
+    assert.deepEqual(await saveAdvanced(), []);
+    element('sleep_mode').checked = false;
+    vm.runInContext('toggleSleepTimers()', context);
+    assert.equal(element('sleep_dim_minutes').disabled, true);
+    payload = (await saveAdvanced())[0];
+    assert.equal(payload.sleep_mode, false);
+    assertNoTimers(payload); // Invalid unsaved timers do not prevent disabling sleep.
+
     // Connecting Wi-Fi must never submit or save an unrelated OTA field.
     requests = [];
     element('ssid').value = 'Huawei-1ct5dn';
@@ -71,5 +146,5 @@ vm.runInContext(script, context);
         ssid: 'Huawei-1ct5dn', password: 'test-password'
     });
     assert.match(html, /type="url" id="ota_url"[^>]*maxlength="255"/);
-    console.log(`Portal: ${cases.length} URL cases, stale fields, clearing, and Wi-Fi form isolation passed.`);
+    console.log(`Portal: ${cases.length} URL cases, sleep timer visibility/defaults/validation, stale fields, and Wi-Fi form isolation passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});

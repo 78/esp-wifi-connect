@@ -113,6 +113,7 @@
         }
         input[type="text"],
         input[type="url"],
+        input[type="number"],
         input[type="password"],
         select {
             width: 100%;
@@ -129,6 +130,7 @@
         }
         input[type="text"]:focus,
         input[type="url"]:focus,
+        input[type="number"]:focus,
         input[type="password"]:focus,
         select:focus {
             border-color: var(--accent);
@@ -597,13 +599,13 @@
                 <div id="sleep_timers_row" style="display: none; margin: 8px 0;">
                     <p class="field-inline">
                         <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes" style="white-space: nowrap;">Screen dim after (min):</label>
-                        <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" value="3" style="width: 70px;">
+                        <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" placeholder="Device default" style="width: 110px;" disabled>
                     </p>
                     <p class="field-inline">
                         <label for="sleep_off_minutes" data-lang="sleep_off_minutes" style="white-space: nowrap;">Power off after (min):</label>
-                        <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" value="10" style="width: 70px;">
+                        <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" placeholder="Device default" style="width: 110px;" disabled>
                     </p>
-                    <p data-lang="sleep_timers_help" style="font-size: 12px; opacity: 0.8; margin: 4px 0 0 0;">Screen dim after — the display goes dark after that many minutes without activity (the device still listens to the wake word and buttons). Power off after — deep sleep after that many minutes without activity (only a button press wakes it). Example: 3 and 10. Set a value to 0 to disable that step.</p>
+                    <p data-lang="sleep_timers_help" style="font-size: 12px; opacity: 0.8; margin: 4px 0 0 0;">Leave a field blank to use this device's default timeout. Set it to 0 to disable that step. Power saving and wake behavior depend on the device.</p>
                 </div>
 
                 <p>
@@ -621,6 +623,8 @@
         const error = document.getElementById('error');
         const ssid = document.getElementById('ssid');
         let support5G = false; // Store 5G support status
+        let showSleepConfig = false;
+        const savedSleepTimers = { sleep_dim_minutes: null, sleep_off_minutes: null };
 
         // ========== Translation Data ==========
         const translations = {
@@ -776,7 +780,7 @@
                 sleep_mode: 'Enable Sleep Mode',
                 sleep_dim_minutes: 'Screen dim after (min):',
                 sleep_off_minutes: 'Power off after (min):',
-                sleep_timers_help: 'Screen dim after — the display goes dark after that many minutes without activity (the device still listens to the wake word and buttons). Power off after — deep sleep after that many minutes without activity (only a button press wakes it). Example: 3 and 10. Set a value to 0 to disable that step.',
+                sleep_timers_help: 'Leave a field blank to use this device\'s default timeout. Set it to 0 to disable that step. Power saving and wake behavior depend on the device.',
                 save: 'Save',
                 config_success: 'Configuration successful!'
             },
@@ -1709,20 +1713,27 @@
                 ota_url: otaUrl,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
                 remember_bssid: document.getElementById('remember_bssid').checked,
-                sleep_mode: document.getElementById('sleep_mode').checked,
-                sleep_dim_minutes: parseInt(document.getElementById('sleep_dim_minutes').value, 10),
-                sleep_off_minutes: parseInt(document.getElementById('sleep_off_minutes').value, 10)
+                sleep_mode: document.getElementById('sleep_mode').checked
             };
 
             try {
-                if (document.getElementById('sleep_mode').checked) {
-                    const dim = config.sleep_dim_minutes;
-                    const off = config.sleep_off_minutes;
-                    if (!Number.isInteger(dim) || !Number.isInteger(off) || dim < 0 || off < 0 || dim > 1440 || off > 1440) {
-                        throw new Error('Enter whole minutes from 0 to 1440 (0 turns that step off)');
+                if (showSleepConfig && config.sleep_mode) {
+                    const timers = {};
+                    for (const key of Object.keys(savedSleepTimers)) {
+                        const raw = document.getElementById(key).value.trim();
+                        const value = raw === '' ? null : Number(raw);
+                        if (value !== null && (!Number.isInteger(value) || value < 0 || value > 1440)) {
+                            throw new Error('Enter whole minutes from 0 to 1440, or leave the field blank for the device default');
+                        }
+                        timers[key] = value;
+                        if (value !== savedSleepTimers[key]) {
+                            config[key] = value;
+                        }
                     }
+                    const dim = timers.sleep_dim_minutes;
+                    const off = timers.sleep_off_minutes;
                     if (dim > 0 && off > 0 && off <= dim) {
-                        throw new Error('Power off after must be greater than screen dim after (for example 3 and 10). To turn sleep off completely, set both fields to 0.');
+                        throw new Error('Power off after must be greater than screen dim after when both timeouts are set');
                     }
                 }
 
@@ -1739,6 +1750,11 @@
                     throw new Error(data.error || 'Save failed');
                 }
 
+                for (const key of Object.keys(savedSleepTimers)) {
+                    if (Object.prototype.hasOwnProperty.call(config, key)) {
+                        savedSleepTimers[key] = config[key];
+                    }
+                }
                 advancedButton.disabled = false;
                 showToast('Configuration saved');
             } catch (err) {
@@ -1786,8 +1802,11 @@
          * Show or hide the sleep timer fields depending on the sleep mode checkbox
          */
         function toggleSleepTimers() {
-            const enabled = document.getElementById('sleep_mode').checked;
+            const enabled = showSleepConfig && document.getElementById('sleep_mode').checked;
             document.getElementById('sleep_timers_row').style.display = enabled ? 'block' : 'none';
+            for (const key of Object.keys(savedSleepTimers)) {
+                document.getElementById(key).disabled = !enabled;
+            }
         }
 
         /**
@@ -1800,8 +1819,9 @@
                 
                 document.getElementById('ota_url_row').style.display =
                     data.show_ota_config ? 'block' : 'none';
+                showSleepConfig = Boolean(data.show_sleep_config);
                 document.getElementById('sleep_config_row').style.display =
-                    data.show_sleep_config ? 'flex' : 'none';
+                    showSleepConfig ? 'flex' : 'none';
                 const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
                 document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
                 if (data.max_tx_power) {
@@ -1813,11 +1833,10 @@
                 if (data.sleep_mode !== undefined) {
                     document.getElementById('sleep_mode').checked = data.sleep_mode;
                 }
-                if (data.sleep_dim_minutes !== undefined) {
-                    document.getElementById('sleep_dim_minutes').value = data.sleep_dim_minutes;
-                }
-                if (data.sleep_off_minutes !== undefined) {
-                    document.getElementById('sleep_off_minutes').value = data.sleep_off_minutes;
+                for (const key of Object.keys(savedSleepTimers)) {
+                    const value = data[key];
+                    savedSleepTimers[key] = Number.isInteger(value) && value >= 0 && value <= 1440 ? value : null;
+                    document.getElementById(key).value = savedSleepTimers[key] === null ? '' : String(savedSleepTimers[key]);
                 }
                 toggleSleepTimers();
             } catch (error) {
