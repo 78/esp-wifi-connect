@@ -235,6 +235,18 @@ void WifiConfigurationAp::StartAccessPoint()
             sleep_off_minutes_ = sleep_off_minutes;
         }
 
+        // 读取Tavily API key
+        char tavily_key[128] = {0};
+        size_t tavily_key_size = sizeof(tavily_key);
+        if (nvs_get_str(nvs, "tavily_api_key", tavily_key, &tavily_key_size) == ESP_OK) {
+            tavily_api_key_ = tavily_key;
+        }
+        // 读取web搜索开关（默认开启）
+        uint8_t web_search_on = 1;
+        if (nvs_get_u8(nvs, "web_search_on", &web_search_on) == ESP_OK) {
+            web_search_on_ = web_search_on != 0;
+        }
+
         nvs_close(nvs);
     }
 }
@@ -557,6 +569,8 @@ void WifiConfigurationAp::StartWebServer()
             } else {
                 cJSON_AddNullToObject(json, "sleep_off_minutes");
             }
+            cJSON_AddStringToObject(json, "tavily_api_key", this_->tavily_api_key_.c_str());
+            cJSON_AddBoolToObject(json, "web_search_enable", this_->web_search_on_);
             cJSON_AddBoolToObject(json, "show_ota_config", this_->show_ota_config_);
             cJSON_AddBoolToObject(json, "show_sleep_config", this_->show_sleep_config_);
 
@@ -684,6 +698,26 @@ void WifiConfigurationAp::StartWebServer()
                     httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
                                         "Failed to save OTA URL");
                     return ESP_FAIL;
+                }
+            }
+
+            // 保存web搜索开关
+            cJSON* web_search_enable = cJSON_GetObjectItem(json, "web_search_enable");
+            if (cJSON_IsBool(web_search_enable)) {
+                this_->web_search_on_ = cJSON_IsTrue(web_search_enable);
+                err = nvs_set_u8(nvs, "web_search_on", this_->web_search_on_ ? 1 : 0);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save web_search_on: %d", err);
+                }
+            }
+
+            // 保存Tavily API key
+            cJSON* tavily_api_key = cJSON_GetObjectItem(json, "tavily_api_key");
+            if (cJSON_IsString(tavily_api_key) && tavily_api_key->valuestring) {
+                this_->tavily_api_key_ = tavily_api_key->valuestring;
+                err = nvs_set_str(nvs, "tavily_api_key", this_->tavily_api_key_.c_str());
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save tavily_api_key: %d", err);
                 }
             }
 
