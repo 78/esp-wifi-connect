@@ -663,6 +663,25 @@
                     <input type="checkbox" id="remember_bssid" name="remember_bssid">
                 </div>
 
+                <!-- Tavily Web Search toggle -->
+                <div class="switch-row">
+                    <label for="web_search_enable">
+                        <span data-lang="web_search_enable">Enable Tavily web search</span>
+                    </label>
+                    <input type="checkbox" id="web_search_enable" name="web_search_enable" onchange="toggleWebSearchRow()">
+                </div>
+
+                <!-- Tavily API Key -->
+                <div id="tavily_row" style="display: none; margin-bottom: 16px;">
+                    <label for="tavily_api_key" data-lang="tavily_api_key">Tavily API Key:</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="password" id="tavily_api_key" name="tavily_api_key" maxlength="128" autocomplete="off" spellcheck="false" dir="ltr" placeholder="tvly-..." style="flex: 1; min-width: 0;">
+                        <button type="button" class="icon-btn" onclick="document.getElementById('tavily_api_key').value='';clearAdvancedStatus();" aria-label="Clear Tavily API Key">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
                 <section class="sleep-group" id="sleep_config_row" style="display: none;" aria-labelledby="sleep_mode_label">
                     <div class="sleep-header">
@@ -729,6 +748,8 @@
                 wifi_tab: 'تكوين Wi-Fi',
                 advanced_tab: 'خيارات متقدمة',
                 ota_url: 'عنوان OTA مخصص:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'أدخل عنوان HTTP(S) بطول 255 بايت كحد أقصى، أو اترك الحقل فارغًا.',
                 max_tx_power: 'قدرة الإرسال القصوى:',
                 remember_bssid: 'تذكّر BSSID',
@@ -766,6 +787,8 @@
                 wifi_tab: 'Конфигурация на Wi-Fi',
                 advanced_tab: 'Разширени',
                 ota_url: 'Персонализиран OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Въведете HTTP(S) адрес до 255 байта или оставете празно.',
                 max_tx_power: 'Макс. мощност на предаване:',
                 remember_bssid: 'Запомняне на BSSID',
@@ -803,6 +826,8 @@
                 wifi_tab: 'Configuració Wi-Fi',
                 advanced_tab: 'Avançat',
                 ota_url: 'URL OTA personalitzat:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Introdueix un URL HTTP(S) de fins a 255 bytes o deixa el camp buit.',
                 max_tx_power: 'Potència màxima de transmissió:',
                 remember_bssid: 'Recorda el BSSID',
@@ -840,6 +865,8 @@
                 wifi_tab: 'Konfigurace Wi-Fi',
                 advanced_tab: 'Pokročilé',
                 ota_url: 'Vlastní OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Zadejte HTTP(S) adresu do 255 bajtů, nebo ponechte pole prázdné.',
                 max_tx_power: 'Max. vysílací výkon:',
                 remember_bssid: 'Pamatovat si BSSID',
@@ -877,6 +904,8 @@
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avanceret',
                 ota_url: 'Brugerdefineret OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Indtast en HTTP(S)-adresse på højst 255 byte, eller lad feltet stå tomt.',
                 max_tx_power: 'Maks. sendeeffekt:',
                 remember_bssid: 'Husk BSSID',
@@ -914,6 +943,8 @@
                 wifi_tab: 'Wi-Fi-Konfiguration',
                 advanced_tab: 'Erweitert',
                 ota_url: 'Benutzerdefinierte OTA-URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Eine HTTP(S)-URL mit maximal 255 Byte eingeben oder das Feld leer lassen.',
                 max_tx_power: 'Max. Sendeleistung:',
                 remember_bssid: 'BSSID merken',
@@ -951,6 +982,8 @@
                 wifi_tab: 'Διαμόρφωση Wi-Fi',
                 advanced_tab: 'Για προχωρημένους',
                 ota_url: 'Προσαρμοσμένη διεύθυνση OTA:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Εισαγάγετε URL HTTP(S) έως 255 byte ή αφήστε το πεδίο κενό.',
                 max_tx_power: 'Μέγ. ισχύς εκπομπής:',
                 remember_bssid: 'Απομνημόνευση BSSID',
@@ -988,6 +1021,8 @@
                 wifi_tab: 'Wi-Fi Config',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Enter an HTTP(S) URL (max 255 bytes), or leave the field blank.',
                 max_tx_power: 'Max TX power:',
                 remember_bssid: 'Remember BSSID',
@@ -1025,6 +1060,8 @@
                 wifi_tab: 'Configuración Wi-Fi',
                 advanced_tab: 'Avanzado',
                 ota_url: 'URL OTA personalizada:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Introduce una URL HTTP(S) de hasta 255 bytes o deja el campo vacío.',
                 max_tx_power: 'Potencia máxima de transmisión:',
                 remember_bssid: 'Recordar BSSID',
@@ -1062,6 +1099,8 @@
                 wifi_tab: 'پیکربندی Wi-Fi',
                 advanced_tab: 'پیشرفته',
                 ota_url: 'آدرس OTA سفارشی:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'یک نشانی HTTP(S) با حداکثر 255 بایت وارد کنید یا فیلد را خالی بگذارید.',
                 max_tx_power: 'حداکثر توان ارسال:',
                 remember_bssid: 'ذخیرهٔ BSSID',
@@ -1099,6 +1138,8 @@
                 wifi_tab: 'Wi-Fi-määritys',
                 advanced_tab: 'Lisäasetukset',
                 ota_url: 'Mukautettu OTA-osoite:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Anna enintään 255 tavun HTTP(S)-osoite tai jätä kenttä tyhjäksi.',
                 max_tx_power: 'Suurin lähetysteho:',
                 remember_bssid: 'Muista BSSID',
@@ -1136,6 +1177,8 @@
                 wifi_tab: 'Pagsasaayos ng Wi-Fi',
                 advanced_tab: 'Advanced',
                 ota_url: 'Custom OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Maglagay ng HTTP(S) URL na hanggang 255 byte o iwanang blangko.',
                 max_tx_power: 'Pinakamataas na lakas ng pagpapadala:',
                 remember_bssid: 'Tandaan ang BSSID',
@@ -1173,6 +1216,8 @@
                 wifi_tab: 'Configuration Wi-Fi',
                 advanced_tab: 'Avancé',
                 ota_url: 'URL OTA personnalisée:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Saisissez une URL HTTP(S) de 255 octets maximum ou laissez le champ vide.',
                 max_tx_power: 'Puissance d\'émission maximale :',
                 remember_bssid: 'Mémoriser le BSSID',
@@ -1210,6 +1255,8 @@
                 wifi_tab: 'הגדרות Wi-Fi',
                 advanced_tab: 'מתקדם',
                 ota_url: 'כתובת OTA מותאמת אישית:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'יש להזין כתובת HTTP(S) באורך של עד 255 בתים, או להשאיר את השדה ריק.',
                 max_tx_power: 'עוצמת שידור מרבית:',
                 remember_bssid: 'שמירת BSSID',
@@ -1247,6 +1294,8 @@
                 wifi_tab: 'Wi-Fi कॉन्फ़िगरेशन',
                 advanced_tab: 'उन्नत',
                 ota_url: 'कस्टम OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'अधिकतम 255 बाइट का HTTP(S) पता दर्ज करें या फ़ील्ड खाली छोड़ दें।',
                 max_tx_power: 'अधिकतम प्रेषण शक्ति:',
                 remember_bssid: 'BSSID याद रखें',
@@ -1284,6 +1333,8 @@
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
                 ota_url: 'Prilagođeni OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Unesite HTTP(S) adresu do 255 bajtova ili ostavite polje prazno.',
                 max_tx_power: 'Maks. snaga odašiljanja:',
                 remember_bssid: 'Zapamti BSSID',
@@ -1321,6 +1372,8 @@
                 wifi_tab: 'Wi-Fi konfiguráció',
                 advanced_tab: 'Speciális',
                 ota_url: 'Egyéni OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Adjon meg egy legfeljebb 255 bájtos HTTP(S)-címet, vagy hagyja üresen a mezőt.',
                 max_tx_power: 'Max. adási teljesítmény:',
                 remember_bssid: 'BSSID megjegyzése',
@@ -1358,6 +1411,8 @@
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
                 ota_url: 'URL OTA Kustom:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Masukkan URL HTTP(S) maksimal 255 byte atau biarkan kosong.',
                 max_tx_power: 'Daya pancar maksimum:',
                 remember_bssid: 'Ingat BSSID',
@@ -1395,6 +1450,8 @@
                 wifi_tab: 'Configurazione Wi-Fi',
                 advanced_tab: 'Avanzate',
                 ota_url: 'URL OTA personalizzato:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Inserisci un URL HTTP(S) di massimo 255 byte o lascia il campo vuoto.',
                 max_tx_power: 'Potenza massima di trasmissione:',
                 remember_bssid: 'Ricorda BSSID',
@@ -1432,6 +1489,8 @@
                 wifi_tab: 'Wi-Fi設定',
                 advanced_tab: '詳細設定',
                 ota_url: 'カスタムOTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: '255 バイト以内の HTTP(S) URL を入力するか、空欄にしてください。',
                 max_tx_power: '最大送信電力:',
                 remember_bssid: 'BSSID を記憶',
@@ -1469,6 +1528,8 @@
                 wifi_tab: 'Wi-Fi 구성',
                 advanced_tab: '고급',
                 ota_url: '사용자 정의 OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: '최대 255바이트의 HTTP(S) URL을 입력하거나 비워 두세요.',
                 max_tx_power: '최대 송신 출력:',
                 remember_bssid: 'BSSID 기억',
@@ -1506,6 +1567,8 @@
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
                 ota_url: 'URL OTA Tersuai:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Masukkan URL HTTP(S) sehingga 255 bait atau biarkan kosong.',
                 max_tx_power: 'Kuasa pancaran maksimum:',
                 remember_bssid: 'Ingat BSSID',
@@ -1543,6 +1606,8 @@
                 wifi_tab: 'Wi-Fi-konfigurasjon',
                 advanced_tab: 'Avansert',
                 ota_url: 'Egendefinert OTA-URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Skriv inn en HTTP(S)-adresse på maks. 255 byte, eller la feltet stå tomt.',
                 max_tx_power: 'Maks. sendeeffekt:',
                 remember_bssid: 'Husk BSSID',
@@ -1580,6 +1645,8 @@
                 wifi_tab: 'Wi-Fi-configuratie',
                 advanced_tab: 'Geavanceerd',
                 ota_url: 'Aangepaste OTA-URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Voer een HTTP(S)-URL van maximaal 255 bytes in of laat het veld leeg.',
                 max_tx_power: 'Max. zendvermogen:',
                 remember_bssid: 'BSSID onthouden',
@@ -1617,6 +1684,8 @@
                 wifi_tab: 'Konfiguracja Wi-Fi',
                 advanced_tab: 'Zaawansowane',
                 ota_url: 'Niestandardowy adres URL OTA:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Wpisz adres HTTP(S) o długości do 255 bajtów lub pozostaw pole puste.',
                 max_tx_power: 'Maks. moc nadawania:',
                 remember_bssid: 'Zapamiętaj BSSID',
@@ -1654,6 +1723,8 @@
                 wifi_tab: 'Configuração Wi-Fi',
                 advanced_tab: 'Avançado',
                 ota_url: 'URL OTA personalizado:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Introduza um URL HTTP(S) até 255 bytes ou deixe o campo vazio.',
                 max_tx_power: 'Potência máxima de transmissão:',
                 remember_bssid: 'Memorizar BSSID',
@@ -1691,6 +1762,8 @@
                 wifi_tab: 'Configurare Wi-Fi',
                 advanced_tab: 'Avansat',
                 ota_url: 'URL OTA personalizat:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Introduceți un URL HTTP(S) de cel mult 255 de octeți sau lăsați câmpul gol.',
                 max_tx_power: 'Putere maximă de transmisie:',
                 remember_bssid: 'Memorează BSSID',
@@ -1728,6 +1801,8 @@
                 wifi_tab: 'Настройка Wi-Fi',
                 advanced_tab: 'Дополнительно',
                 ota_url: 'Пользовательский URL OTA:',
+                tavily_api_key: 'API-ключ Tavily:',
+                web_search_enable: 'Включить веб-поиск Tavily',
                 invalid_ota_url: 'Введите HTTP(S) URL длиной до 255 байт или оставьте поле пустым.',
                 max_tx_power: 'Макс. мощность передачи:',
                 remember_bssid: 'Запомнить BSSID',
@@ -1765,6 +1840,8 @@
                 wifi_tab: 'Konfigurácia Wi-Fi',
                 advanced_tab: 'Pokročilé',
                 ota_url: 'Vlastná URL OTA:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Zadajte HTTP(S) adresu s najviac 255 bajtmi alebo nechajte pole prázdne.',
                 max_tx_power: 'Max. vysielací výkon:',
                 remember_bssid: 'Zapamätať BSSID',
@@ -1802,6 +1879,8 @@
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
                 ota_url: 'Prilagojen URL OTA:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Vnesite naslov HTTP(S) z največ 255 bajti ali pustite polje prazno.',
                 max_tx_power: 'Največja oddajna moč:',
                 remember_bssid: 'Zapomni si BSSID',
@@ -1839,6 +1918,8 @@
                 wifi_tab: 'Конфигурација Wi-Fi',
                 advanced_tab: 'Напредно',
                 ota_url: 'Прилагођени OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Унесите HTTP(S) адресу до 255 бајтова или оставите поље празно.',
                 max_tx_power: 'Макс. снага предаје:',
                 remember_bssid: 'Запамти BSSID',
@@ -1876,6 +1957,8 @@
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avancerat',
                 ota_url: 'Anpassad OTA-URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Ange en HTTP(S)-adress på högst 255 byte eller lämna fältet tomt.',
                 max_tx_power: 'Max. sändningseffekt:',
                 remember_bssid: 'Kom ihåg BSSID',
@@ -1913,6 +1996,8 @@
                 wifi_tab: 'การกำหนดค่า Wi-Fi',
                 advanced_tab: 'ขั้นสูง',
                 ota_url: 'URL OTA กำหนดเอง:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'ป้อน URL HTTP(S) ไม่เกิน 255 ไบต์ หรือเว้นว่างไว้',
                 max_tx_power: 'กำลังส่งสูงสุด:',
                 remember_bssid: 'จดจำ BSSID',
@@ -1950,6 +2035,8 @@
                 wifi_tab: 'Wi-Fi Yapılandırması',
                 advanced_tab: 'Gelişmiş',
                 ota_url: 'Özel OTA URL:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'En fazla 255 baytlık bir HTTP(S) adresi girin veya alanı boş bırakın.',
                 max_tx_power: 'En yüksek iletim gücü:',
                 remember_bssid: 'BSSID\'yi hatırla',
@@ -1987,6 +2074,8 @@
                 wifi_tab: 'Налаштування Wi-Fi',
                 advanced_tab: 'Додатково',
                 ota_url: 'Користувацька URL-адреса OTA:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Введіть HTTP(S) URL завдовжки до 255 байтів або залиште поле порожнім.',
                 max_tx_power: 'Макс. потужність передавання:',
                 remember_bssid: 'Запам\'ятати BSSID',
@@ -2024,6 +2113,8 @@
                 wifi_tab: 'Cấu hình Wi-Fi',
                 advanced_tab: 'Tùy chọn nâng cao',
                 ota_url: 'Địa chỉ OTA tùy chỉnh:',
+                tavily_api_key: 'Tavily API Key:',
+                web_search_enable: 'Enable Tavily web search',
                 invalid_ota_url: 'Nhập URL HTTP(S) tối đa 255 byte hoặc để trống.',
                 max_tx_power: 'Công suất phát tối đa:',
                 remember_bssid: 'Ghi nhớ BSSID',
@@ -2061,6 +2152,8 @@
                 wifi_tab: 'Wi-Fi 配置',
                 advanced_tab: '高级选项',
                 ota_url: '自定义 OTA 地址:',
+                tavily_api_key: 'Tavily API密钥:',
+                web_search_enable: '启用 Tavily 网络搜索',
                 invalid_ota_url: '请输入 HTTP(S) 地址（最多 255 字节），或留空。',
                 max_tx_power: '最大发射功率:',
                 remember_bssid: '记住 BSSID',
@@ -2098,6 +2191,8 @@
                 wifi_tab: 'Wi-Fi 設定',
                 advanced_tab: '進階選項',
                 ota_url: '自定義 OTA 位址:',
+                tavily_api_key: 'Tavily API密钥:',
+                web_search_enable: '启用 Tavily 网络搜索',
                 invalid_ota_url: '請輸入 HTTP(S) 位址（最多 255 位元組），或留空。',
                 max_tx_power: '最大發射功率:',
                 remember_bssid: '記住 BSSID',
@@ -2528,7 +2623,9 @@
                 ota_url: otaUrl,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
                 remember_bssid: document.getElementById('remember_bssid').checked,
-                sleep_mode: document.getElementById('sleep_mode').checked
+                sleep_mode: document.getElementById('sleep_mode').checked,
+                web_search_enable: document.getElementById('web_search_enable').checked,
+                tavily_api_key: document.getElementById('tavily_api_key').value
             };
 
             if (showSleepConfig && config.sleep_mode) {
@@ -2656,6 +2753,13 @@
                 if (data.remember_bssid !== undefined) {
                     document.getElementById('remember_bssid').checked = data.remember_bssid;
                 }
+                if (typeof data.tavily_api_key === 'string') {
+                    document.getElementById('tavily_api_key').value = data.tavily_api_key;
+                }
+                if (data.web_search_enable !== undefined) {
+                    document.getElementById('web_search_enable').checked = data.web_search_enable;
+                }
+                toggleWebSearchRow();
                 if (data.sleep_mode !== undefined) {
                     document.getElementById('sleep_mode').checked = data.sleep_mode;
                 }
@@ -2673,6 +2777,11 @@
         /**
          * Clear OTA URL input field
          */
+        function toggleWebSearchRow() {
+            const enabled = document.getElementById('web_search_enable').checked;
+            document.getElementById('tavily_row').style.display = enabled ? 'block' : 'none';
+        }
+
         function clearOtaUrl() {
             document.getElementById('ota_url').value = '';
             clearAdvancedStatus();
