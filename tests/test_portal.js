@@ -6,225 +6,195 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'assets/wifi_configuration.html'), 'utf8');
 const script = html.match(/<script type="text\/javascript">([\s\S]*?)<\/script>/)[1];
-const cases = JSON.parse(fs.readFileSync(path.join(__dirname, 'url_cases.json')));
-const prefix = 'https://example.com/';
-cases.push({url: prefix + 'a'.repeat(255 - prefix.length), valid: true});
-cases.push({url: prefix + 'a'.repeat(256 - prefix.length), valid: false});
+const renderer = fs.readFileSync(path.join(root, 'assets/wifi_config_group.js'), 'utf8');
+
+class Element {
+    constructor(tag) {
+        this.tag = tag;
+        this.children = [];
+        this.attributes = new Map();
+        this.events = {};
+        this.value = '';
+        this.textContent = '';
+        this.checked = false;
+        this.classList = {add() {}, remove() {}};
+    }
+    append(child) { child.parent = this; this.children.push(child); }
+    replaceChildren() { this.children = []; }
+    get firstChild() { return this.children[0]; }
+    get valueAsNumber() { return Number(this.value); }
+    addEventListener(name, callback) { this.events[name] = callback; }
+    dispatchEvent(event) {
+        this.events[event.type]?.(event);
+        if (event.bubbles) this.parent?.dispatchEvent(event);
+    }
+    setAttribute(name, value) { this.attributes.set(name, value); }
+    getAttribute(name) { return this.attributes.get(name); }
+    removeAttribute(name) { this.attributes.delete(name); }
+    querySelector() { return null; }
+    blur() {}
+}
+
 const elements = new Map();
 function element(id) {
-    if (!elements.has(id)) elements.set(id, {
-        value: '', checked: false, disabled: false, textContent: '', style: {},
-        attributes: new Map(),
-        classList: {add() {}, remove() {}}, addEventListener() {},
-        setAttribute(key, value) {this.attributes.set(key, value);},
-        getAttribute(key) {return this.attributes.get(key) || null;},
-        removeAttribute(key) {this.attributes.delete(key);}, blur() {}, focus() {}
-    });
+    if (!elements.has(id)) elements.set(id, new Element('div'));
     return elements.get(id);
 }
-let requests = [];
-let config = {};
-let responseFailure = null;
-let networkFailure = false;
+const payloads = [];
+let responseError;
+let failGroup;
+let failNetwork = false;
+const english = {
+    id: 'demo', title: 'Demo',
+    fields: [
+        {id: 'on', type: 'boolean', label: 'Enabled'},
+        {id: 'number', type: 'integer', label: 'Minutes', help: 'Enter 0 to disable.', enabled_by: 'on', min: 0, max: 1440},
+        {id: 'choices', type: 'string[]', label: 'Choices', options: [{id: 'a', value: 'a', label: 'A'}]},
+        {id: 'public', type: 'string', widget: 'copy', label: 'Public key'}
+    ],
+    values: {on: true, number: null, choices: ['a'], public: 'ssh-key'}
+};
+const chinese = {
+    ...english,
+    translations: {'zh-CN': {'title': '示例', 'number.label': '分钟', 'number.help': '填 0 可关闭。', 'number.error': '分钟数无效。'}}
+};
+const secondGroup = {
+    id: 'ssh', title: 'SSH',
+    fields: [
+        {id: 'port', type: 'integer', label: 'SSH port', min: 1, max: 65535},
+        {id: 'fingerprint', type: 'string', label: 'Trusted fingerprint', clearable: true}
+    ],
+    values: {port: 22, fingerprint: 'SHA256:known-fingerprint'}
+};
 const context = vm.createContext({
-    console, URL, URLSearchParams, setTimeout() {},
+    console, URL, URLSearchParams, Event, setTimeout() {},
     localStorage: {setItem() {}},
     window: {location: {href: 'http://192.168.4.1/'}, addEventListener() {}},
     document: {
-        documentElement: {}, getElementById: element, addEventListener() {},
+        documentElement: {},
+        getElementById: element,
+        createElement: tag => new Element(tag),
+        addEventListener() {},
         querySelectorAll(selector) {
-            return selector === '[data-lang-message]' ? [...elements.values()].filter(el => el.getAttribute('data-lang-message')) : [];
+            const key = selector.slice(1, -1);
+            return [...elements.values()].filter(el => el.getAttribute(key));
         }
     },
     fetch: async (url, options) => {
-        requests.push({url, body: options && options.body});
-        if (networkFailure) throw new TypeError('Failed to fetch');
-        return {json: async () => url === '/advanced/config' ? config : responseFailure || {success: true}};
+        if (failNetwork) throw new TypeError('Failed to fetch');
+        if (url.startsWith('/advanced/config')) return {
+            ok: true, json: async () => structuredClone([url.endsWith('zh-CN') ? chinese : english, secondGroup])
+        };
+        const body = JSON.parse(options.body);
+        payloads.push({url, body});
+        const error = !failGroup || failGroup === body.id ? responseError : undefined;
+        return {ok: !error, json: async () => error || {success: true}};
     }
 });
+vm.runInContext(renderer, context);
 vm.runInContext(script, context);
+const preventDefault = () => {};
 
 (async () => {
     const catalogs = vm.runInContext('translations', context);
     const referenceKeys = Object.keys(catalogs['en-US']).sort();
     for (const [locale, catalog] of Object.entries(catalogs)) {
         assert.deepEqual(Object.keys(catalog).sort(), referenceKeys, locale);
-        for (const key of referenceKeys) assert.ok(typeof catalog[key] === 'string' && catalog[key].trim(), `${locale}: ${key}`);
-    }
-    element('language').value = 'ru-RU';
-    element('max_tx_power').value = '80';
-    for (const test of cases) {
-        context.testUrl = test.url;
-        assert.equal(vm.runInContext('isValidOtaUrl(testUrl)', context), test.valid, test.url);
-        requests = [];
-        element('ota_url').value = test.url;
-        await vm.runInContext('submitAdvancedForm({preventDefault() {}})', context);
-        const submits = requests.filter(x => x.url === '/advanced/submit');
-        assert.equal(submits.length, test.valid ? 1 : 0, test.url);
-        assert.equal(element('advanced_button').disabled, false);
-        if (test.valid) assert.equal(JSON.parse(submits[0].body).ota_url, test.url);
-        else assert.ok(element('advanced_error').textContent.length > 0);
-    }
-
-    for (const data of [{}, {ota_url: ''}, {ota_url: 'Huawei-1ct5dn'}, {ota_url: null}]) {
-        config = data;
-        element('ota_url').value = 'Huawei-1ct5dn';
-        await vm.runInContext('loadAdvancedConfig()', context);
-        assert.equal(element('ota_url').value, '');
-    }
-    config = {ota_url: 'https://custom.example/ota/'};
-    await vm.runInContext('loadAdvancedConfig()', context);
-    assert.equal(element('ota_url').value, config.ota_url);
-    vm.runInContext('clearOtaUrl()', context);
-    assert.equal(element('ota_url').value, '');
-
-    async function loadSleep(overrides = {}) {
-        config = {show_sleep_config: true, sleep_mode: true,
-            sleep_dim_minutes: null, sleep_off_minutes: null, ...overrides};
-        await vm.runInContext('loadAdvancedConfig()', context);
-    }
-    async function saveAdvanced() {
-        requests = [];
-        await vm.runInContext('submitAdvancedForm({preventDefault() {}})', context);
-        return requests.filter(x => x.url === '/advanced/submit').map(x => JSON.parse(x.body));
-    }
-    function assertNoTimers(payload) {
-        assert.equal(Object.hasOwn(payload, 'sleep_dim_minutes'), false);
-        assert.equal(Object.hasOwn(payload, 'sleep_off_minutes'), false);
-    }
-
-    // Hidden/disabled controls cannot block unrelated saves or install overrides.
-    await loadSleep({show_sleep_config: false});
-    assert.equal(element('sleep_config_row').style.display, 'none');
-    assert.equal(element('sleep_timers_row').style.display, 'none');
-    for (const key of ['sleep_dim_minutes', 'sleep_off_minutes']) {
-        assert.equal(element(key).disabled, true);
-        element(key).value = 'invalid';
-    }
-    assertNoTimers((await saveAdvanced())[0]);
-
-    // Missing overrides stay blank; saving a different setting preserves board defaults.
-    await loadSleep();
-    assert.equal(element('sleep_timers_row').style.display, 'block');
-    assert.equal(element('sleep_dim_minutes').value, '');
-    assert.equal(element('sleep_off_minutes').value, '');
-    assert.equal(element('sleep_dim_minutes').disabled, false);
-    element('max_tx_power').value = '20';
-    assertNoTimers((await saveAdvanced())[0]);
-
-    element('sleep_dim_minutes').value = '3';
-    let payload = (await saveAdvanced())[0];
-    assert.equal(payload.sleep_dim_minutes, 3);
-    assert.equal(Object.hasOwn(payload, 'sleep_off_minutes'), false);
-    assertNoTimers((await saveAdvanced())[0]); // Successful saves update the baseline.
-    element('sleep_dim_minutes').value = '';
-    payload = (await saveAdvanced())[0];
-    assert.equal(payload.sleep_dim_minutes, null); // Erase just this override.
-    assertNoTimers((await saveAdvanced())[0]);
-
-    await loadSleep({sleep_dim_minutes: 3, sleep_off_minutes: 10});
-    element('sleep_off_minutes').value = '20';
-    payload = (await saveAdvanced())[0];
-    assert.equal(payload.sleep_off_minutes, 20);
-    assert.equal(Object.hasOwn(payload, 'sleep_dim_minutes'), false);
-
-    for (const value of ['-1', '-0.5', '1.9', '1441', 'Infinity', 'invalid']) {
-        await loadSleep();
-        element('sleep_dim_minutes').value = value;
-        assert.deepEqual(await saveAdvanced(), []);
-        assert.ok(element('sleep_timers_error').textContent.length > 0);
-        assert.equal(element('advanced_error').textContent, '');
-        assert.equal(element('advanced_button').disabled, false);
-    }
-    await loadSleep();
-    element('sleep_dim_minutes').value = '0';
-    element('sleep_off_minutes').value = '0';
-    payload = (await saveAdvanced())[0];
-    assert.equal(payload.sleep_dim_minutes, 0);
-    assert.equal(payload.sleep_off_minutes, 0);
-
-    await loadSleep();
-    element('sleep_dim_minutes').value = '10';
-    element('sleep_off_minutes').value = '5';
-    assert.deepEqual(await saveAdvanced(), []);
-    assert.ok(element('sleep_timers_error').textContent.length > 0);
-    vm.runInContext('clearSleepTimerError()', context);
-    assert.equal(element('sleep_timers_error').textContent, '');
-    element('sleep_mode').checked = false;
-    vm.runInContext('toggleSleepTimers()', context);
-    assert.equal(element('sleep_dim_minutes').disabled, true);
-    payload = (await saveAdvanced())[0];
-    assert.equal(payload.sleep_mode, false);
-    assertNoTimers(payload); // Invalid unsaved timers do not prevent disabling sleep.
-
-    // Connecting Wi-Fi must never submit or save an unrelated OTA field.
-    requests = [];
-    element('ssid').value = 'Huawei-1ct5dn';
-    element('password').value = 'test-password';
-    element('ota_url').value = 'Huawei-1ct5dn';
-    await vm.runInContext('submitForm({preventDefault() {}})', context);
-    assert.deepEqual(requests.map(x => x.url), ['/submit']);
-    assert.deepEqual(JSON.parse(requests[0].body), {
-        ssid: 'Huawei-1ct5dn', password: 'test-password'
-    });
-    assert.match(html, /type="url" id="ota_url"[^>]*maxlength="255"/);
-
-    // Every locale renders feedback without an English API/browser error leaking through.
-    await loadSleep();
-    element('ota_url').value = '';
-    for (const [locale, catalog] of Object.entries(catalogs)) {
-        element('language').value = locale;
-        vm.runInContext('changeLanguage()', context);
-        assert.equal(context.document.documentElement.lang, locale);
-        assert.equal(context.document.documentElement.dir, ['ar-SA', 'fa-IR', 'he-IL'].includes(locale) ? 'rtl' : 'ltr');
-        await saveAdvanced();
-        assert.equal(element('advanced_status').textContent, catalog.settings_saved, locale);
-        element('sleep_dim_minutes').value = '1441';
-        await saveAdvanced();
-        assert.equal(element('sleep_timers_error').textContent, catalog.invalid_sleep_minutes, locale);
-        assert.equal(element('advanced_status').textContent, '');
-        element('sleep_dim_minutes').value = '';
-        responseFailure = {success: false, error: 'Failed to save sleep timer values'};
-        await saveAdvanced();
-        assert.equal(element('advanced_error').textContent, catalog.save_failed, locale);
-        responseFailure = {success: false, error: 'Invalid sleep timer values'};
-        await saveAdvanced();
-        assert.equal(element('advanced_error').textContent, catalog.invalid_sleep_timers, locale);
-        responseFailure = {success: false, error: 'OTA URL must be empty or a valid HTTP(S) URL (max 255 bytes)'};
-        await saveAdvanced();
-        assert.equal(element('advanced_error').textContent, catalog.invalid_ota_url, locale);
-        responseFailure = {success: false, error: 'Invalid SSID'};
-        await vm.runInContext('submitForm({preventDefault() {}})', context);
-        assert.equal(element('error').textContent, catalog.invalid_ssid, locale);
-        responseFailure = null;
-        networkFailure = true;
-        await saveAdvanced();
-        assert.equal(element('advanced_error').textContent, catalog.save_failed, locale);
-        await vm.runInContext('submitForm({preventDefault() {}})', context);
-        assert.equal(element('error').textContent, catalog.connection_failed, locale);
-        networkFailure = false;
+        for (const key of referenceKeys) assert.ok(catalog[key]?.trim(), `${locale}: ${key}`);
     }
     element('language').value = 'en-US';
-    await saveAdvanced();
-    element('language').value = 'zh-CN';
-    vm.runInContext('changeLanguage()', context);
-    assert.equal(element('advanced_status').textContent, catalogs['zh-CN'].settings_saved);
-    vm.runInContext('clearAdvancedStatus()', context);
-    element('language').value = 'ru-RU';
-    vm.runInContext('changeLanguage()', context);
-    assert.equal(element('advanced_status').textContent, '');
+    await vm.runInContext('portalAdvanced.load()', context);
+    const [panel, otherPanel] = element('advanced-groups').children;
+    const [summary, body] = panel.children;
+    const [on, number, choices, publicKey] = body.children;
+    const [port, fingerprint] = otherPanel.children[1].children;
+    const form = element('advanced-form');
+    const button = element('advanced-save');
+    const save = () => form.events.submit({preventDefault});
+    const change = () => body.events.input();
+    assert.equal(panel.tag, 'details');
+    assert.equal(otherPanel.tag, 'details');
+    assert.ok(!panel.open && !otherPanel.open);
+    assert.equal(summary.tag, 'summary');
+    assert.equal(button.disabled, true);
+    assert.equal(number.children[1].value, '');
+    assert.equal(publicKey.children[1].readOnly, true);
+    assert.equal(publicKey.children[1].value, 'ssh-key');
 
-    // A scan started in one language must render in the language selected before it returns.
-    const originalFetch = context.fetch;
+    number.children[1].value = '0';
+    choices.children[1].children[0].checked = false;
+    await save();
+    assert.deepEqual(payloads.at(-1).body, {id: 'demo', values: {number: 0, choices: []}});
+    number.children[1].value = '';
+    await save();
+    assert.deepEqual(payloads.at(-1).body, {id: 'demo', values: {number: null}});
+    on.children[1].checked = false;
+    number.children[1].value = '10';
+    change();
+    assert.equal(number.hidden, true);
+    await save();
+    assert.deepEqual(payloads.at(-1).body, {id: 'demo', values: {on: false}});
+
+    on.children[1].checked = true;
+    change();
+    element('language').value = 'zh-CN';
+    await vm.runInContext('portalAdvanced.refreshLanguage()', context);
+    assert.equal(summary.children[0].textContent, '示例');
+    assert.equal(number.children[0].textContent, '分钟');
+    assert.equal(number.children[1].value, '10');
+    assert.equal(choices.children[0].textContent, 'Choices');
+
+    port.children[1].value = '2222';
+    otherPanel.children[1].events.input();
+    assert.equal(button.disabled, false);
+    failGroup = 'demo';
+    responseError = {success: false, field: 'number', key: 'number.error', error: 'Invalid minutes'};
+    const before = payloads.length;
+    await save();
+    assert.deepEqual(payloads.slice(before).map(item => item.body), [
+        {id: 'demo', values: {on: true, number: 10}},
+        {id: 'ssh', values: {port: 2222}}
+    ]);
+    assert.equal(panel.open, true);
+    assert.ok(!otherPanel.open);
+    assert.equal(number.children.at(-1).textContent, '分钟数无效。');
+    assert.equal(number.children[1].getAttribute('aria-invalid'), 'true');
+    change();
+    assert.equal(number.children.at(-1).textContent, '');
+    responseError = undefined;
+    const beforeRetry = payloads.length;
+    await save();
+    assert.deepEqual(payloads.slice(beforeRetry).map(item => item.body), [
+        {id: 'demo', values: {on: true, number: 10}}
+    ]);
+    assert.equal(button.disabled, true);
+    assert.equal(element('advanced-feedback').textContent, catalogs['zh-CN'].settings_saved);
+    failGroup = undefined;
+    const clear = fingerprint.children[2];
+    const beforeClear = payloads.length;
+    assert.equal(clear.disabled, false);
+    clear.events.click();
+    assert.equal(fingerprint.children[1].value, '');
+    assert.equal(clear.disabled, true);
+    assert.equal(button.disabled, false);
+    assert.equal(payloads.length, beforeClear);
+    await save();
+    assert.deepEqual(payloads.at(-1).body, {id: 'ssh', values: {fingerprint: ''}});
+    responseError = {success: false, error: 'Invalid SSID'};
+    await vm.runInContext('submitForm({preventDefault() {}})', context);
+    assert.equal(element('error').textContent, catalogs['zh-CN'].invalid_ssid);
+    failNetwork = true;
+    await vm.runInContext('submitForm({preventDefault() {}})', context);
+    assert.equal(element('error').textContent, catalogs['zh-CN'].connection_failed);
+
+    // A scan started in one language renders in the language selected before it returns.
     let finishScan;
     context.fetch = () => new Promise(resolve => {finishScan = resolve;});
-    element('ap_list').querySelector = () => null;
     element('language').value = 'en-US';
     vm.runInContext('loadAPList()', context);
     element('language').value = 'zh-CN';
     finishScan({json: async () => ({support_5g: false, aps: []})});
     await new Promise(setImmediate);
     assert.ok(element('ap_list').innerHTML.includes(catalogs['zh-CN'].select_wifi));
-    context.fetch = originalFetch;
-    console.log(`Portal: ${cases.length} URL cases, timer behavior, Wi-Fi form isolation, and ${Object.keys(catalogs).length} complete locale catalogs with live feedback passed.`);
+    console.log(`Portal rendering, typed saves, translation fallback and live switching across ${Object.keys(catalogs).length} built-in locales passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});

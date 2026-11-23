@@ -355,88 +355,179 @@
         .signal-bars span:nth-child(3) { height: 14px; }
         .signal-bars span.active { opacity: 1; }
 
-        /* ========== Advanced rows ========== */
-        #ota_url_row { margin-bottom: 16px; }
-        .field-inline {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 12px;
-        }
-        .field-inline label { margin: 0; }
-        .field-inline select { width: auto; min-width: 120px; margin-inline-start: auto; }
-
-        .switch-row {
+        #advanced-tab { padding-block: 0; }
+        .advanced-group + .advanced-group { border-block-start: 1px solid var(--border); }
+        .advanced-summary {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 14px;
-            background: var(--surface-muted);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
-        }
-        .switch-row label {
-            margin: 0;
+            justify-content: space-between;
+            gap: 14px;
+            min-height: 64px;
+            padding: 14px 2px;
             color: var(--text);
-            font-weight: 500;
-            flex: 1;
+            font-size: 18px;
+            font-weight: 650;
+            line-height: 1.3;
+            list-style: none;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
-        .sleep-group {
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--surface-muted);
-            overflow: hidden;
+        .advanced-summary::-webkit-details-marker { display: none; }
+        .advanced-summary::after {
+            content: "";
+            flex: none;
+            width: 9px;
+            height: 9px;
+            margin-inline-end: 5px;
+            border: solid var(--text-muted);
+            border-width: 0 2px 2px 0;
+            transform: rotate(-45deg);
         }
-        .sleep-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px;
+        [dir="rtl"] .advanced-summary::after { transform: rotate(135deg); }
+        .advanced-group[open] > .advanced-summary::after {
+            border-color: var(--accent);
+            transform: rotate(45deg);
         }
-        .sleep-header label {
-            flex: 1;
+        .advanced-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .advanced-group-body { padding: 0 2px 20px; }
+        .advanced-group-body > .advanced-help { margin: 0 0 18px; }
+        .advanced-field {
+            min-width: 0;
             margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        .advanced-field + .advanced-field { margin-block-start: 16px; }
+        .advanced-field > label, .advanced-field > legend {
+            margin: 0 0 7px;
+            padding: 0;
             color: var(--text);
             font-size: 14px;
+            font-weight: 550;
         }
-        .sleep-body {
-            padding: 16px 14px;
-            border-top: 1px solid var(--border);
-        }
-        .sleep-fields {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-        .sleep-field { min-width: 0; }
-        .sleep-field label { margin-bottom: 8px; }
-        .sleep-input { position: relative; }
-        .sleep-input input {
-            min-width: 0;
-            padding-inline-end: 48px;
+        .advanced-field .advanced-control {
+            display: block;
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: var(--surface-muted);
+            color: var(--text);
+            font: inherit;
             font-size: 16px;
-            background: var(--surface);
+            line-height: 22px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
         }
-        .sleep-input input::placeholder {
-            color: var(--text-muted);
-            opacity: 1;
+        .advanced-field select.advanced-control { padding-inline-end: 36px; }
+        .advanced-field .advanced-control:focus {
+            border-color: var(--accent);
+            background-color: var(--surface);
+            box-shadow: 0 0 0 3px var(--accent-soft);
         }
-        .sleep-input input[aria-invalid="true"] { border-color: var(--danger); }
-        .sleep-unit {
+        .advanced-control[type="number"] { -moz-appearance: textfield; }
+        .advanced-control[type="number"]::-webkit-inner-spin-button,
+        .advanced-control[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        textarea.advanced-control { resize: vertical; }
+        textarea.advanced-control[readonly] {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: 16px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+        .advanced-switch-row:not([hidden]) {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 44px;
+            gap: 0 14px;
+        }
+        .advanced-switch-row > label { margin: 0; padding-block: 10px; cursor: pointer; }
+        .advanced-switch-row > small { grid-column: 1 / -1; }
+        .advanced-field input.advanced-switch {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            padding: 0;
+            margin: 0;
+            border: 1px solid var(--border-strong);
+            border-radius: 999px;
+            background: var(--border-strong);
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        .advanced-switch::before {
+            content: "";
             position: absolute;
-            inset-inline-end: 12px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 3px;
+            inset-inline-start: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .advanced-field input.advanced-switch:checked { border-color: var(--accent); background: var(--accent); }
+        .advanced-switch:checked::before { inset-inline-start: 21px; }
+        .advanced-switch:focus-visible, .advanced-copy:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+        .advanced-choice { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+        .advanced-help {
+            display: block;
+            margin: 6px 0 0;
             color: var(--text-muted);
-            font-size: 12px;
-            pointer-events: none;
+            font-size: 13px;
+            line-height: 1.45;
         }
-        .sleep-body .error { text-align: start; margin: 12px 0 0; }
-        @media (max-width: 420px) {
-            .sleep-fields { grid-template-columns: 1fr; }
+        .advanced-field-error, .advanced-feedback {
+            margin-block-start: 6px;
+            color: var(--danger);
+            font-size: 13px;
+            line-height: 1.4;
         }
+        .advanced-field-error { display: block; }
+        .advanced-feedback[data-saved] { color: var(--success); }
+        .advanced-feedback:empty, .advanced-field-error:empty { display: none; }
+        .advanced-field [aria-invalid="true"] { border-color: var(--danger); }
+        .advanced-copy {
+            min-height: 36px;
+            margin-block-start: 8px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .advanced-copy:disabled { color: var(--text-muted); cursor: default; }
+        .advanced-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            padding: 14px 2px;
+            border-block-start: 1px solid var(--border);
+        }
+        .advanced-footer .advanced-feedback { margin: 0; margin-inline-end: auto; }
+        .advanced-footer input[type="submit"] {
+            width: auto;
+            min-width: 96px;
+            min-height: 42px;
+            padding: 8px 18px;
+        }
+        .advanced-footer input[type="submit"]:disabled {
+            border: 1px solid var(--border);
+            background: var(--surface-muted);
+            color: var(--text-muted);
+        }
+
         input[type="checkbox"] {
             width: 20px;
             height: 20px;
@@ -444,37 +535,6 @@
             cursor: pointer;
             flex: none;
         }
-
-        .icon-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            flex: none;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--surface-muted);
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s, border-color 0.15s;
-        }
-        .icon-btn:hover {
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-        .icon-btn[hidden] { display: none; }
-        .icon-btn svg { width: 18px; height: 18px; }
-
-        .save-status {
-            margin: 0 0 12px;
-            color: var(--success);
-            font-size: 14px;
-            font-weight: 500;
-            text-align: center;
-        }
-        .save-status:empty { margin: 0; }
-        .save-status:not(:empty)::before { content: "✓ "; }
 
         /* ========== Loading Spinner Styles ========== */
         .loading-overlay {
@@ -620,93 +680,25 @@
         </div>
     </div>
 
-    <!-- Advanced Configuration Tab -->
     <div id="advanced-tab" class="tab-content">
-        <form action="/advanced/submit" method="post" autocomplete="off" onsubmit="submitAdvancedForm(event)" oninput="clearAdvancedStatus()" onchange="clearAdvancedStatus()">
-            <div>
-                <p class="error" id="advanced_error"></p>
-                
-                <!-- OTA URL (visibility controlled by show_ota_config from server) -->
-                <div id="ota_url_row" style="display: none;">
-                    <label for="ota_url" data-lang="ota_url">Custom OTA URL:</label>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="url" id="ota_url" name="ota_url" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" dir="ltr" oninput="updateOtaClearButton()" style="flex: 1; min-width: 0;">
-                        <button type="button" class="icon-btn" id="clear_ota_url" onclick="clearOtaUrl()" aria-label="Clear OTA URL" data-lang-aria-label="clear_ota_url" hidden>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Max TX Power -->
-                <p class="field-inline">
-                    <label for="max_tx_power" data-lang="max_tx_power" style="white-space: nowrap;">Max TX power:</label>
-                    <select id="max_tx_power" name="max_tx_power" dir="ltr">
-                        <option value="8">2 dBm</option>
-                        <option value="20">5 dBm</option>
-                        <option value="28">7 dBm</option>
-                        <option value="34">8 dBm</option>
-                        <option value="44">11 dBm</option>
-                        <option value="52">13 dBm</option>
-                        <option value="56">14 dBm</option>
-                        <option value="60">15 dBm</option>
-                        <option value="66">16 dBm</option>
-                        <option value="72">18 dBm</option>
-                        <option value="80">20 dBm</option>
-                    </select>
-                </p>
-
-                <!-- Remember BSSID -->
-                <div class="switch-row">
-                    <label for="remember_bssid">
-                        <span data-lang="remember_bssid">Remember BSSID</span>
-                    </label>
-                    <input type="checkbox" id="remember_bssid" name="remember_bssid">
-                </div>
-
-                <!-- Sleep Mode (visibility controlled by show_sleep_config from server) -->
-                <section class="sleep-group" id="sleep_config_row" style="display: none;" aria-labelledby="sleep_mode_label">
-                    <div class="sleep-header">
-                        <label for="sleep_mode" id="sleep_mode_label" data-lang="sleep_mode">Sleep mode</label>
-                        <input type="checkbox" id="sleep_mode" name="sleep_mode" onchange="toggleSleepTimers()">
-                    </div>
-                    <div class="sleep-body" id="sleep_timers_row" style="display: none;">
-                        <div class="sleep-fields">
-                            <div class="sleep-field">
-                                <label for="sleep_dim_minutes" data-lang="sleep_dim_minutes">Screen dim after</label>
-                                <div class="sleep-input">
-                                    <input type="number" id="sleep_dim_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_dim_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
-                                    <span class="sleep-unit" id="sleep_dim_unit" data-lang="sleep_minutes_unit">min</span>
-                                </div>
-                            </div>
-                            <div class="sleep-field">
-                                <label for="sleep_off_minutes" data-lang="sleep_off_minutes">Power off after</label>
-                                <div class="sleep-input">
-                                    <input type="number" id="sleep_off_minutes" min="0" max="1440" step="1" inputmode="numeric" placeholder="Default" data-lang-placeholder="sleep_default" aria-describedby="sleep_off_unit sleep_timers_error" oninput="clearSleepTimerError()" disabled>
-                                    <span class="sleep-unit" id="sleep_off_unit" data-lang="sleep_minutes_unit">min</span>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="error" id="sleep_timers_error" role="alert" aria-live="polite"></p>
-                    </div>
-                </section>
-
-                <p class="save-status" id="advanced_status" role="status" aria-live="polite" aria-atomic="true"></p>
-                <p>
-                    <input type="submit" value="Save" id="advanced_button" data-lang-value="save">
-                </p>
+        <div id="advanced-load-error" class="advanced-feedback" role="status"></div>
+        <form id="advanced-form" autocomplete="off" novalidate hidden>
+            <div id="advanced-groups"></div>
+            <div class="advanced-footer">
+                <div id="advanced-feedback" class="advanced-feedback" role="status"></div>
+                <input id="advanced-save" type="submit" value="Save" data-lang-value="save" disabled>
             </div>
         </form>
     </div>
     </div>
     </div>
 
+    <script src="/advanced.js"></script>
     <script type="text/javascript">
         // ========== Global Variables ==========
         const button = document.getElementById('button');
         const ssid = document.getElementById('ssid');
         let support5G = false; // Store 5G support status
-        let showSleepConfig = false;
-        const savedSleepTimers = { sleep_dim_minutes: null, sleep_off_minutes: null };
 
         // ========== Translation Data ==========
         const translations = {
@@ -724,22 +716,9 @@
                 signal_fair: 'إشارة متوسطة',
                 signal_weak: 'إشارة ضعيفة',
                 signal_unknown: 'قوة الإشارة غير معروفة',
-                clear_ota_url: 'مسح عنوان OTA',
                 scanning: 'جارٍ المسح...',
                 wifi_tab: 'تكوين Wi-Fi',
                 advanced_tab: 'خيارات متقدمة',
-                ota_url: 'عنوان OTA مخصص:',
-                invalid_ota_url: 'أدخل عنوان HTTP(S) بطول 255 بايت كحد أقصى، أو اترك الحقل فارغًا.',
-                max_tx_power: 'قدرة الإرسال القصوى:',
-                remember_bssid: 'تذكّر BSSID',
-                sleep_mode: 'وضع السكون',
-                sleep_dim_minutes: 'تعتيم الشاشة بعد',
-                sleep_off_minutes: 'إيقاف التشغيل بعد',
-                sleep_default: 'الافتراضي',
-                sleep_minutes_unit: 'دقيقة',
-                invalid_sleep_minutes: 'أدخل عددًا صحيحًا من 0 إلى 1440.',
-                invalid_sleep_order: 'يجب أن يكون وقت إيقاف التشغيل بعد تعتيم الشاشة.',
-                invalid_sleep_timers: 'أدخل عددًا صحيحًا من 0 إلى 1440. يجب أن يكون وقت إيقاف التشغيل بعد تعتيم الشاشة.',
                 save: 'حفظ',
                 settings_saved: 'تم الحفظ',
                 config_success: 'تم التكوين بنجاح!',
@@ -761,22 +740,9 @@
                 signal_fair: 'Среден сигнал',
                 signal_weak: 'Слаб сигнал',
                 signal_unknown: 'Неизвестна сила на сигнала',
-                clear_ota_url: 'Изчистване на OTA адреса',
                 scanning: 'Сканиране...',
                 wifi_tab: 'Конфигурация на Wi-Fi',
                 advanced_tab: 'Разширени',
-                ota_url: 'Персонализиран OTA URL:',
-                invalid_ota_url: 'Въведете HTTP(S) адрес до 255 байта или оставете празно.',
-                max_tx_power: 'Макс. мощност на предаване:',
-                remember_bssid: 'Запомняне на BSSID',
-                sleep_mode: 'Режим на заспиване',
-                sleep_dim_minutes: 'Затъмняване след',
-                sleep_off_minutes: 'Изключване след',
-                sleep_default: 'По подр.',
-                sleep_minutes_unit: 'мин',
-                invalid_sleep_minutes: 'Въведете цяло число от 0 до 1440.',
-                invalid_sleep_order: 'Времето за изключване трябва да е след времето за затъмняване.',
-                invalid_sleep_timers: 'Въведете цяло число от 0 до 1440. Времето за изключване трябва да е след времето за затъмняване.',
                 save: 'Запазване',
                 settings_saved: 'Запазено',
                 config_success: 'Конфигурацията е успешна!',
@@ -798,22 +764,9 @@
                 signal_fair: 'Senyal mitjà',
                 signal_weak: 'Senyal feble',
                 signal_unknown: 'Intensitat desconeguda',
-                clear_ota_url: 'Esborra l\'URL OTA',
                 scanning: 'Escanejant...',
                 wifi_tab: 'Configuració Wi-Fi',
                 advanced_tab: 'Avançat',
-                ota_url: 'URL OTA personalitzat:',
-                invalid_ota_url: 'Introdueix un URL HTTP(S) de fins a 255 bytes o deixa el camp buit.',
-                max_tx_power: 'Potència màxima de transmissió:',
-                remember_bssid: 'Recorda el BSSID',
-                sleep_mode: 'Mode de repòs',
-                sleep_dim_minutes: 'Atenua la pantalla al cap de',
-                sleep_off_minutes: 'Apaga el dispositiu al cap de',
-                sleep_default: 'Per defecte',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Introdueix un enter de 0 a 1440.',
-                invalid_sleep_order: 'L\'apagada ha de ser posterior a l\'atenuació de la pantalla.',
-                invalid_sleep_timers: 'Introdueix un enter de 0 a 1440. L\'apagada ha de ser posterior a l\'atenuació de la pantalla.',
                 save: 'Desar',
                 settings_saved: 'Desat',
                 config_success: 'Configuració completada correctament!',
@@ -835,22 +788,9 @@
                 signal_fair: 'Střední signál',
                 signal_weak: 'Slabý signál',
                 signal_unknown: 'Síla signálu není známa',
-                clear_ota_url: 'Vymazat OTA adresu',
                 scanning: 'Skenování...',
                 wifi_tab: 'Konfigurace Wi-Fi',
                 advanced_tab: 'Pokročilé',
-                ota_url: 'Vlastní OTA URL:',
-                invalid_ota_url: 'Zadejte HTTP(S) adresu do 255 bajtů, nebo ponechte pole prázdné.',
-                max_tx_power: 'Max. vysílací výkon:',
-                remember_bssid: 'Pamatovat si BSSID',
-                sleep_mode: 'Režim spánku',
-                sleep_dim_minutes: 'Ztlumit displej po',
-                sleep_off_minutes: 'Vypnout zařízení po',
-                sleep_default: 'Výchozí',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Zadejte celé číslo od 0 do 1440.',
-                invalid_sleep_order: 'Vypnutí musí nastat později než ztlumení displeje.',
-                invalid_sleep_timers: 'Zadejte celé číslo od 0 do 1440. Vypnutí musí nastat později než ztlumení displeje.',
                 save: 'Uložit',
                 settings_saved: 'Uloženo',
                 config_success: 'Konfigurace byla úspěšná!',
@@ -872,22 +812,9 @@
                 signal_fair: 'Middel signal',
                 signal_weak: 'Svagt signal',
                 signal_unknown: 'Ukendt signalstyrke',
-                clear_ota_url: 'Ryd OTA-adresse',
                 scanning: 'Scanner...',
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avanceret',
-                ota_url: 'Brugerdefineret OTA URL:',
-                invalid_ota_url: 'Indtast en HTTP(S)-adresse på højst 255 byte, eller lad feltet stå tomt.',
-                max_tx_power: 'Maks. sendeeffekt:',
-                remember_bssid: 'Husk BSSID',
-                sleep_mode: 'Dvaletilstand',
-                sleep_dim_minutes: 'Dæmp skærmen efter',
-                sleep_off_minutes: 'Sluk enheden efter',
-                sleep_default: 'Standard',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Indtast et heltal fra 0 til 1440.',
-                invalid_sleep_order: 'Enheden skal slukke senere, end skærmen dæmpes.',
-                invalid_sleep_timers: 'Indtast et heltal fra 0 til 1440. Enheden skal slukke senere, end skærmen dæmpes.',
                 save: 'Gem',
                 settings_saved: 'Gemt',
                 config_success: 'Konfigurationen lykkedes!',
@@ -909,22 +836,9 @@
                 signal_fair: 'Mittleres Signal',
                 signal_weak: 'Schwaches Signal',
                 signal_unknown: 'Signalstärke unbekannt',
-                clear_ota_url: 'OTA-URL löschen',
                 scanning: 'Scanne...',
                 wifi_tab: 'Wi-Fi-Konfiguration',
                 advanced_tab: 'Erweitert',
-                ota_url: 'Benutzerdefinierte OTA-URL:',
-                invalid_ota_url: 'Eine HTTP(S)-URL mit maximal 255 Byte eingeben oder das Feld leer lassen.',
-                max_tx_power: 'Max. Sendeleistung:',
-                remember_bssid: 'BSSID merken',
-                sleep_mode: 'Ruhemodus',
-                sleep_dim_minutes: 'Display dimmen nach',
-                sleep_off_minutes: 'Gerät ausschalten nach',
-                sleep_default: 'Standard',
-                sleep_minutes_unit: 'Min.',
-                invalid_sleep_minutes: 'Eine ganze Zahl von 0 bis 1440 eingeben.',
-                invalid_sleep_order: 'Das Ausschalten muss später als das Dimmen erfolgen.',
-                invalid_sleep_timers: 'Eine ganze Zahl von 0 bis 1440 eingeben. Das Ausschalten muss später als das Dimmen erfolgen.',
                 save: 'Speichern',
                 settings_saved: 'Gespeichert',
                 config_success: 'Konfiguration erfolgreich!',
@@ -946,22 +860,9 @@
                 signal_fair: 'Μέτριο σήμα',
                 signal_weak: 'Ασθενές σήμα',
                 signal_unknown: 'Άγνωστη ισχύς σήματος',
-                clear_ota_url: 'Διαγραφή URL OTA',
                 scanning: 'Σάρωση...',
                 wifi_tab: 'Διαμόρφωση Wi-Fi',
                 advanced_tab: 'Για προχωρημένους',
-                ota_url: 'Προσαρμοσμένη διεύθυνση OTA:',
-                invalid_ota_url: 'Εισαγάγετε URL HTTP(S) έως 255 byte ή αφήστε το πεδίο κενό.',
-                max_tx_power: 'Μέγ. ισχύς εκπομπής:',
-                remember_bssid: 'Απομνημόνευση BSSID',
-                sleep_mode: 'Λειτουργία ύπνου',
-                sleep_dim_minutes: 'Μείωση φωτεινότητας μετά από',
-                sleep_off_minutes: 'Απενεργοποίηση μετά από',
-                sleep_default: 'Προεπιλ.',
-                sleep_minutes_unit: 'λεπτά',
-                invalid_sleep_minutes: 'Εισαγάγετε έναν ακέραιο από 0 έως 1440.',
-                invalid_sleep_order: 'Η απενεργοποίηση πρέπει να γίνεται μετά τη μείωση φωτεινότητας.',
-                invalid_sleep_timers: 'Εισαγάγετε έναν ακέραιο από 0 έως 1440. Η απενεργοποίηση πρέπει να γίνεται μετά τη μείωση φωτεινότητας.',
                 save: 'Αποθήκευση',
                 settings_saved: 'Αποθηκεύτηκε',
                 config_success: 'Η διαμόρφωση ολοκληρώθηκε με επιτυχία!',
@@ -983,22 +884,9 @@
                 signal_fair: 'Fair signal',
                 signal_weak: 'Weak signal',
                 signal_unknown: 'Signal unavailable',
-                clear_ota_url: 'Clear OTA URL',
                 scanning: 'Scanning...',
                 wifi_tab: 'Wi-Fi Config',
                 advanced_tab: 'Advanced',
-                ota_url: 'Custom OTA URL:',
-                invalid_ota_url: 'Enter an HTTP(S) URL (max 255 bytes), or leave the field blank.',
-                max_tx_power: 'Max TX power:',
-                remember_bssid: 'Remember BSSID',
-                sleep_mode: 'Sleep mode',
-                sleep_dim_minutes: 'Screen dim after',
-                sleep_off_minutes: 'Power off after',
-                sleep_default: 'Default',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Enter a whole number from 0 to 1440.',
-                invalid_sleep_order: 'Power off must be later than screen dim.',
-                invalid_sleep_timers: 'Enter a whole number from 0 to 1440. Power off must be later than screen dim.',
                 save: 'Save',
                 settings_saved: 'Saved',
                 config_success: 'Configuration successful!',
@@ -1020,22 +908,9 @@
                 signal_fair: 'Señal media',
                 signal_weak: 'Señal débil',
                 signal_unknown: 'Intensidad desconocida',
-                clear_ota_url: 'Borrar URL OTA',
                 scanning: 'Escaneando...',
                 wifi_tab: 'Configuración Wi-Fi',
                 advanced_tab: 'Avanzado',
-                ota_url: 'URL OTA personalizada:',
-                invalid_ota_url: 'Introduce una URL HTTP(S) de hasta 255 bytes o deja el campo vacío.',
-                max_tx_power: 'Potencia máxima de transmisión:',
-                remember_bssid: 'Recordar BSSID',
-                sleep_mode: 'Modo de suspensión',
-                sleep_dim_minutes: 'Atenuar pantalla tras',
-                sleep_off_minutes: 'Apagar dispositivo tras',
-                sleep_default: 'Predet.',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Introduce un número entero de 0 a 1440.',
-                invalid_sleep_order: 'El apagado debe ser posterior a la atenuación de la pantalla.',
-                invalid_sleep_timers: 'Introduce un número entero de 0 a 1440. El apagado debe ser posterior a la atenuación de la pantalla.',
                 save: 'Guardar',
                 settings_saved: 'Guardado',
                 config_success: '¡Configuración exitosa!',
@@ -1057,22 +932,9 @@
                 signal_fair: 'سیگنال متوسط',
                 signal_weak: 'سیگنال ضعیف',
                 signal_unknown: 'قدرت سیگنال نامشخص',
-                clear_ota_url: 'پاک کردن نشانی OTA',
                 scanning: 'در حال اسکن...',
                 wifi_tab: 'پیکربندی Wi-Fi',
                 advanced_tab: 'پیشرفته',
-                ota_url: 'آدرس OTA سفارشی:',
-                invalid_ota_url: 'یک نشانی HTTP(S) با حداکثر 255 بایت وارد کنید یا فیلد را خالی بگذارید.',
-                max_tx_power: 'حداکثر توان ارسال:',
-                remember_bssid: 'ذخیرهٔ BSSID',
-                sleep_mode: 'حالت خواب',
-                sleep_dim_minutes: 'کم‌نور شدن صفحه پس از',
-                sleep_off_minutes: 'خاموش شدن دستگاه پس از',
-                sleep_default: 'پیش‌فرض',
-                sleep_minutes_unit: 'دقیقه',
-                invalid_sleep_minutes: 'یک عدد صحیح از 0 تا 1440 وارد کنید.',
-                invalid_sleep_order: 'زمان خاموش شدن باید بیشتر از زمان کم‌نور شدن صفحه باشد.',
-                invalid_sleep_timers: 'یک عدد صحیح از 0 تا 1440 وارد کنید. زمان خاموش شدن باید بیشتر از زمان کم‌نور شدن صفحه باشد.',
                 save: 'ذخیره',
                 settings_saved: 'ذخیره شد',
                 config_success: 'پیکربندی با موفقیت انجام شد!',
@@ -1094,22 +956,9 @@
                 signal_fair: 'Kohtalainen signaali',
                 signal_weak: 'Heikko signaali',
                 signal_unknown: 'Signaalin voimakkuus ei tiedossa',
-                clear_ota_url: 'Tyhjennä OTA-osoite',
                 scanning: 'Etsitään...',
                 wifi_tab: 'Wi-Fi-määritys',
                 advanced_tab: 'Lisäasetukset',
-                ota_url: 'Mukautettu OTA-osoite:',
-                invalid_ota_url: 'Anna enintään 255 tavun HTTP(S)-osoite tai jätä kenttä tyhjäksi.',
-                max_tx_power: 'Suurin lähetysteho:',
-                remember_bssid: 'Muista BSSID',
-                sleep_mode: 'Lepotila',
-                sleep_dim_minutes: 'Himmennä näyttö viiveellä',
-                sleep_off_minutes: 'Sammuta laite viiveellä',
-                sleep_default: 'Oletus',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Anna kokonaisluku väliltä 0–1440.',
-                invalid_sleep_order: 'Sammutusviiveen on oltava näytön himmennysviivettä pidempi.',
-                invalid_sleep_timers: 'Anna kokonaisluku väliltä 0–1440. Sammutusviiveen on oltava näytön himmennysviivettä pidempi.',
                 save: 'Tallenna',
                 settings_saved: 'Tallennettu',
                 config_success: 'Määritys onnistui!',
@@ -1131,22 +980,9 @@
                 signal_fair: 'Katamtamang signal',
                 signal_weak: 'Mahinang signal',
                 signal_unknown: 'Hindi alam ang lakas ng signal',
-                clear_ota_url: 'Burahin ang OTA URL',
                 scanning: 'Nag-scan...',
                 wifi_tab: 'Pagsasaayos ng Wi-Fi',
                 advanced_tab: 'Advanced',
-                ota_url: 'Custom OTA URL:',
-                invalid_ota_url: 'Maglagay ng HTTP(S) URL na hanggang 255 byte o iwanang blangko.',
-                max_tx_power: 'Pinakamataas na lakas ng pagpapadala:',
-                remember_bssid: 'Tandaan ang BSSID',
-                sleep_mode: 'Mode ng pagtulog',
-                sleep_dim_minutes: 'Padilimin ang screen pagkalipas ng',
-                sleep_off_minutes: 'Patayin ang device pagkalipas ng',
-                sleep_default: 'Pauna',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Maglagay ng buong bilang mula 0 hanggang 1440.',
-                invalid_sleep_order: 'Dapat mas huli ang pagpatay kaysa sa pagdilim ng screen.',
-                invalid_sleep_timers: 'Maglagay ng buong bilang mula 0 hanggang 1440. Dapat mas huli ang pagpatay kaysa sa pagdilim ng screen.',
                 save: 'I-save',
                 settings_saved: 'Na-save',
                 config_success: 'Matagumpay ang configuration!',
@@ -1168,22 +1004,9 @@
                 signal_fair: 'Signal moyen',
                 signal_weak: 'Signal faible',
                 signal_unknown: 'Puissance du signal inconnue',
-                clear_ota_url: 'Effacer l\'URL OTA',
                 scanning: 'Analyse en cours...',
                 wifi_tab: 'Configuration Wi-Fi',
                 advanced_tab: 'Avancé',
-                ota_url: 'URL OTA personnalisée:',
-                invalid_ota_url: 'Saisissez une URL HTTP(S) de 255 octets maximum ou laissez le champ vide.',
-                max_tx_power: 'Puissance d\'émission maximale :',
-                remember_bssid: 'Mémoriser le BSSID',
-                sleep_mode: 'Mode veille',
-                sleep_dim_minutes: 'Atténuer l\'écran après',
-                sleep_off_minutes: 'Éteindre l\'appareil après',
-                sleep_default: 'Par défaut',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Saisissez un entier de 0 à 1440.',
-                invalid_sleep_order: 'L\'extinction doit avoir lieu après l\'atténuation de l\'écran.',
-                invalid_sleep_timers: 'Saisissez un entier de 0 à 1440. L\'extinction doit avoir lieu après l\'atténuation de l\'écran.',
                 save: 'Enregistrer',
                 settings_saved: 'Enregistré',
                 config_success: 'Configuration réussie !',
@@ -1205,22 +1028,9 @@
                 signal_fair: 'אות בינוני',
                 signal_weak: 'אות חלש',
                 signal_unknown: 'עוצמת האות לא ידועה',
-                clear_ota_url: 'ניקוי כתובת OTA',
                 scanning: 'סורק...',
                 wifi_tab: 'הגדרות Wi-Fi',
                 advanced_tab: 'מתקדם',
-                ota_url: 'כתובת OTA מותאמת אישית:',
-                invalid_ota_url: 'יש להזין כתובת HTTP(S) באורך של עד 255 בתים, או להשאיר את השדה ריק.',
-                max_tx_power: 'עוצמת שידור מרבית:',
-                remember_bssid: 'שמירת BSSID',
-                sleep_mode: 'מצב שינה',
-                sleep_dim_minutes: 'עמעום המסך לאחר',
-                sleep_off_minutes: 'כיבוי המכשיר לאחר',
-                sleep_default: 'ברירת מחדל',
-                sleep_minutes_unit: 'דק׳',
-                invalid_sleep_minutes: 'יש להזין מספר שלם בין 0 ל־1440.',
-                invalid_sleep_order: 'הכיבוי חייב להתרחש לאחר עמעום המסך.',
-                invalid_sleep_timers: 'יש להזין מספר שלם בין 0 ל־1440. הכיבוי חייב להתרחש לאחר עמעום המסך.',
                 save: 'שמור',
                 settings_saved: 'נשמר',
                 config_success: 'ההגדרה הושלמה בהצלחה!',
@@ -1242,22 +1052,9 @@
                 signal_fair: 'मध्यम सिग्नल',
                 signal_weak: 'कमज़ोर सिग्नल',
                 signal_unknown: 'सिग्नल की शक्ति अज्ञात है',
-                clear_ota_url: 'OTA पता साफ़ करें',
                 scanning: 'स्कैन कर रहा है...',
                 wifi_tab: 'Wi-Fi कॉन्फ़िगरेशन',
                 advanced_tab: 'उन्नत',
-                ota_url: 'कस्टम OTA URL:',
-                invalid_ota_url: 'अधिकतम 255 बाइट का HTTP(S) पता दर्ज करें या फ़ील्ड खाली छोड़ दें।',
-                max_tx_power: 'अधिकतम प्रेषण शक्ति:',
-                remember_bssid: 'BSSID याद रखें',
-                sleep_mode: 'स्लीप मोड',
-                sleep_dim_minutes: 'स्क्रीन मंद होने का समय',
-                sleep_off_minutes: 'डिवाइस बंद होने का समय',
-                sleep_default: 'डिफ़ॉल्ट',
-                sleep_minutes_unit: 'मिनट',
-                invalid_sleep_minutes: '0 से 1440 के बीच पूर्णांक दर्ज करें।',
-                invalid_sleep_order: 'बंद होने का समय स्क्रीन मंद होने के समय से अधिक होना चाहिए।',
-                invalid_sleep_timers: '0 से 1440 के बीच पूर्णांक दर्ज करें। बंद होने का समय स्क्रीन मंद होने के समय से अधिक होना चाहिए।',
                 save: 'सहेजें',
                 settings_saved: 'सहेजा गया',
                 config_success: 'कॉन्फ़िगरेशन सफल!',
@@ -1279,22 +1076,9 @@
                 signal_fair: 'Srednji signal',
                 signal_weak: 'Slab signal',
                 signal_unknown: 'Nepoznata jačina signala',
-                clear_ota_url: 'Očisti OTA adresu',
                 scanning: 'Skeniranje...',
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
-                ota_url: 'Prilagođeni OTA URL:',
-                invalid_ota_url: 'Unesite HTTP(S) adresu do 255 bajtova ili ostavite polje prazno.',
-                max_tx_power: 'Maks. snaga odašiljanja:',
-                remember_bssid: 'Zapamti BSSID',
-                sleep_mode: 'Način mirovanja',
-                sleep_dim_minutes: 'Zatamni zaslon nakon',
-                sleep_off_minutes: 'Isključi uređaj nakon',
-                sleep_default: 'Zadano',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Unesite cijeli broj od 0 do 1440.',
-                invalid_sleep_order: 'Isključivanje mora biti nakon zatamnjenja zaslona.',
-                invalid_sleep_timers: 'Unesite cijeli broj od 0 do 1440. Isključivanje mora biti nakon zatamnjenja zaslona.',
                 save: 'Spremi',
                 settings_saved: 'Spremljeno',
                 config_success: 'Konfiguracija uspješna!',
@@ -1316,22 +1100,9 @@
                 signal_fair: 'Közepes jel',
                 signal_weak: 'Gyenge jel',
                 signal_unknown: 'Ismeretlen jelerősség',
-                clear_ota_url: 'OTA-cím törlése',
                 scanning: 'Keresés...',
                 wifi_tab: 'Wi-Fi konfiguráció',
                 advanced_tab: 'Speciális',
-                ota_url: 'Egyéni OTA URL:',
-                invalid_ota_url: 'Adjon meg egy legfeljebb 255 bájtos HTTP(S)-címet, vagy hagyja üresen a mezőt.',
-                max_tx_power: 'Max. adási teljesítmény:',
-                remember_bssid: 'BSSID megjegyzése',
-                sleep_mode: 'Alvó mód',
-                sleep_dim_minutes: 'Kijelző halványítása ennyi idő után',
-                sleep_off_minutes: 'Kikapcsolás ennyi idő után',
-                sleep_default: 'Alapért.',
-                sleep_minutes_unit: 'perc',
-                invalid_sleep_minutes: 'Adjon meg egy egész számot 0 és 1440 között.',
-                invalid_sleep_order: 'A kikapcsolásnak a kijelző halványítása után kell történnie.',
-                invalid_sleep_timers: 'Adjon meg egy egész számot 0 és 1440 között. A kikapcsolásnak a kijelző halványítása után kell történnie.',
                 save: 'Mentés',
                 settings_saved: 'Mentve',
                 config_success: 'Sikeres konfiguráció!',
@@ -1353,22 +1124,9 @@
                 signal_fair: 'Sinyal sedang',
                 signal_weak: 'Sinyal lemah',
                 signal_unknown: 'Kekuatan sinyal tidak diketahui',
-                clear_ota_url: 'Hapus URL OTA',
                 scanning: 'Memindai...',
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
-                ota_url: 'URL OTA Kustom:',
-                invalid_ota_url: 'Masukkan URL HTTP(S) maksimal 255 byte atau biarkan kosong.',
-                max_tx_power: 'Daya pancar maksimum:',
-                remember_bssid: 'Ingat BSSID',
-                sleep_mode: 'Mode tidur',
-                sleep_dim_minutes: 'Redupkan layar setelah',
-                sleep_off_minutes: 'Matikan perangkat setelah',
-                sleep_default: 'Bawaan',
-                sleep_minutes_unit: 'menit',
-                invalid_sleep_minutes: 'Masukkan bilangan bulat dari 0 hingga 1440.',
-                invalid_sleep_order: 'Waktu mati harus lebih lama daripada waktu peredupan layar.',
-                invalid_sleep_timers: 'Masukkan bilangan bulat dari 0 hingga 1440. Waktu mati harus lebih lama daripada waktu peredupan layar.',
                 save: 'Simpan',
                 settings_saved: 'Tersimpan',
                 config_success: 'Konfigurasi berhasil!',
@@ -1390,22 +1148,9 @@
                 signal_fair: 'Segnale medio',
                 signal_weak: 'Segnale debole',
                 signal_unknown: 'Intensità del segnale sconosciuta',
-                clear_ota_url: 'Cancella URL OTA',
                 scanning: 'Scansione in corso...',
                 wifi_tab: 'Configurazione Wi-Fi',
                 advanced_tab: 'Avanzate',
-                ota_url: 'URL OTA personalizzato:',
-                invalid_ota_url: 'Inserisci un URL HTTP(S) di massimo 255 byte o lascia il campo vuoto.',
-                max_tx_power: 'Potenza massima di trasmissione:',
-                remember_bssid: 'Ricorda BSSID',
-                sleep_mode: 'Modalità sospensione',
-                sleep_dim_minutes: 'Attenua schermo dopo',
-                sleep_off_minutes: 'Spegni dispositivo dopo',
-                sleep_default: 'Predef.',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Inserisci un numero intero da 0 a 1440.',
-                invalid_sleep_order: 'Lo spegnimento deve avvenire dopo l\'attenuazione dello schermo.',
-                invalid_sleep_timers: 'Inserisci un numero intero da 0 a 1440. Lo spegnimento deve avvenire dopo l\'attenuazione dello schermo.',
                 save: 'Salva',
                 settings_saved: 'Salvato',
                 config_success: 'Configurazione riuscita!',
@@ -1427,22 +1172,9 @@
                 signal_fair: '電波は中程度',
                 signal_weak: '電波が弱い',
                 signal_unknown: '電波強度が不明',
-                clear_ota_url: 'OTA URL を消去',
                 scanning: 'スキャン中...',
                 wifi_tab: 'Wi-Fi設定',
                 advanced_tab: '詳細設定',
-                ota_url: 'カスタムOTA URL:',
-                invalid_ota_url: '255 バイト以内の HTTP(S) URL を入力するか、空欄にしてください。',
-                max_tx_power: '最大送信電力:',
-                remember_bssid: 'BSSID を記憶',
-                sleep_mode: 'スリープモード',
-                sleep_dim_minutes: '画面減光まで',
-                sleep_off_minutes: '電源オフまで',
-                sleep_default: '既定',
-                sleep_minutes_unit: '分',
-                invalid_sleep_minutes: '0 から 1440 までの整数を入力してください。',
-                invalid_sleep_order: '電源オフの時間は画面減光の時間より長くしてください。',
-                invalid_sleep_timers: '0 から 1440 までの整数を入力してください。 電源オフの時間は画面減光の時間より長くしてください。',
                 save: '保存',
                 settings_saved: '保存しました',
                 config_success: '設定が完了しました！',
@@ -1464,22 +1196,9 @@
                 signal_fair: '보통 신호',
                 signal_weak: '약한 신호',
                 signal_unknown: '신호 세기를 알 수 없음',
-                clear_ota_url: 'OTA URL 지우기',
                 scanning: '스캔 중...',
                 wifi_tab: 'Wi-Fi 구성',
                 advanced_tab: '고급',
-                ota_url: '사용자 정의 OTA URL:',
-                invalid_ota_url: '최대 255바이트의 HTTP(S) URL을 입력하거나 비워 두세요.',
-                max_tx_power: '최대 송신 출력:',
-                remember_bssid: 'BSSID 기억',
-                sleep_mode: '절전 모드',
-                sleep_dim_minutes: '화면 어두워짐까지',
-                sleep_off_minutes: '전원 꺼짐까지',
-                sleep_default: '기본값',
-                sleep_minutes_unit: '분',
-                invalid_sleep_minutes: '0부터 1440까지의 정수를 입력하세요.',
-                invalid_sleep_order: '전원이 꺼지는 시간은 화면이 어두워지는 시간보다 길어야 합니다.',
-                invalid_sleep_timers: '0부터 1440까지의 정수를 입력하세요. 전원이 꺼지는 시간은 화면이 어두워지는 시간보다 길어야 합니다.',
                 save: '저장',
                 settings_saved: '저장됨',
                 config_success: '설정이 완료되었습니다!',
@@ -1501,22 +1220,9 @@
                 signal_fair: 'Isyarat sederhana',
                 signal_weak: 'Isyarat lemah',
                 signal_unknown: 'Kekuatan isyarat tidak diketahui',
-                clear_ota_url: 'Kosongkan URL OTA',
                 scanning: 'Mengimbas...',
                 wifi_tab: 'Konfigurasi Wi-Fi',
                 advanced_tab: 'Lanjutan',
-                ota_url: 'URL OTA Tersuai:',
-                invalid_ota_url: 'Masukkan URL HTTP(S) sehingga 255 bait atau biarkan kosong.',
-                max_tx_power: 'Kuasa pancaran maksimum:',
-                remember_bssid: 'Ingat BSSID',
-                sleep_mode: 'Mod tidur',
-                sleep_dim_minutes: 'Malapkan skrin selepas',
-                sleep_off_minutes: 'Matikan peranti selepas',
-                sleep_default: 'Lalai',
-                sleep_minutes_unit: 'minit',
-                invalid_sleep_minutes: 'Masukkan nombor bulat dari 0 hingga 1440.',
-                invalid_sleep_order: 'Masa peranti dimatikan mesti lebih lama daripada masa skrin dimalapkan.',
-                invalid_sleep_timers: 'Masukkan nombor bulat dari 0 hingga 1440. Masa peranti dimatikan mesti lebih lama daripada masa skrin dimalapkan.',
                 save: 'Simpan',
                 settings_saved: 'Disimpan',
                 config_success: 'Konfigurasi berjaya!',
@@ -1538,22 +1244,9 @@
                 signal_fair: 'Middels signal',
                 signal_weak: 'Svakt signal',
                 signal_unknown: 'Ukjent signalstyrke',
-                clear_ota_url: 'Tøm OTA-adresse',
                 scanning: 'Skanner...',
                 wifi_tab: 'Wi-Fi-konfigurasjon',
                 advanced_tab: 'Avansert',
-                ota_url: 'Egendefinert OTA-URL:',
-                invalid_ota_url: 'Skriv inn en HTTP(S)-adresse på maks. 255 byte, eller la feltet stå tomt.',
-                max_tx_power: 'Maks. sendeeffekt:',
-                remember_bssid: 'Husk BSSID',
-                sleep_mode: 'Hvilemodus',
-                sleep_dim_minutes: 'Demp skjermen etter',
-                sleep_off_minutes: 'Slå av enheten etter',
-                sleep_default: 'Standard',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Skriv inn et heltall fra 0 til 1440.',
-                invalid_sleep_order: 'Enheten må slås av senere enn skjermen dempes.',
-                invalid_sleep_timers: 'Skriv inn et heltall fra 0 til 1440. Enheten må slås av senere enn skjermen dempes.',
                 save: 'Lagre',
                 settings_saved: 'Lagret',
                 config_success: 'Konfigurasjonen var vellykket!',
@@ -1575,22 +1268,9 @@
                 signal_fair: 'Gemiddeld signaal',
                 signal_weak: 'Zwak signaal',
                 signal_unknown: 'Signaalsterkte onbekend',
-                clear_ota_url: 'OTA-URL wissen',
                 scanning: 'Scannen...',
                 wifi_tab: 'Wi-Fi-configuratie',
                 advanced_tab: 'Geavanceerd',
-                ota_url: 'Aangepaste OTA-URL:',
-                invalid_ota_url: 'Voer een HTTP(S)-URL van maximaal 255 bytes in of laat het veld leeg.',
-                max_tx_power: 'Max. zendvermogen:',
-                remember_bssid: 'BSSID onthouden',
-                sleep_mode: 'Slaapstand',
-                sleep_dim_minutes: 'Scherm dimmen na',
-                sleep_off_minutes: 'Apparaat uitschakelen na',
-                sleep_default: 'Standaard',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Voer een geheel getal van 0 tot 1440 in.',
-                invalid_sleep_order: 'Uitschakelen moet later plaatsvinden dan het dimmen van het scherm.',
-                invalid_sleep_timers: 'Voer een geheel getal van 0 tot 1440 in. Uitschakelen moet later plaatsvinden dan het dimmen van het scherm.',
                 save: 'Opslaan',
                 settings_saved: 'Opgeslagen',
                 config_success: 'Configuratie gelukt!',
@@ -1612,22 +1292,9 @@
                 signal_fair: 'Średni sygnał',
                 signal_weak: 'Słaby sygnał',
                 signal_unknown: 'Nieznana siła sygnału',
-                clear_ota_url: 'Wyczyść adres OTA',
                 scanning: 'Skanowanie...',
                 wifi_tab: 'Konfiguracja Wi-Fi',
                 advanced_tab: 'Zaawansowane',
-                ota_url: 'Niestandardowy adres URL OTA:',
-                invalid_ota_url: 'Wpisz adres HTTP(S) o długości do 255 bajtów lub pozostaw pole puste.',
-                max_tx_power: 'Maks. moc nadawania:',
-                remember_bssid: 'Zapamiętaj BSSID',
-                sleep_mode: 'Tryb uśpienia',
-                sleep_dim_minutes: 'Przyciemnij ekran po',
-                sleep_off_minutes: 'Wyłącz urządzenie po',
-                sleep_default: 'Domyślne',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Wpisz liczbę całkowitą od 0 do 1440.',
-                invalid_sleep_order: 'Wyłączenie musi nastąpić później niż przyciemnienie ekranu.',
-                invalid_sleep_timers: 'Wpisz liczbę całkowitą od 0 do 1440. Wyłączenie musi nastąpić później niż przyciemnienie ekranu.',
                 save: 'Zapisz',
                 settings_saved: 'Zapisano',
                 config_success: 'Konfiguracja zakończona sukcesem!',
@@ -1649,22 +1316,9 @@
                 signal_fair: 'Sinal médio',
                 signal_weak: 'Sinal fraco',
                 signal_unknown: 'Intensidade do sinal desconhecida',
-                clear_ota_url: 'Limpar URL OTA',
                 scanning: 'A procurar...',
                 wifi_tab: 'Configuração Wi-Fi',
                 advanced_tab: 'Avançado',
-                ota_url: 'URL OTA personalizado:',
-                invalid_ota_url: 'Introduza um URL HTTP(S) até 255 bytes ou deixe o campo vazio.',
-                max_tx_power: 'Potência máxima de transmissão:',
-                remember_bssid: 'Memorizar BSSID',
-                sleep_mode: 'Modo de suspensão',
-                sleep_dim_minutes: 'Reduzir brilho após',
-                sleep_off_minutes: 'Desligar dispositivo após',
-                sleep_default: 'Predef.',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Introduza um número inteiro de 0 a 1440.',
-                invalid_sleep_order: 'O dispositivo deve desligar-se depois de o brilho ser reduzido.',
-                invalid_sleep_timers: 'Introduza um número inteiro de 0 a 1440. O dispositivo deve desligar-se depois de o brilho ser reduzido.',
                 save: 'Guardar',
                 settings_saved: 'Guardado',
                 config_success: 'Configuração bem-sucedida!',
@@ -1686,22 +1340,9 @@
                 signal_fair: 'Semnal mediu',
                 signal_weak: 'Semnal slab',
                 signal_unknown: 'Intensitate necunoscută',
-                clear_ota_url: 'Șterge URL-ul OTA',
                 scanning: 'Se scanează...',
                 wifi_tab: 'Configurare Wi-Fi',
                 advanced_tab: 'Avansat',
-                ota_url: 'URL OTA personalizat:',
-                invalid_ota_url: 'Introduceți un URL HTTP(S) de cel mult 255 de octeți sau lăsați câmpul gol.',
-                max_tx_power: 'Putere maximă de transmisie:',
-                remember_bssid: 'Memorează BSSID',
-                sleep_mode: 'Mod repaus',
-                sleep_dim_minutes: 'Reduce luminozitatea după',
-                sleep_off_minutes: 'Oprește dispozitivul după',
-                sleep_default: 'Implicit',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Introduceți un număr întreg de la 0 la 1440.',
-                invalid_sleep_order: 'Oprirea trebuie să aibă loc după reducerea luminozității.',
-                invalid_sleep_timers: 'Introduceți un număr întreg de la 0 la 1440. Oprirea trebuie să aibă loc după reducerea luminozității.',
                 save: 'Salvare',
                 settings_saved: 'Salvat',
                 config_success: 'Configurare reușită!',
@@ -1723,22 +1364,9 @@
                 signal_fair: 'Средний сигнал',
                 signal_weak: 'Слабый сигнал',
                 signal_unknown: 'Уровень сигнала неизвестен',
-                clear_ota_url: 'Очистить URL OTA',
                 scanning: 'Сканирование...',
                 wifi_tab: 'Настройка Wi-Fi',
                 advanced_tab: 'Дополнительно',
-                ota_url: 'Пользовательский URL OTA:',
-                invalid_ota_url: 'Введите HTTP(S) URL длиной до 255 байт или оставьте поле пустым.',
-                max_tx_power: 'Макс. мощность передачи:',
-                remember_bssid: 'Запомнить BSSID',
-                sleep_mode: 'Режим сна',
-                sleep_dim_minutes: 'Затемнение через',
-                sleep_off_minutes: 'Выключение через',
-                sleep_default: 'По умолч.',
-                sleep_minutes_unit: 'мин',
-                invalid_sleep_minutes: 'Введите целое число от 0 до 1440.',
-                invalid_sleep_order: 'Время выключения должно быть больше времени затемнения.',
-                invalid_sleep_timers: 'Введите целое число от 0 до 1440. Время выключения должно быть больше времени затемнения.',
                 save: 'Сохранить',
                 settings_saved: 'Сохранено',
                 config_success: 'Настройка успешно завершена!',
@@ -1760,22 +1388,9 @@
                 signal_fair: 'Stredný signál',
                 signal_weak: 'Slabý signál',
                 signal_unknown: 'Neznáma sila signálu',
-                clear_ota_url: 'Vymazať OTA adresu',
                 scanning: 'Skenovanie...',
                 wifi_tab: 'Konfigurácia Wi-Fi',
                 advanced_tab: 'Pokročilé',
-                ota_url: 'Vlastná URL OTA:',
-                invalid_ota_url: 'Zadajte HTTP(S) adresu s najviac 255 bajtmi alebo nechajte pole prázdne.',
-                max_tx_power: 'Max. vysielací výkon:',
-                remember_bssid: 'Zapamätať BSSID',
-                sleep_mode: 'Režim spánku',
-                sleep_dim_minutes: 'Stlmiť displej po',
-                sleep_off_minutes: 'Vypnúť zariadenie po',
-                sleep_default: 'Predvol.',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Zadajte celé číslo od 0 do 1440.',
-                invalid_sleep_order: 'Vypnutie musí nastať neskôr než stlmenie displeja.',
-                invalid_sleep_timers: 'Zadajte celé číslo od 0 do 1440. Vypnutie musí nastať neskôr než stlmenie displeja.',
                 save: 'Uložiť',
                 settings_saved: 'Uložené',
                 config_success: 'Konfigurácia bola úspešná!',
@@ -1797,22 +1412,9 @@
                 signal_fair: 'Srednje močan signal',
                 signal_weak: 'Šibek signal',
                 signal_unknown: 'Neznana moč signala',
-                clear_ota_url: 'Počisti naslov OTA',
                 scanning: 'Iskanje...',
                 wifi_tab: 'Konfiguracija Wi-Fi',
                 advanced_tab: 'Napredno',
-                ota_url: 'Prilagojen URL OTA:',
-                invalid_ota_url: 'Vnesite naslov HTTP(S) z največ 255 bajti ali pustite polje prazno.',
-                max_tx_power: 'Največja oddajna moč:',
-                remember_bssid: 'Zapomni si BSSID',
-                sleep_mode: 'Način spanja',
-                sleep_dim_minutes: 'Zatemni zaslon po',
-                sleep_off_minutes: 'Izklopi napravo po',
-                sleep_default: 'Privzeto',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Vnesite celo število od 0 do 1440.',
-                invalid_sleep_order: 'Izklop mora biti poznejši od zatemnitve zaslona.',
-                invalid_sleep_timers: 'Vnesite celo število od 0 do 1440. Izklop mora biti poznejši od zatemnitve zaslona.',
                 save: 'Shrani',
                 settings_saved: 'Shranjeno',
                 config_success: 'Konfiguracija uspešna!',
@@ -1834,22 +1436,9 @@
                 signal_fair: 'Средњи сигнал',
                 signal_weak: 'Слаб сигнал',
                 signal_unknown: 'Непозната јачина сигнала',
-                clear_ota_url: 'Обриши OTA адресу',
                 scanning: 'Скенирање...',
                 wifi_tab: 'Конфигурација Wi-Fi',
                 advanced_tab: 'Напредно',
-                ota_url: 'Прилагођени OTA URL:',
-                invalid_ota_url: 'Унесите HTTP(S) адресу до 255 бајтова или оставите поље празно.',
-                max_tx_power: 'Макс. снага предаје:',
-                remember_bssid: 'Запамти BSSID',
-                sleep_mode: 'Режим спавања',
-                sleep_dim_minutes: 'Затамни екран након',
-                sleep_off_minutes: 'Искључи уређај након',
-                sleep_default: 'Подразум.',
-                sleep_minutes_unit: 'мин',
-                invalid_sleep_minutes: 'Унесите цео број од 0 до 1440.',
-                invalid_sleep_order: 'Искључивање мора бити касније од затамњења екрана.',
-                invalid_sleep_timers: 'Унесите цео број од 0 до 1440. Искључивање мора бити касније од затамњења екрана.',
                 save: 'Сачувај',
                 settings_saved: 'Сачувано',
                 config_success: 'Конфигурација је успешна!',
@@ -1871,22 +1460,9 @@
                 signal_fair: 'Medelstark signal',
                 signal_weak: 'Svag signal',
                 signal_unknown: 'Okänd signalstyrka',
-                clear_ota_url: 'Rensa OTA-adress',
                 scanning: 'Söker...',
                 wifi_tab: 'Wi-Fi-konfiguration',
                 advanced_tab: 'Avancerat',
-                ota_url: 'Anpassad OTA-URL:',
-                invalid_ota_url: 'Ange en HTTP(S)-adress på högst 255 byte eller lämna fältet tomt.',
-                max_tx_power: 'Max. sändningseffekt:',
-                remember_bssid: 'Kom ihåg BSSID',
-                sleep_mode: 'Viloläge',
-                sleep_dim_minutes: 'Dimma skärmen efter',
-                sleep_off_minutes: 'Stäng av enheten efter',
-                sleep_default: 'Standard',
-                sleep_minutes_unit: 'min',
-                invalid_sleep_minutes: 'Ange ett heltal från 0 till 1440.',
-                invalid_sleep_order: 'Enheten måste stängas av senare än skärmen dimmas.',
-                invalid_sleep_timers: 'Ange ett heltal från 0 till 1440. Enheten måste stängas av senare än skärmen dimmas.',
                 save: 'Spara',
                 settings_saved: 'Sparat',
                 config_success: 'Konfigurationen lyckades!',
@@ -1908,22 +1484,9 @@
                 signal_fair: 'สัญญาณปานกลาง',
                 signal_weak: 'สัญญาณอ่อน',
                 signal_unknown: 'ไม่ทราบความแรงของสัญญาณ',
-                clear_ota_url: 'ล้าง URL OTA',
                 scanning: 'กำลังสแกน...',
                 wifi_tab: 'การกำหนดค่า Wi-Fi',
                 advanced_tab: 'ขั้นสูง',
-                ota_url: 'URL OTA กำหนดเอง:',
-                invalid_ota_url: 'ป้อน URL HTTP(S) ไม่เกิน 255 ไบต์ หรือเว้นว่างไว้',
-                max_tx_power: 'กำลังส่งสูงสุด:',
-                remember_bssid: 'จดจำ BSSID',
-                sleep_mode: 'โหมดพักเครื่อง',
-                sleep_dim_minutes: 'หรี่หน้าจอหลังจาก',
-                sleep_off_minutes: 'ปิดเครื่องหลังจาก',
-                sleep_default: 'ค่าเริ่มต้น',
-                sleep_minutes_unit: 'นาที',
-                invalid_sleep_minutes: 'ป้อนจำนวนเต็มตั้งแต่ 0 ถึง 1440',
-                invalid_sleep_order: 'เวลาปิดเครื่องต้องมากกว่าเวลาหรี่หน้าจอ',
-                invalid_sleep_timers: 'ป้อนจำนวนเต็มตั้งแต่ 0 ถึง 1440 เวลาปิดเครื่องต้องมากกว่าเวลาหรี่หน้าจอ',
                 save: 'บันทึก',
                 settings_saved: 'บันทึกแล้ว',
                 config_success: 'กำหนดค่าสำเร็จ!',
@@ -1945,22 +1508,9 @@
                 signal_fair: 'Orta sinyal',
                 signal_weak: 'Zayıf sinyal',
                 signal_unknown: 'Sinyal gücü bilinmiyor',
-                clear_ota_url: 'OTA adresini temizle',
                 scanning: 'Taranıyor...',
                 wifi_tab: 'Wi-Fi Yapılandırması',
                 advanced_tab: 'Gelişmiş',
-                ota_url: 'Özel OTA URL:',
-                invalid_ota_url: 'En fazla 255 baytlık bir HTTP(S) adresi girin veya alanı boş bırakın.',
-                max_tx_power: 'En yüksek iletim gücü:',
-                remember_bssid: 'BSSID\'yi hatırla',
-                sleep_mode: 'Uyku modu',
-                sleep_dim_minutes: 'Ekranı karartma süresi',
-                sleep_off_minutes: 'Kapanma süresi',
-                sleep_default: 'Varsayılan',
-                sleep_minutes_unit: 'dk',
-                invalid_sleep_minutes: '0 ile 1440 arasında bir tam sayı girin.',
-                invalid_sleep_order: 'Kapanma süresi ekranı karartma süresinden uzun olmalıdır.',
-                invalid_sleep_timers: '0 ile 1440 arasında bir tam sayı girin. Kapanma süresi ekranı karartma süresinden uzun olmalıdır.',
                 save: 'Kaydet',
                 settings_saved: 'Kaydedildi',
                 config_success: 'Yapılandırma başarılı!',
@@ -1982,22 +1532,9 @@
                 signal_fair: 'Середній сигнал',
                 signal_weak: 'Слабкий сигнал',
                 signal_unknown: 'Рівень сигналу невідомий',
-                clear_ota_url: 'Очистити URL OTA',
                 scanning: 'Сканування...',
                 wifi_tab: 'Налаштування Wi-Fi',
                 advanced_tab: 'Додатково',
-                ota_url: 'Користувацька URL-адреса OTA:',
-                invalid_ota_url: 'Введіть HTTP(S) URL завдовжки до 255 байтів або залиште поле порожнім.',
-                max_tx_power: 'Макс. потужність передавання:',
-                remember_bssid: 'Запам\'ятати BSSID',
-                sleep_mode: 'Режим сну',
-                sleep_dim_minutes: 'Затемнення через',
-                sleep_off_minutes: 'Вимкнення через',
-                sleep_default: 'Типово',
-                sleep_minutes_unit: 'хв',
-                invalid_sleep_minutes: 'Введіть ціле число від 0 до 1440.',
-                invalid_sleep_order: 'Час вимкнення має бути більшим за час затемнення.',
-                invalid_sleep_timers: 'Введіть ціле число від 0 до 1440. Час вимкнення має бути більшим за час затемнення.',
                 save: 'Зберегти',
                 settings_saved: 'Збережено',
                 config_success: 'Налаштування успішно завершено!',
@@ -2019,22 +1556,9 @@
                 signal_fair: 'Tín hiệu trung bình',
                 signal_weak: 'Tín hiệu yếu',
                 signal_unknown: 'Chưa rõ cường độ tín hiệu',
-                clear_ota_url: 'Xóa URL OTA',
                 scanning: 'Đang quét...',
                 wifi_tab: 'Cấu hình Wi-Fi',
                 advanced_tab: 'Tùy chọn nâng cao',
-                ota_url: 'Địa chỉ OTA tùy chỉnh:',
-                invalid_ota_url: 'Nhập URL HTTP(S) tối đa 255 byte hoặc để trống.',
-                max_tx_power: 'Công suất phát tối đa:',
-                remember_bssid: 'Ghi nhớ BSSID',
-                sleep_mode: 'Chế độ ngủ',
-                sleep_dim_minutes: 'Làm mờ màn hình sau',
-                sleep_off_minutes: 'Tắt thiết bị sau',
-                sleep_default: 'Mặc định',
-                sleep_minutes_unit: 'phút',
-                invalid_sleep_minutes: 'Nhập số nguyên từ 0 đến 1440.',
-                invalid_sleep_order: 'Thời gian tắt phải lớn hơn thời gian làm mờ màn hình.',
-                invalid_sleep_timers: 'Nhập số nguyên từ 0 đến 1440. Thời gian tắt phải lớn hơn thời gian làm mờ màn hình.',
                 save: 'Lưu',
                 settings_saved: 'Đã lưu',
                 config_success: 'Cấu hình thành công!',
@@ -2056,22 +1580,9 @@
                 signal_fair: '信号中等',
                 signal_weak: '信号弱',
                 signal_unknown: '信号强度未知',
-                clear_ota_url: '清除 OTA 地址',
                 scanning: '扫描中...',
                 wifi_tab: 'Wi-Fi 配置',
                 advanced_tab: '高级选项',
-                ota_url: '自定义 OTA 地址:',
-                invalid_ota_url: '请输入 HTTP(S) 地址（最多 255 字节），或留空。',
-                max_tx_power: '最大发射功率:',
-                remember_bssid: '记住 BSSID',
-                sleep_mode: '睡眠模式',
-                sleep_dim_minutes: '屏幕变暗时间',
-                sleep_off_minutes: '关机时间',
-                sleep_default: '默认',
-                sleep_minutes_unit: '分钟',
-                invalid_sleep_minutes: '请输入 0 到 1440 的整数。',
-                invalid_sleep_order: '关机时间必须大于屏幕变暗时间。',
-                invalid_sleep_timers: '请输入 0 到 1440 的整数。 关机时间必须大于屏幕变暗时间。',
                 save: '保存',
                 settings_saved: '已保存',
                 config_success: '配置成功！',
@@ -2093,22 +1604,9 @@
                 signal_fair: '訊號中等',
                 signal_weak: '訊號弱',
                 signal_unknown: '訊號強度未知',
-                clear_ota_url: '清除 OTA 位址',
                 scanning: '掃描中...',
                 wifi_tab: 'Wi-Fi 設定',
                 advanced_tab: '進階選項',
-                ota_url: '自定義 OTA 位址:',
-                invalid_ota_url: '請輸入 HTTP(S) 位址（最多 255 位元組），或留空。',
-                max_tx_power: '最大發射功率:',
-                remember_bssid: '記住 BSSID',
-                sleep_mode: '睡眠模式',
-                sleep_dim_minutes: '螢幕變暗時間',
-                sleep_off_minutes: '關機時間',
-                sleep_default: '預設',
-                sleep_minutes_unit: '分鐘',
-                invalid_sleep_minutes: '請輸入 0 到 1440 的整數。',
-                invalid_sleep_order: '關機時間必須大於螢幕變暗時間。',
-                invalid_sleep_timers: '請輸入 0 到 1440 的整數。 關機時間必須大於螢幕變暗時間。',
                 save: '儲存',
                 settings_saved: '已儲存',
                 config_success: '設定成功！',
@@ -2218,9 +1716,7 @@
 
         function responseError(message, fallbackKey) {
             const keys = {
-                'Invalid SSID': 'invalid_ssid',
-                'OTA URL must be empty or a valid HTTP(S) URL (max 255 bytes)': 'invalid_ota_url',
-                'Invalid sleep timer values': 'invalid_sleep_timers'
+                'Invalid SSID': 'invalid_ssid'
             };
             const error = new Error(message || fallbackKey);
             error.translationKey = Object.prototype.hasOwnProperty.call(keys, message) ? keys[message] : fallbackKey;
@@ -2294,6 +1790,7 @@
             
             // Save language preference
             localStorage.setItem('preferred_language', lang);
+            portalAdvanced.refreshLanguage();
         }
 
         // ========== Wi-Fi List Management ==========
@@ -2337,7 +1834,7 @@
                 .then(response => response.json())
                 .then(data => {
                     loadSavedList();
-                });
+            });
         }
 
         /**
@@ -2349,7 +1846,7 @@
                 .then(response => response.json())
                 .then(data => {
                     loadSavedList();
-                });
+            });
         }
 
         /**
@@ -2493,100 +1990,6 @@
             }
         }
 
-        /**
-         * Submit advanced configuration form
-         */
-        function isValidOtaUrl(value) {
-            if (value === '') return true;
-            if (typeof value !== 'string' || value.length > 255 ||
-                !/^https?:\/\/[^/?#]+/i.test(value) || /[^\x21-\x7e]|\\/.test(value) ||
-                /%(?![0-9a-f]{2})/i.test(value)) {
-                return false;
-            }
-            try {
-                const url = new URL(value);
-                return (url.protocol === 'http:' || url.protocol === 'https:') &&
-                    url.hostname !== '' && url.port !== '0';
-            } catch (_) {
-                return false;
-            }
-        }
-
-        async function submitAdvancedForm(event) {
-            event.preventDefault();
-            const advancedButton = document.getElementById('advanced_button');
-            clearLocalizedMessage('advanced_error');
-            clearAdvancedStatus();
-            clearSleepTimerError();
-
-            const otaUrl = document.getElementById('ota_url').value;
-            if (!isValidOtaUrl(otaUrl)) {
-                showLocalizedMessage('advanced_error', 'invalid_ota_url');
-                return;
-            }
-            const config = {
-                ota_url: otaUrl,
-                max_tx_power: parseInt(document.getElementById('max_tx_power').value),
-                remember_bssid: document.getElementById('remember_bssid').checked,
-                sleep_mode: document.getElementById('sleep_mode').checked
-            };
-
-            if (showSleepConfig && config.sleep_mode) {
-                const timers = {};
-                let invalidField = '';
-                let errorKey = '';
-                for (const key of Object.keys(savedSleepTimers)) {
-                    const raw = document.getElementById(key).value.trim();
-                    const value = raw === '' ? null : Number(raw);
-                    if (value !== null && (!Number.isInteger(value) || value < 0 || value > 1440)) {
-                        invalidField = key;
-                        errorKey = 'invalid_sleep_minutes';
-                        break;
-                    }
-                    timers[key] = value;
-                    if (value !== savedSleepTimers[key]) config[key] = value;
-                }
-                if (!errorKey && timers.sleep_dim_minutes > 0 && timers.sleep_off_minutes > 0 &&
-                    timers.sleep_off_minutes <= timers.sleep_dim_minutes) {
-                    invalidField = 'sleep_off_minutes';
-                    errorKey = 'invalid_sleep_order';
-                }
-                if (errorKey) {
-                    showLocalizedMessage('sleep_timers_error', errorKey);
-                    document.getElementById(invalidField).setAttribute('aria-invalid', 'true');
-                    document.getElementById(invalidField).focus();
-                    return;
-                }
-            }
-
-            advancedButton.disabled = true;
-            try {
-                const response = await fetch('/advanced/submit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(config)
-                });
-
-                const data = await response.json();
-                if (!data.success) {
-                    throw responseError(data.error, 'save_failed');
-                }
-
-                for (const key of Object.keys(savedSleepTimers)) {
-                    if (Object.prototype.hasOwnProperty.call(config, key)) {
-                        savedSleepTimers[key] = config[key];
-                    }
-                }
-                advancedButton.disabled = false;
-                showLocalizedMessage('advanced_status', 'settings_saved');
-            } catch (err) {
-                showLocalizedMessage('advanced_error', (err && err.translationKey) || 'save_failed');
-                advancedButton.disabled = false;
-            }
-        }
-
         // ========== UI Functions ==========
         
         /**
@@ -2608,79 +2011,7 @@
             
             // Activate selected tab
             document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
-        }
-
-        function clearAdvancedStatus() {
-            clearLocalizedMessage('advanced_status');
-        }
-
-        /**
-         * Show or hide the sleep timer fields depending on the sleep mode checkbox
-         */
-        function toggleSleepTimers() {
-            const enabled = showSleepConfig && document.getElementById('sleep_mode').checked;
-            document.getElementById('sleep_timers_row').style.display = enabled ? 'block' : 'none';
-            for (const key of Object.keys(savedSleepTimers)) {
-                document.getElementById(key).disabled = !enabled;
-            }
-            clearSleepTimerError();
-        }
-
-        function clearSleepTimerError() {
-            clearLocalizedMessage('sleep_timers_error');
-            for (const key of Object.keys(savedSleepTimers)) {
-                document.getElementById(key).removeAttribute('aria-invalid');
-            }
-        }
-
-        /**
-         * Load advanced configuration from server
-         */
-        async function loadAdvancedConfig() {
-            clearAdvancedStatus();
-            try {
-                const response = await fetch('/advanced/config');
-                const data = await response.json();
-                
-                document.getElementById('ota_url_row').style.display =
-                    data.show_ota_config ? 'block' : 'none';
-                showSleepConfig = Boolean(data.show_sleep_config);
-                document.getElementById('sleep_config_row').style.display =
-                    showSleepConfig ? 'block' : 'none';
-                const otaUrl = typeof data.ota_url === 'string' ? data.ota_url : '';
-                document.getElementById('ota_url').value = isValidOtaUrl(otaUrl) ? otaUrl : '';
-                updateOtaClearButton();
-                if (data.max_tx_power) {
-                    document.getElementById('max_tx_power').value = data.max_tx_power;
-                }
-                if (data.remember_bssid !== undefined) {
-                    document.getElementById('remember_bssid').checked = data.remember_bssid;
-                }
-                if (data.sleep_mode !== undefined) {
-                    document.getElementById('sleep_mode').checked = data.sleep_mode;
-                }
-                for (const key of Object.keys(savedSleepTimers)) {
-                    const value = data[key];
-                    savedSleepTimers[key] = Number.isInteger(value) && value >= 0 && value <= 1440 ? value : null;
-                    document.getElementById(key).value = savedSleepTimers[key] === null ? '' : String(savedSleepTimers[key]);
-                }
-                toggleSleepTimers();
-            } catch (error) {
-                console.error('Error loading advanced config:', error);
-            }
-        }
-
-        /**
-         * Clear OTA URL input field
-         */
-        function clearOtaUrl() {
-            document.getElementById('ota_url').value = '';
-            clearAdvancedStatus();
-            updateOtaClearButton();
-        }
-
-        function updateOtaClearButton() {
-            document.getElementById('clear_ota_url').hidden = document.getElementById('ota_url').value === '';
+            if (tabName === 'advanced') portalAdvanced.load();
         }
 
         // ========== Initialization ==========
@@ -2705,7 +2036,6 @@
             changeLanguage();
             loadSavedList();
             loadAPList();
-            loadAdvancedConfig();
         });
 
         /**
@@ -2714,7 +2044,6 @@
         window.addEventListener('pageshow', (event) => {
             if (event.persisted) {
                 loadSavedList();
-                loadAdvancedConfig();
             }
         });
 

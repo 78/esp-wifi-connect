@@ -14,6 +14,7 @@
 #include <esp_wifi_types_generic.h>
 
 #include "dns_server.h"
+#include "wifi_config_group.h"
 #include "sdkconfig.h"
 
 /**
@@ -35,8 +36,7 @@ public:
     void SetSsidPrefix(const std::string &ssid_prefix);
     void SetLanguage(const std::string &&language);
     void SetLanguage(const std::string &language);
-    void SetShowOtaConfig(bool show) { show_ota_config_ = show; }
-    void SetShowSleepConfig(bool show) { show_sleep_config_ = show; }
+    void SetAdvancedGroups(const std::vector<wifi_config::Group>& groups);
     void Start();
     void Stop();
 #if !CONFIG_IDF_TARGET_ESP32P4
@@ -69,16 +69,13 @@ private:
     std::vector<wifi_ap_record_t> ap_records_;
     uint8_t last_connected_channel_ = 0;
 
-    // 高级配置项
-    std::string ota_url_;
-    int8_t max_tx_power_;
-    bool remember_bssid_;
-    bool sleep_mode_;
-    // -1 means no override: the application keeps its board-specific default.
-    int sleep_dim_minutes_ = -1;
-    int sleep_off_minutes_ = -1;
-    bool show_ota_config_ = false;
-    bool show_sleep_config_ = false;
+    int8_t max_tx_power_ = 0;
+    bool remember_bssid_ = false;
+    std::vector<wifi_config::Group> advanced_groups_;
+
+    void BuildAdvancedGroups();
+    esp_err_t GetAdvancedConfig(httpd_req_t* req);
+    esp_err_t SaveAdvancedConfig(httpd_req_t* req);
 
     // Callbacks
     std::function<void()> on_exit_requested_;

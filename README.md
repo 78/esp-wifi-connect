@@ -10,6 +10,12 @@ The URL to access the web server is `http://192.168.4.1`.
 
 <img src="assets/ap_v3_2.jpg" width="320" alt="Wi-Fi Configuration v3.2">
 
+## Version 4.0.0
+
+- Advanced settings accepts application-defined groups with typed fields, optional translations, and load/save callbacks.
+- The component includes the Wi-Fi group. Applications upgrading from 3.x can register their own OTA and sleep groups and continue using their existing NVS keys.
+- The application settings page uses browser-native controls and works with the configuration AP offline.
+
 ## Changelog: v3.3.3
 
 - Add optional screen-dim and power-off timer overrides to the Advanced tab. Validate timers before changing settings, preserve board defaults, and support restoring defaults with `null`.
@@ -90,17 +96,12 @@ The keys are "ssid", "ssid1", ... "ssid9", "password", "password1", ... "passwor
 
 ## Usage
 
-### Optional sleep timer overrides
-
-When `show_sleep_config` is enabled, the Advanced tab exposes screen dim and power-off timeouts. Leave a field blank to preserve the application's board-specific default; `0` disables that step. Explicit overrides are whole minutes from `0` to `1440`. If both overrides are positive, power off must be later than screen dim. The application remains responsible for implementing the power-saving and wake behavior.
-
-`GET /advanced/config` returns `sleep_dim_minutes` and `sleep_off_minutes` as integers, or `null` when there is no override. For `POST /advanced/submit`, an omitted field preserves its existing override, an integer sets it, and `null` removes it. Overrides use the existing `wifi` namespace keys `sleep_dim_min` / `sleep_off_min`; restoring a board default erases the corresponding key. The portal submits timer fields only when the user changes an enabled, visible control, so saving unrelated settings never installs new global timeouts. Applications that do not read these optional keys keep their current behavior.
-
 ### Host regression tests
 
-Host regression tests (requires Node.js, a C/C++ compiler, an exported ESP-IDF environment, and `CJSON_DIR` pointing to a cJSON source directory):
+Run the portal tests with Node.js and the settings API tests with a C/C++ compiler. Set `CJSON_DIR` to the directory containing `cJSON.c`.
 
 ```sh
+node --test tests/test_portal.js
 CJSON_DIR=/path/to/cJSON python3 -m unittest discover -s tests -v
 ```
 
@@ -130,9 +131,8 @@ config.language = "zh-CN";     // Web UI language
 // Optional: tune connection-to-strongest-AP behavior
 // config.station_failure_retry_cnt = 3;  // retries before falling back to weaker AP
 
-// Optional: show advanced fields in the config portal
-// config.show_ota_config = true;    // show Custom OTA URL input
-// config.show_sleep_config = true;  // show Sleep Mode toggle
+// Optional: register application settings before Initialize.
+// config.advanced_groups.push_back(MakeApplicationSettingsGroup());
 
 wifi_manager.Initialize(config);
 
@@ -174,3 +174,48 @@ if (ssid_list.empty()) {
 ```
 
 Please check https://github.com/78/xiaozhi-esp32 for more usage.
+
+
+## Application settings groups
+
+Add application groups to `WifiManagerConfig::advanced_groups` before calling
+`Initialize`. Each group declares a unique ID, an English title and optional
+help, and an ordered list of fields. Use a stable, identifier-style ID for each
+group, field, and option. The built-in Wi-Fi group reserves the ID `wifi`.
+
+The default widgets are text for `Text`, a number input for `Integer`, a switch
+for `Boolean`, and multi-select checkboxes for `TextList`. Use `TextArea` for
+multiline text, `Select` and `Radio` for typed options, and `Copy` for a read-only
+text value. Set `enabled_by` to the ID of a Boolean field to show a dependent
+control only when that field is on. Use `clearable` on an editable text field to
+let users clear it and save an empty value.
+
+`load()` supplies the displayed values. A save callback sees only edited fields.
+A blank optional integer is `nullptr`, zero is an integer, and clearing a
+multi-select submits an empty vector. A field error can include a translation
+key. Return an empty `SaveResult` after persisting a valid change. Callbacks run
+on the portal's HTTP server task and should return promptly.
+
+Optional translations use a static array of `Translation` entries. The locale
+matches the portal dropdown. Keys include `title`, `help`, `port.label`,
+`port.help`, `port.unit` and `port.options.example.label`. English text comes
+from the declarations when a translation is missing.
+
+```cpp
+using namespace wifi_config;
+
+static constexpr Translation translations[] = {
+    {"zh-CN", "title", "服务"},
+    {"zh-CN", "port.label", "端口"},
+};
+
+config.advanced_groups.push_back({
+    .id = "service",
+    .title = "Service",
+    .fields = {{.id = "port", .type = FieldType::Integer, .label = "Port",
+                .required = true, .min = 1, .max = 65535}},
+    .translations = translations,
+    .load = LoadServiceSettings,
+    .save = SaveServiceSettings,
+});
+```

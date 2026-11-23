@@ -11,14 +11,15 @@ if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
             "wifi_station.cc"
             "ssid_manager.cc"
             "dns_server.cc"
-            "ota_url.cc"
+            "wifi_config_group.cc"
         INCLUDE_DIRS
             "include"
         EMBED_TXTFILES
             "assets/wifi_configuration.html"
             "assets/wifi_configuration_done.html"
+            "assets/wifi_config_group.js"
         REQUIRES "esp_timer" "esp_http_server" "esp_wifi" "nvs_flash"
-        PRIV_REQUIRES "http_parser"
+        PRIV_REQUIRES lwip
     )
 else()
     # v5
@@ -31,14 +32,16 @@ else()
             "wifi_station.cc"
             "ssid_manager.cc"
             "dns_server.cc"
-            "ota_url.cc"
+            "wifi_config_group.cc"
         INCLUDE_DIRS
             "include"
         EMBED_TXTFILES
             "assets/wifi_configuration.html"
             "assets/wifi_configuration_done.html"
+            "assets/wifi_config_group.js"
         REQUIRES "esp_timer" "esp_http_server" "esp_wifi" "nvs_flash" "json"
-        PRIV_REQUIRES "http_parser"
+        PRIV_REQUIRES lwip
     )
 endif()
 
+target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_20)

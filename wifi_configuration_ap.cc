@@ -1,7 +1,5 @@
 #include "wifi_configuration_ap.h"
-#include "ota_url.h"
 #include <cstdio>
-#include <cmath>
 #include <memory>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
@@ -27,17 +25,15 @@
 #define WIFI_FAIL_BIT      BIT1
 
 extern const char index_html_start[] asm("_binary_wifi_configuration_html_start");
+extern const char advanced_js_start[] asm("_binary_wifi_config_group_js_start");
 extern const char done_html_start[] asm("_binary_wifi_configuration_done_html_start");
 
 WifiConfigurationAp::WifiConfigurationAp()
 {
     event_group_ = xEventGroupCreate();
     language_ = "zh-CN";
-    sleep_mode_ = false;
     instance_any_id_ = nullptr;
     instance_got_ip_ = nullptr;
-    max_tx_power_ = 0;
-    remember_bssid_ = false;
 }
 
 std::vector<wifi_ap_record_t> WifiConfigurationAp::GetAccessPoints()
@@ -90,6 +86,7 @@ void WifiConfigurationAp::Start()
                                                         &instance_got_ip_));
 
     StartAccessPoint();
+    BuildAdvancedGroups();
     StartWebServer();
     
     // Start scan immediately
@@ -179,62 +176,18 @@ void WifiConfigurationAp::StartAccessPoint()
 
     ESP_LOGI(TAG, "Access Point started with SSID %s", ssid.c_str());
 
-    // 加载高级配置
-    ota_url_.clear();
-    sleep_dim_minutes_ = -1;
-    sleep_off_minutes_ = -1;
     nvs_handle_t nvs;
-    esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
-    if (err == ESP_OK) {
-        // 读取OTA URL
-        char ota_url[wifi_config::kMaxOtaUrlLength + 1] = {0};
-        size_t ota_url_size = sizeof(ota_url);
-        err = nvs_get_str(nvs, "ota_url", ota_url, &ota_url_size);
-        if (err == ESP_OK && wifi_config::IsValidOtaUrl(ota_url)) {
-            ota_url_ = ota_url;
-        } else if (err == ESP_OK || err == ESP_ERR_NVS_INVALID_LENGTH) {
-            ESP_LOGW(TAG, "Ignoring invalid saved OTA URL; using the application default");
+    remember_bssid_ = false;
+    esp_wifi_get_max_tx_power(&max_tx_power_);
+    if (nvs_open("wifi", NVS_READONLY, &nvs) == ESP_OK) {
+        int8_t power;
+        if (nvs_get_i8(nvs, "max_tx_power", &power) == ESP_OK &&
+            esp_wifi_set_max_tx_power(power) == ESP_OK) {
+            max_tx_power_ = power;
         }
-
-        // 读取WiFi功率
-        err = nvs_get_i8(nvs, "max_tx_power", &max_tx_power_);
-        if (err == ESP_OK) {
-            ESP_LOGI(TAG, "WiFi max tx power from NVS: %d", max_tx_power_);
-            ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(max_tx_power_));
-        } else {
-            esp_wifi_get_max_tx_power(&max_tx_power_);
-        }
-
-        // 读取BSSID记忆设置
-        uint8_t remember_bssid = 0;
-        err = nvs_get_u8(nvs, "remember_bssid", &remember_bssid);
-        if (err == ESP_OK) {
-            remember_bssid_ = remember_bssid != 0;
-        } else {
-            remember_bssid_ = false; // 默认值
-        }
-
-        // 读取睡眠模式设置
-        uint8_t sleep_mode = 0;
-        err = nvs_get_u8(nvs, "sleep_mode", &sleep_mode);
-        if (err == ESP_OK) {
-            sleep_mode_ = sleep_mode != 0;
-        } else {
-            sleep_mode_ = true; // 默认值
-        }
-
-        // 读取睡眠定时器设置（分钟）
-        int32_t sleep_dim_minutes = 0;
-        if (nvs_get_i32(nvs, "sleep_dim_min", &sleep_dim_minutes) == ESP_OK &&
-            sleep_dim_minutes >= 0 && sleep_dim_minutes <= 1440) {
-            sleep_dim_minutes_ = sleep_dim_minutes;
-        }
-        int32_t sleep_off_minutes = 0;
-        if (nvs_get_i32(nvs, "sleep_off_min", &sleep_off_minutes) == ESP_OK &&
-            sleep_off_minutes >= 0 && sleep_off_minutes <= 1440) {
-            sleep_off_minutes_ = sleep_off_minutes;
-        }
-
+        uint8_t remember = 0;
+        nvs_get_u8(nvs, "remember_bssid", &remember);
+        remember_bssid_ = remember != 0;
         nvs_close(nvs);
     }
 }
@@ -527,259 +480,29 @@ void WifiConfigurationAp::StartWebServer()
         ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &redirect_uri));
     }
 
-    // Register the /advanced/config URI
-    httpd_uri_t advanced_config = {
-        .uri = "/advanced/config",
-        .method = HTTP_GET,
-        .handler = [](httpd_req_t *req) -> esp_err_t {
-            // 获取当前对象
-            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
-            
-            // 创建JSON对象
-            cJSON *json = cJSON_CreateObject();
-            if (!json) {
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create JSON");
-                return ESP_FAIL;
-            }
-
-            // 添加配置项到JSON
-            cJSON_AddStringToObject(json, "ota_url", this_->ota_url_.c_str());
-            cJSON_AddNumberToObject(json, "max_tx_power", this_->max_tx_power_);
-            cJSON_AddBoolToObject(json, "remember_bssid", this_->remember_bssid_);
-            cJSON_AddBoolToObject(json, "sleep_mode", this_->sleep_mode_);
-            if (this_->sleep_dim_minutes_ >= 0) {
-                cJSON_AddNumberToObject(json, "sleep_dim_minutes", this_->sleep_dim_minutes_);
-            } else {
-                cJSON_AddNullToObject(json, "sleep_dim_minutes");
-            }
-            if (this_->sleep_off_minutes_ >= 0) {
-                cJSON_AddNumberToObject(json, "sleep_off_minutes", this_->sleep_off_minutes_);
-            } else {
-                cJSON_AddNullToObject(json, "sleep_off_minutes");
-            }
-            cJSON_AddBoolToObject(json, "show_ota_config", this_->show_ota_config_);
-            cJSON_AddBoolToObject(json, "show_sleep_config", this_->show_sleep_config_);
-
-            // 发送JSON响应
-            char *json_str = cJSON_PrintUnformatted(json);
-            cJSON_Delete(json);
-            if (!json_str) {
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to print JSON");
-                return ESP_FAIL;
-            }
-
-            httpd_resp_set_type(req, "application/json");
-            httpd_resp_set_hdr(req, "Connection", "close");
-            httpd_resp_send(req, json_str, strlen(json_str));
-            free(json_str);
-            return ESP_OK;
+    const httpd_uri_t advanced_script = {
+        .uri = "/advanced.js", .method = HTTP_GET,
+        .handler = [](httpd_req_t* req) {
+            httpd_resp_set_type(req, "application/javascript");
+            return httpd_resp_sendstr(req, advanced_js_start);
         },
-        .user_ctx = this
+        .user_ctx = nullptr,
+    };
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_script));
+    const httpd_uri_t advanced_config = {
+        .uri = "/advanced/config", .method = HTTP_GET,
+        .handler = [](httpd_req_t* req) {
+            return static_cast<WifiConfigurationAp*>(req->user_ctx)->GetAdvancedConfig(req);
+        },
+        .user_ctx = this,
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_config));
-
-    // Register the /advanced/submit URI
-    httpd_uri_t advanced_submit = {
-        .uri = "/advanced/submit",
-        .method = HTTP_POST,
-        .handler = [](httpd_req_t *req) -> esp_err_t {
-            char *buf;
-            size_t buf_len = req->content_len;
-            if (buf_len > 1024) {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
-                return ESP_FAIL;
-            }
-
-            buf = (char *)malloc(buf_len + 1);
-            if (!buf) {
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to allocate memory");
-                return ESP_FAIL;
-            }
-
-            int ret = httpd_req_recv(req, buf, buf_len);
-            if (ret <= 0) {
-                free(buf);
-                if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-                    httpd_resp_send_408(req);
-                } else {
-                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive request");
-                }
-                return ESP_FAIL;
-            }
-            buf[ret] = '\0';
-
-            // 解析JSON数据
-            cJSON *json = cJSON_Parse(buf);
-            free(buf);
-            if (!cJSON_IsObject(json)) {
-                cJSON_Delete(json);
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
-                return ESP_FAIL;
-            }
-
-            // 获取当前对象
-            auto *this_ = static_cast<WifiConfigurationAp *>(req->user_ctx);
-
-            // Reject invalid URLs before opening NVS or changing any settings.
-            cJSON* ota_url = cJSON_GetObjectItemCaseSensitive(json, "ota_url");
-            if (ota_url && (!cJSON_IsString(ota_url) || !ota_url->valuestring ||
-                            !wifi_config::IsValidOtaUrl(ota_url->valuestring))) {
-                cJSON_Delete(json);
-                httpd_resp_set_status(req, "400 Bad Request");
-                httpd_resp_set_type(req, "application/json");
-                httpd_resp_send(req,
-                                "{\"success\":false,\"error\":\"OTA URL must be empty or a valid "
-                                "HTTP(S) URL (max 255 bytes)\"}",
-                                HTTPD_RESP_USE_STRLEN);
-                return ESP_OK;
-            }
-
-            // Missing fields preserve their overrides; null restores the board default.
-            cJSON* sleep_dim = cJSON_GetObjectItemCaseSensitive(json, "sleep_dim_minutes");
-            cJSON* sleep_off = cJSON_GetObjectItemCaseSensitive(json, "sleep_off_minutes");
-            int dim = this_->sleep_dim_minutes_;
-            int off = this_->sleep_off_minutes_;
-            auto read_minutes = [](const cJSON* item, int& minutes) {
-                if (!item) {
-                    return true;
-                }
-                if (cJSON_IsNull(item)) {
-                    minutes = -1;
-                    return true;
-                }
-                if (!cJSON_IsNumber(item) || !std::isfinite(item->valuedouble) ||
-                    item->valuedouble < 0 || item->valuedouble > 1440 ||
-                    std::floor(item->valuedouble) != item->valuedouble) {
-                    return false;
-                }
-                minutes = static_cast<int>(item->valuedouble);
-                return true;
-            };
-            if (!read_minutes(sleep_dim, dim) || !read_minutes(sleep_off, off) ||
-                ((sleep_dim || sleep_off) && dim > 0 && off > 0 && off <= dim)) {
-                cJSON_Delete(json);
-                httpd_resp_set_type(req, "application/json");
-                httpd_resp_set_status(req, "400 Bad Request");
-                httpd_resp_send(req, "{\"success\":false,\"error\":\"Invalid sleep timer values\"}",
-                                HTTPD_RESP_USE_STRLEN);
-                return ESP_OK;
-            }
-
-            // 打开NVS
-            nvs_handle_t nvs;
-            esp_err_t err = nvs_open("wifi", NVS_READWRITE, &nvs);
-            if (err != ESP_OK) {
-                cJSON_Delete(json);
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open NVS");
-                return ESP_FAIL;
-            }
-
-            // 保存OTA URL
-            if (ota_url) {
-                err = nvs_set_str(nvs, "ota_url", ota_url->valuestring);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to save OTA URL: %d", err);
-                    nvs_close(nvs);
-                    cJSON_Delete(json);
-                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-                                        "Failed to save OTA URL");
-                    return ESP_FAIL;
-                }
-            }
-
-            // 保存WiFi功率
-            cJSON *max_tx_power = cJSON_GetObjectItem(json, "max_tx_power");
-            if (cJSON_IsNumber(max_tx_power)) {
-                this_->max_tx_power_ = max_tx_power->valueint;
-                err = esp_wifi_set_max_tx_power(this_->max_tx_power_);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to set WiFi power: %d", err);
-                    nvs_close(nvs);
-                    cJSON_Delete(json);
-                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set WiFi power");
-                    return ESP_FAIL;
-                }
-                err = nvs_set_i8(nvs, "max_tx_power", this_->max_tx_power_);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to save WiFi power: %d", err);
-                }
-            }
-
-            // 保存BSSID记忆设置
-            cJSON *remember_bssid = cJSON_GetObjectItem(json, "remember_bssid");
-            if (cJSON_IsBool(remember_bssid)) {
-                this_->remember_bssid_ = cJSON_IsTrue(remember_bssid);
-                err = nvs_set_u8(nvs, "remember_bssid", this_->remember_bssid_ ? 1 : 0);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to save remember_bssid: %d", err);
-                }
-            }
-
-            // 保存睡眠模式设置
-            cJSON *sleep_mode = cJSON_GetObjectItem(json, "sleep_mode");
-            if (cJSON_IsBool(sleep_mode)) {
-                this_->sleep_mode_ = cJSON_IsTrue(sleep_mode);
-                err = nvs_set_u8(nvs, "sleep_mode", this_->sleep_mode_ ? 1 : 0);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to save sleep_mode: %d", err);
-                }
-            }
-
-            // Save only explicitly supplied overrides. NVS keys are limited to 15 characters.
-            auto save_minutes = [nvs](const char* key, int minutes) {
-                if (minutes < 0) {
-                    esp_err_t result = nvs_erase_key(nvs, key);
-                    return result == ESP_ERR_NVS_NOT_FOUND ? ESP_OK : result;
-                }
-                return nvs_set_i32(nvs, key, minutes);
-            };
-            if (sleep_dim || sleep_off) {
-                esp_err_t timer_err = ESP_OK;
-                if (sleep_dim) {
-                    timer_err = save_minutes("sleep_dim_min", dim);
-                }
-                if (timer_err == ESP_OK && sleep_off) {
-                    timer_err = save_minutes("sleep_off_min", off);
-                }
-                if (timer_err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to save sleep timer values: %d", timer_err);
-                    cJSON_Delete(json);
-                    nvs_close(nvs);
-                    httpd_resp_set_type(req, "application/json");
-                    httpd_resp_set_status(req, "500 Internal Server Error");
-                    httpd_resp_send(req, "{\"success\":false,\"error\":\"Failed to save sleep timer values\"}", HTTPD_RESP_USE_STRLEN);
-                    return ESP_FAIL;
-                }
-            }
-
-            // 提交更改
-            err = nvs_commit(nvs);
-            if (err == ESP_OK && ota_url) {
-                this_->ota_url_ = ota_url->valuestring;
-            }
-            if (err == ESP_OK) {
-                this_->sleep_dim_minutes_ = dim;
-                this_->sleep_off_minutes_ = off;
-            }
-            nvs_close(nvs);
-            cJSON_Delete(json);
-
-            if (err != ESP_OK) {
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save configuration");
-                return ESP_FAIL;
-            }
-
-            // 发送成功响应
-            httpd_resp_set_type(req, "application/json");
-            httpd_resp_set_hdr(req, "Connection", "close");
-            httpd_resp_send(req, "{\"success\":true}", HTTPD_RESP_USE_STRLEN);
-
-            ESP_LOGI(TAG, "Saved settings: ota_url=%s, max_tx_power=%d, remember_bssid=%d, sleep_mode=%d, sleep_dim=%d, sleep_off=%d",
-                this_->ota_url_.c_str(), this_->max_tx_power_, this_->remember_bssid_, this_->sleep_mode_,
-                this_->sleep_dim_minutes_, this_->sleep_off_minutes_);
-            return ESP_OK;
+    const httpd_uri_t advanced_submit = {
+        .uri = "/advanced/submit", .method = HTTP_POST,
+        .handler = [](httpd_req_t* req) {
+            return static_cast<WifiConfigurationAp*>(req->user_ctx)->SaveAdvancedConfig(req);
         },
-        .user_ctx = this
+        .user_ctx = this,
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &advanced_submit));
 
