@@ -218,5 +218,25 @@ const preventDefault = () => {};
     assert.equal(payloads.length, beforeReloadSave + 1);
     assert.deepEqual(payloads.at(-1).body, {id: 'ssh', values: {port: 2200}});
 
+    // An invalidated in-flight load response must not overwrite a newer load.
+    let resolveStale;
+    let calls = 0;
+    context.fetch = async (url) => {
+        if (!url.startsWith('/advanced/config')) return {ok: true, json: async () => ({success: true})};
+        calls++;
+        if (calls === 1) {
+            return new Promise(resolve => { resolveStale = () => resolve({ok: true, json: async () => structuredClone([english])}); });
+        }
+        return {ok: true, json: async () => structuredClone([secondGroup])};
+    };
+    vm.runInContext('portalAdvanced.invalidate()', context);
+    const firstLoad = vm.runInContext('portalAdvanced.load()', context);
+    vm.runInContext('portalAdvanced.invalidate()', context);
+    await vm.runInContext('portalAdvanced.load()', context);
+    resolveStale();
+    await firstLoad;
+    assert.equal(element('advanced-groups').children.length, 1);
+    assert.equal(element('advanced-groups').children[0].children[0].children[0].textContent, 'SSH');
+
     console.log(`Portal rendering, typed saves, translation fallback and live switching across ${Object.keys(catalogs).length} built-in locales passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});

@@ -2045,6 +2045,9 @@
         window.addEventListener('pageshow', (event) => {
             if (event.persisted) {
                 portalAdvanced.invalidate();
+                if (document.getElementById('advanced-tab').classList.contains('active')) {
+                    portalAdvanced.load();
+                }
                 loadSavedList();
             }
         });

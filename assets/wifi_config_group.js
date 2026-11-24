@@ -5,6 +5,7 @@ const portalAdvanced = (() => {
     const owned = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
     let textUpdates = [];
     let loaded = false;
+    let loadGeneration = 0;
     let submitBound = false;
     let handleSubmit = null;
     let groups = [];
@@ -332,20 +333,25 @@ const portalAdvanced = (() => {
         refreshLanguage,
         invalidate() {
             loaded = false;
+            ++loadGeneration;
             fetchedLanguages.clear();
         },
         async load() {
             if (loaded) return;
             loaded = true;
+            const generation = ++loadGeneration;
             const error = document.getElementById('advanced-load-error');
             error.textContent = '';
             try {
                 const locale = selectedLanguage();
-                groups = await getGroups(locale);
+                const fetched = await getGroups(locale);
+                if (generation !== loadGeneration) return;
+                groups = fetched;
                 fetchedLanguages.add(locale);
                 renderSettings();
                 refreshLanguage();
             } catch (_) {
+                if (generation !== loadGeneration) return;
                 loaded = false;
                 error.textContent = translate('save_failed');
             }
