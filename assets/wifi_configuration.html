@@ -1833,6 +1833,7 @@
             fetch('/saved/delete?index=' + index)
                 .then(response => response.json())
                 .then(data => {
+                    portalAdvanced.invalidate();
                     loadSavedList();
             });
         }
@@ -2043,6 +2044,7 @@
          */
         window.addEventListener('pageshow', (event) => {
             if (event.persisted) {
+                portalAdvanced.invalidate();
                 loadSavedList();
             }
         });

@@ -17,6 +17,7 @@
 #include <esp_smartconfig.h>
 #endif
 #include "ssid_manager.h"
+#include "wifi_static_ip_storage.h"
 #include "sdkconfig.h"
 
 #define TAG "WifiConfigurationAp"
@@ -178,6 +179,12 @@ void WifiConfigurationAp::StartAccessPoint()
 
     nvs_handle_t nvs;
     remember_bssid_ = false;
+    static_ip_enabled_ = false;
+    static_ip_ssid_.clear();
+    static_ip_.clear();
+    static_gateway_.clear();
+    static_netmask_.clear();
+    static_dns_.clear();
     esp_wifi_get_max_tx_power(&max_tx_power_);
     if (nvs_open("wifi", NVS_READONLY, &nvs) == ESP_OK) {
         int8_t power;
@@ -188,8 +195,28 @@ void WifiConfigurationAp::StartAccessPoint()
         uint8_t remember = 0;
         nvs_get_u8(nvs, "remember_bssid", &remember);
         remember_bssid_ = remember != 0;
+        wifi_static_ip::StoredStaticIp stored;
+        if (wifi_static_ip::LoadFromNvs(nvs, stored)) {
+            static_ip_enabled_ = stored.enabled;
+            static_ip_ssid_ = std::move(stored.config.ssid);
+            static_ip_ = std::move(stored.config.ip);
+            static_gateway_ = std::move(stored.config.gateway);
+            static_netmask_ = std::move(stored.config.netmask);
+            static_dns_ = std::move(stored.config.dns);
+        }
         nvs_close(nvs);
     }
+}
+
+std::vector<std::string> WifiConfigurationAp::GetSavedSsids() const
+{
+    std::vector<std::string> ssids;
+    const auto& list = SsidManager::GetInstance().GetSsidList();
+    ssids.reserve(list.size());
+    for (const auto& item : list) {
+        ssids.push_back(item.ssid);
+    }
+    return ssids;
 }
 
 void WifiConfigurationAp::StartWebServer()

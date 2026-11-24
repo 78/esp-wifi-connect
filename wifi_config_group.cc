@@ -1,4 +1,5 @@
 #include "wifi_configuration_ap.h"
+#include "wifi_static_ip_storage.h"
 
 #include <algorithm>
 #include <cmath>
@@ -123,9 +124,37 @@ constexpr Translation kWifiTranslations[] = {
     {"zh-CN", "title", "Wi-Fi 配置"},
     {"zh-CN", "max_tx_power.label", "最大发射功率"},
     {"zh-CN", "remember_bssid.label", "记住 BSSID"},
+    {"zh-CN", "static_ip_enabled.label", "使用静态 IP"},
+    {"zh-CN", "static_ip_ssid.label", "Wi-Fi 网络"},
+    {"zh-CN", "static_ip_ssid.help", "仅对所选 Wi-Fi 网络应用静态 IP，其他已保存网络继续使用 DHCP。"},
+    {"zh-CN", "static_ip.label", "IP 地址"},
+    {"zh-CN", "static_gateway.label", "网关"},
+    {"zh-CN", "static_netmask.label", "子网掩码"},
+    {"zh-CN", "static_dns.label", "DNS 服务器"},
+    {"zh-CN", "static_dns.help", "可选，留空默认使用网关。"},
+    {"zh-CN", "static_ip_ssid.invalid", "请选择一个已保存的 Wi-Fi 网络。"},
+    {"zh-CN", "static_ip.invalid", "请输入有效的 IPv4 地址。"},
+    {"zh-CN", "static_gateway.invalid", "请输入有效的 IPv4 地址。"},
+    {"zh-CN", "static_netmask.invalid", "请输入有效的 IPv4 子网掩码。"},
+    {"zh-CN", "static_dns.invalid", "请输入有效的 IPv4 地址。"},
+    {"zh-CN", "static_ip_disabled", "请先启用静态 IP 再修改静态 IP 参数。"},
     {"zh-TW", "title", "Wi-Fi 設定"},
     {"zh-TW", "max_tx_power.label", "最大發射功率"},
     {"zh-TW", "remember_bssid.label", "記住 BSSID"},
+    {"zh-TW", "static_ip_enabled.label", "使用靜態 IP"},
+    {"zh-TW", "static_ip_ssid.label", "Wi-Fi 網路"},
+    {"zh-TW", "static_ip_ssid.help", "僅對所選 Wi-Fi 網路套用靜態 IP，其他已儲存網路繼續使用 DHCP。"},
+    {"zh-TW", "static_ip.label", "IP 位址"},
+    {"zh-TW", "static_gateway.label", "閘道"},
+    {"zh-TW", "static_netmask.label", "子網路遮罩"},
+    {"zh-TW", "static_dns.label", "DNS 伺服器"},
+    {"zh-TW", "static_dns.help", "選填，留空預設使用閘道。"},
+    {"zh-TW", "static_ip_ssid.invalid", "請選擇一個已儲存的 Wi-Fi 網路。"},
+    {"zh-TW", "static_ip.invalid", "請輸入有效的 IPv4 位址。"},
+    {"zh-TW", "static_gateway.invalid", "請輸入有效的 IPv4 位址。"},
+    {"zh-TW", "static_netmask.invalid", "請輸入有效的 IPv4 子網路遮罩。"},
+    {"zh-TW", "static_dns.invalid", "請輸入有效的 IPv4 位址。"},
+    {"zh-TW", "static_ip_disabled", "請先啟用靜態 IP 再修改靜態 IP 參數。"},
 };
 constexpr const char* kTypes[] = {"string", "integer", "boolean", "string[]"};
 constexpr const char* kWidgets[] = {"", "text", "textarea", "number", "switch",
@@ -305,6 +334,20 @@ void WifiConfigurationAp::SetAdvancedGroups(const std::vector<wifi_config::Group
     advanced_groups_ = groups;
 }
 
+void WifiConfigurationAp::RefreshWifiStaticIpOptions() {
+    auto group = std::find_if(advanced_groups_.begin(), advanced_groups_.end(),
+                              [](const auto& entry) { return entry.id == "wifi"; });
+    if (group == advanced_groups_.end()) return;
+    auto field = std::find_if(group->fields.begin(), group->fields.end(),
+                              [](const auto& entry) { return entry.id == "static_ip_ssid"; });
+    if (field == group->fields.end()) return;
+    field->options.clear();
+    const auto ssids = GetSavedSsids();
+    for (size_t i = 0; i < ssids.size(); ++i) {
+        field->options.push_back({"ssid_" + std::to_string(i), ssids[i], ssids[i]});
+    }
+}
+
 void WifiConfigurationAp::BuildAdvancedGroups() {
     std::erase_if(advanced_groups_, [](const auto& group) { return group.id == "wifi"; });
     using namespace wifi_config;
@@ -320,14 +363,98 @@ void WifiConfigurationAp::BuildAdvancedGroups() {
     }
     advanced_groups_.insert(advanced_groups_.begin(), {
         .id = "wifi", .title = "Wi-Fi",
-        .fields = {std::move(power), {.id = "remember_bssid", .type = FieldType::Boolean, .label = "Remember BSSID"}},
+        .fields = {
+            std::move(power),
+            {.id = "remember_bssid", .type = FieldType::Boolean, .label = "Remember BSSID"},
+            {.id = "static_ip_enabled", .type = FieldType::Boolean, .label = "Use static IP"},
+            {.id = "static_ip_ssid", .type = FieldType::Text, .widget = Widget::Select,
+             .label = "Wi-Fi network",
+             .help = "Static IP applies only to this Wi-Fi network. Other saved networks use DHCP.",
+             .required = true, .max_length = 32, .enabled_by = "static_ip_enabled"},
+            {.id = "static_ip", .type = FieldType::Text, .label = "IP address",
+             .required = true, .max_length = 15, .enabled_by = "static_ip_enabled"},
+            {.id = "static_gateway", .type = FieldType::Text, .label = "Gateway",
+             .required = true, .max_length = 15, .enabled_by = "static_ip_enabled"},
+            {.id = "static_netmask", .type = FieldType::Text, .label = "Subnet mask",
+             .required = true, .max_length = 15, .enabled_by = "static_ip_enabled"},
+            {.id = "static_dns", .type = FieldType::Text, .label = "DNS server",
+             .help = "Optional. Defaults to the gateway.",
+             .max_length = 15, .enabled_by = "static_ip_enabled", .clearable = true},
+        },
         .translations = kWifiTranslations,
         .load = [this] {
-            return Values{{"max_tx_power", static_cast<int32_t>(max_tx_power_)}, {"remember_bssid", remember_bssid_}};
+            return Values{
+                {"max_tx_power", static_cast<int32_t>(max_tx_power_)},
+                {"remember_bssid", remember_bssid_},
+                {"static_ip_enabled", static_ip_enabled_},
+                {"static_ip_ssid", static_ip_ssid_},
+                {"static_ip", static_ip_},
+                {"static_gateway", static_gateway_},
+                {"static_netmask", static_netmask_},
+                {"static_dns", static_dns_},
+            };
         },
         .save = [this](const Values& values) -> SaveResult {
             const auto power = values.find("max_tx_power");
             const auto bssid = values.find("remember_bssid");
+            const auto static_en = values.find("static_ip_enabled");
+            const auto static_ssid = values.find("static_ip_ssid");
+            const auto static_ip = values.find("static_ip");
+            const auto static_gw = values.find("static_gateway");
+            const auto static_mask = values.find("static_netmask");
+            const auto static_dns = values.find("static_dns");
+
+            const bool static_fields_submitted =
+                static_ssid != values.end() || static_ip != values.end() ||
+                static_gw != values.end() || static_mask != values.end() ||
+                static_dns != values.end();
+            const bool static_changed = static_en != values.end() || static_fields_submitted;
+            const bool next_static_enabled =
+                static_en == values.end() ? static_ip_enabled_ : std::get<bool>(static_en->second);
+            const WifiStaticIpConfig next_static{
+                .ssid = static_ssid == values.end() ? static_ip_ssid_ : std::get<std::string>(static_ssid->second),
+                .ip = static_ip == values.end() ? static_ip_ : std::get<std::string>(static_ip->second),
+                .gateway = static_gw == values.end() ? static_gateway_ : std::get<std::string>(static_gw->second),
+                .netmask = static_mask == values.end() ? static_netmask_ : std::get<std::string>(static_mask->second),
+                .dns = static_dns == values.end() ? static_dns_ : std::get<std::string>(static_dns->second),
+            };
+
+            if (static_fields_submitted && !next_static_enabled) {
+                return {"static_ip_enabled", "Enable static IP before editing static IP fields.", "static_ip_disabled"};
+            }
+            if (static_changed && next_static_enabled) {
+                const auto saved = GetSavedSsids();
+                if (next_static.ssid.empty() ||
+                    std::find(saved.begin(), saved.end(), next_static.ssid) == saved.end()) {
+                    return {"static_ip_ssid", "Select a saved Wi-Fi network.", "static_ip_ssid.invalid"};
+                }
+                switch (next_static.Validate()) {
+                    case WifiStaticIpError::Ok:
+                        break;
+                    case WifiStaticIpError::InvalidSsid:
+                        return {"static_ip_ssid", "Select a saved Wi-Fi network.", "static_ip_ssid.invalid"};
+                    case WifiStaticIpError::InvalidIp:
+                        return {"static_ip", "Enter a valid IPv4 host address in the subnet.", "static_ip.invalid"};
+                    case WifiStaticIpError::InvalidGateway:
+                        return {"static_gateway", "Enter a valid IPv4 gateway address in the subnet.", "static_gateway.invalid"};
+                    case WifiStaticIpError::InvalidNetmask:
+                        return {"static_netmask", "Enter a valid IPv4 subnet mask.", "static_netmask.invalid"};
+                    case WifiStaticIpError::InvalidDns:
+                        return {"static_dns", "Enter a valid IPv4 address.", "static_dns.invalid"};
+                }
+            }
+
+            std::string encoded_static;
+            if (static_changed) {
+                encoded_static = wifi_static_ip::EncodeRecord({
+                    .enabled = next_static_enabled,
+                    .config = next_static,
+                });
+                if (encoded_static.empty()) {
+                    return {"", "Could not save Wi-Fi settings.", "save_failed"};
+                }
+            }
+
             const auto requested = power == values.end() ? max_tx_power_ : std::get<int32_t>(power->second);
             if (requested != max_tx_power_ && esp_wifi_set_max_tx_power(requested) != ESP_OK) {
                 return {"max_tx_power", "The radio rejected this transmit power."};
@@ -335,7 +462,12 @@ void WifiConfigurationAp::BuildAdvancedGroups() {
             nvs_handle_t nvs;
             auto err = nvs_open("wifi", NVS_READWRITE, &nvs);
             if (err == ESP_OK) {
-                if (power != values.end()) err = nvs_set_i8(nvs, "max_tx_power", requested);
+                // Write the larger static_cfg string first so an out-of-space
+                // failure aborts before touching smaller scalar keys.
+                if (static_changed) {
+                    err = nvs_set_str(nvs, wifi_static_ip::kNvsKey, encoded_static.c_str());
+                }
+                if (err == ESP_OK && power != values.end()) err = nvs_set_i8(nvs, "max_tx_power", requested);
                 if (err == ESP_OK && bssid != values.end()) {
                     err = nvs_set_u8(nvs, "remember_bssid", std::get<bool>(bssid->second));
                 }
@@ -348,12 +480,22 @@ void WifiConfigurationAp::BuildAdvancedGroups() {
             }
             max_tx_power_ = requested;
             if (bssid != values.end()) remember_bssid_ = std::get<bool>(bssid->second);
+            if (static_changed) {
+                static_ip_enabled_ = next_static_enabled;
+                static_ip_ssid_ = next_static.ssid;
+                static_ip_ = next_static.ip;
+                static_gateway_ = next_static.gateway;
+                static_netmask_ = next_static.netmask;
+                static_dns_ = next_static.dns;
+            }
             return {};
         }
     });
+    RefreshWifiStaticIpOptions();
 }
 
 esp_err_t WifiConfigurationAp::GetAdvancedConfig(httpd_req_t* req) {
+    RefreshWifiStaticIpOptions();
     char query[48] = {};
     char locale[20] = {};
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
@@ -369,6 +511,7 @@ esp_err_t WifiConfigurationAp::GetAdvancedConfig(httpd_req_t* req) {
 
 esp_err_t WifiConfigurationAp::SaveAdvancedConfig(httpd_req_t* req) {
     using namespace wifi_config;
+    RefreshWifiStaticIpOptions();
     if (!req->content_len || req->content_len > kMaxSubmitBytes) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid settings size");
     }

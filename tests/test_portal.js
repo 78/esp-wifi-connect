@@ -196,5 +196,27 @@ const preventDefault = () => {};
     finishScan({json: async () => ({support_5g: false, aps: []})});
     await new Promise(setImmediate);
     assert.ok(element('ap_list').innerHTML.includes(catalogs['zh-CN'].select_wifi));
+
+    // Invalidating advanced groups forces a reload on next open without duplicating submit handlers.
+    let configFetches = 0;
+    context.fetch = async (url, options) => {
+        if (url.startsWith('/advanced/config')) {
+            configFetches++;
+            return {ok: true, json: async () => structuredClone([secondGroup])};
+        }
+        payloads.push({url, body: JSON.parse(options.body)});
+        return {ok: true, json: async () => ({success: true})};
+    };
+    vm.runInContext('portalAdvanced.invalidate()', context);
+    await vm.runInContext('portalAdvanced.load()', context);
+    assert.equal(configFetches, 1);
+    const reloadedPort = element('advanced-groups').children[0].children[1].children[0];
+    reloadedPort.children[1].value = '2200';
+    element('advanced-groups').children[0].children[1].events.input();
+    const beforeReloadSave = payloads.length;
+    await save();
+    assert.equal(payloads.length, beforeReloadSave + 1);
+    assert.deepEqual(payloads.at(-1).body, {id: 'ssh', values: {port: 2200}});
+
     console.log(`Portal rendering, typed saves, translation fallback and live switching across ${Object.keys(catalogs).length} built-in locales passed.`);
 })().catch(error => {console.error(error); process.exitCode = 1;});

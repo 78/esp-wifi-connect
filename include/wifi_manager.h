@@ -60,6 +60,18 @@ struct WifiManagerConfig {
 
     // Settings groups provided by the application, displayed on the Config AP.
     std::vector<wifi_config::Group> advanced_groups;
+
+    // Optional static IP for station mode. Leave every field empty to use DHCP
+    // or the config portal's stored settings; an incomplete or invalid config
+    // (ssid/ip/gateway/netmask are all required) is rejected and keeps DHCP.
+    // Static IP applies only to station_static_ip.ssid; other saved networks
+    // use DHCP.
+    WifiStaticIpConfig station_static_ip;
+
+    // Whether an empty station_static_ip falls back to the config portal's
+    // stored settings. Set to false to ignore NVS settings (using DHCP unless
+    // station_static_ip is explicitly set).
+    bool station_static_ip_from_nvs = true;
 };
 
 /**
