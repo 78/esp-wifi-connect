@@ -335,6 +335,23 @@ void WifiConfigurationAp::SetAdvancedGroups(const std::vector<wifi_config::Group
 }
 
 void WifiConfigurationAp::RefreshWifiStaticIpOptions() {
+    const auto ssids = GetSavedSsids();
+    if (!static_ip_ssid_.empty() &&
+        std::find(ssids.begin(), ssids.end(), static_ip_ssid_) == ssids.end()) {
+        static_ip_enabled_ = false;
+        static_ip_ssid_.clear();
+        static_ip_.clear();
+        static_gateway_.clear();
+        static_netmask_.clear();
+        static_dns_.clear();
+        nvs_handle_t nvs;
+        if (nvs_open("wifi", NVS_READWRITE, &nvs) == ESP_OK) {
+            if (nvs_erase_key(nvs, wifi_static_ip::kNvsKey) == ESP_OK) {
+                nvs_commit(nvs);
+            }
+            nvs_close(nvs);
+        }
+    }
     auto group = std::find_if(advanced_groups_.begin(), advanced_groups_.end(),
                               [](const auto& entry) { return entry.id == "wifi"; });
     if (group == advanced_groups_.end()) return;
@@ -342,7 +359,6 @@ void WifiConfigurationAp::RefreshWifiStaticIpOptions() {
                               [](const auto& entry) { return entry.id == "static_ip_ssid"; });
     if (field == group->fields.end()) return;
     field->options.clear();
-    const auto ssids = GetSavedSsids();
     for (size_t i = 0; i < ssids.size(); ++i) {
         field->options.push_back({"ssid_" + std::to_string(i), ssids[i], ssids[i]});
     }
@@ -462,16 +478,62 @@ void WifiConfigurationAp::BuildAdvancedGroups() {
             nvs_handle_t nvs;
             auto err = nvs_open("wifi", NVS_READWRITE, &nvs);
             if (err == ESP_OK) {
+                bool had_prev_static = false;
+                std::string prev_static_raw;
+                if (static_changed) {
+                    size_t len = 0;
+                    if (nvs_get_str(nvs, wifi_static_ip::kNvsKey, nullptr, &len) == ESP_OK &&
+                        len > 1 && len <= 512) {
+                        prev_static_raw.assign(len, '\0');
+                        if (nvs_get_str(nvs, wifi_static_ip::kNvsKey, prev_static_raw.data(), &len) == ESP_OK &&
+                            len > 1) {
+                            prev_static_raw.resize(len - 1);
+                            had_prev_static = true;
+                        }
+                    }
+                }
+                int8_t prev_power = 0;
+                const bool had_prev_power =
+                    power != values.end() && nvs_get_i8(nvs, "max_tx_power", &prev_power) == ESP_OK;
+                uint8_t prev_bssid = 0;
+                const bool had_prev_bssid =
+                    bssid != values.end() && nvs_get_u8(nvs, "remember_bssid", &prev_bssid) == ESP_OK;
+
+                bool wrote_static = false;
+                bool wrote_power = false;
+                bool wrote_bssid = false;
                 // Write the larger static_cfg string first so an out-of-space
                 // failure aborts before touching smaller scalar keys.
                 if (static_changed) {
                     err = nvs_set_str(nvs, wifi_static_ip::kNvsKey, encoded_static.c_str());
+                    wrote_static = (err == ESP_OK);
                 }
-                if (err == ESP_OK && power != values.end()) err = nvs_set_i8(nvs, "max_tx_power", requested);
+                if (err == ESP_OK && power != values.end()) {
+                    err = nvs_set_i8(nvs, "max_tx_power", requested);
+                    wrote_power = (err == ESP_OK);
+                }
                 if (err == ESP_OK && bssid != values.end()) {
                     err = nvs_set_u8(nvs, "remember_bssid", std::get<bool>(bssid->second));
+                    wrote_bssid = (err == ESP_OK);
                 }
                 if (err == ESP_OK) err = nvs_commit(nvs);
+                if (err != ESP_OK && (wrote_static || wrote_power || wrote_bssid)) {
+                    // Roll back any keys already written to NVS so storage and
+                    // portal state agree after a partial failure.
+                    if (wrote_bssid) {
+                        if (had_prev_bssid) nvs_set_u8(nvs, "remember_bssid", prev_bssid);
+                        else nvs_erase_key(nvs, "remember_bssid");
+                    }
+                    if (wrote_power) {
+                        if (had_prev_power) nvs_set_i8(nvs, "max_tx_power", prev_power);
+                        else nvs_erase_key(nvs, "max_tx_power");
+                    }
+                    if (wrote_static) {
+                        if (had_prev_static) nvs_set_str(nvs, wifi_static_ip::kNvsKey, prev_static_raw.c_str());
+                        else nvs_erase_key(nvs, wifi_static_ip::kNvsKey);
+                    }
+                    nvs_commit(nvs);
+                }
                 nvs_close(nvs);
             }
             if (err != ESP_OK) {

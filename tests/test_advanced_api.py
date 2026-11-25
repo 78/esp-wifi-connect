@@ -157,6 +157,18 @@ inline int nvs_set_str(nvs_handle_t, const char* key, const char* val) {
     g_nvs_strings[key] = val;
     return ESP_OK;
 }
+inline int nvs_get_i8(nvs_handle_t, const char* key, int8_t* out) {
+    auto it = g_nvs_ints.find(key);
+    if (it == g_nvs_ints.end()) return ESP_ERR_NVS_NOT_FOUND;
+    *out = static_cast<int8_t>(it->second);
+    return ESP_OK;
+}
+inline int nvs_get_u8(nvs_handle_t, const char* key, uint8_t* out) {
+    auto it = g_nvs_ints.find(key);
+    if (it == g_nvs_ints.end()) return ESP_ERR_NVS_NOT_FOUND;
+    *out = static_cast<uint8_t>(it->second);
+    return ESP_OK;
+}
 inline int nvs_get_str(nvs_handle_t, const char* key, char* out, size_t* len) {
     auto it = g_nvs_strings.find(key);
     if (it == g_nvs_strings.end()) return ESP_ERR_NVS_NOT_FOUND;
@@ -169,6 +181,11 @@ inline int nvs_get_str(nvs_handle_t, const char* key, char* out, size_t* len) {
     std::memcpy(out, it->second.c_str(), needed);
     *len = needed;
     return ESP_OK;
+}
+inline int nvs_erase_key(nvs_handle_t, const char* key) {
+    if (g_nvs_fail_key == key) return ESP_FAIL;
+    bool erased = g_nvs_strings.erase(key) > 0 || g_nvs_ints.erase(key) > 0;
+    return erased ? ESP_OK : ESP_ERR_NVS_NOT_FOUND;
 }
 inline int nvs_commit(nvs_handle_t) { ++g_nvs_commit_count; return ESP_OK; }
 inline void nvs_close(nvs_handle_t) {}
@@ -306,6 +323,16 @@ int main() {
            after_fail.config.ip == "192.168.1.50" && after_fail.config.gateway == "192.168.1.1");
     g_nvs_fail_key.clear();
 
+    // Mixed save failure: static_cfg succeeds, subsequent remember_bssid fails -> static_cfg must roll back to HomeWiFi.
+    g_nvs_fail_key = "remember_bssid";
+    send(R"({"id":"wifi","values":{"static_ip_ssid":"OfficeWiFi","static_ip":"10.0.0.50","static_gateway":"10.0.0.1","static_netmask":"255.255.255.0","remember_bssid":true}})", 500);
+    assert(request.response.find("save_failed") != std::string::npos);
+    assert(ap.static_ip_ssid_ == "HomeWiFi" && ap.static_ip_ == "192.168.1.50" && !ap.remember_bssid_);
+    assert(wifi_static_ip::LoadFromNvs(1, after_fail));
+    assert(after_fail.enabled && after_fail.config.ssid == "HomeWiFi" &&
+           after_fail.config.ip == "192.168.1.50" && after_fail.config.gateway == "192.168.1.1");
+    g_nvs_fail_key.clear();
+
     // Disabling static IP persists enabled=false while keeping stored fields for re-enabling.
     send(R"({"id":"wifi","values":{"static_ip_enabled":false}})", 200);
     assert(!ap.static_ip_enabled_);
@@ -314,11 +341,26 @@ int main() {
     assert(ap.static_ip_enabled_ && ap.static_ip_ssid_ == "HomeWiFi");
     assert(wifi_static_ip::LoadFromNvs(1, loaded) && loaded.enabled && loaded.config.ssid == "HomeWiFi");
 
-    // If the previously selected SSID is removed from saved networks, re-enabling is rejected.
-    send(R"({"id":"wifi","values":{"static_ip_enabled":false}})", 200);
+    // Deleting the bound saved network deactivates & clears the static IP binding so unrelated Wi-Fi settings can still be saved.
     ap.saved_ssids_ = {"OfficeWiFi"};
+    request = {};
+    ap.GetAdvancedConfig(&request);
+    assert(request.status == 200);
+    assert(!ap.static_ip_enabled_ && ap.static_ip_ssid_.empty());
+    assert(!wifi_static_ip::LoadFromNvs(1, loaded));
+    assert(request.response.find(R"("static_ip_enabled":false)") != std::string::npos);
+    send(R"({"id":"wifi","values":{"remember_bssid":true}})", 200);
+    assert(ap.remember_bssid_);
     send(R"({"id":"wifi","values":{"static_ip_enabled":true}})", 400);
     assert(request.response.find("static_ip_ssid.invalid") != std::string::npos);
+
+    // Mixed save rollback when static_cfg did not previously exist erases the newly written static_cfg.
+    g_nvs_fail_key = "remember_bssid";
+    send(R"({"id":"wifi","values":{"static_ip_enabled":true,"static_ip_ssid":"OfficeWiFi","static_ip":"10.0.0.50","static_gateway":"10.0.0.1","static_netmask":"255.255.255.0","remember_bssid":false}})", 500);
+    assert(request.response.find("save_failed") != std::string::npos);
+    assert(!ap.static_ip_enabled_ && ap.remember_bssid_);
+    assert(!wifi_static_ip::LoadFromNvs(1, loaded));
+    g_nvs_fail_key.clear();
 
     std::cout << "ESP portal HTTP/config backend accepts fragmented JSON, validates types, and returns only the requested locale.\n";
 }
