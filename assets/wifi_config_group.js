@@ -334,7 +334,12 @@ const portalAdvanced = (() => {
         invalidate() {
             loaded = false;
             ++loadGeneration;
+            groups = [];
+            textUpdates = [];
+            handleSubmit = null;
             fetchedLanguages.clear();
+            const form = document.getElementById('advanced-form');
+            if (form) form.hidden = true;
         },
         async load() {
             if (loaded) return;
@@ -347,6 +352,7 @@ const portalAdvanced = (() => {
                 const fetched = await getGroups(locale);
                 if (generation !== loadGeneration) return;
                 groups = fetched;
+                fetchedLanguages.clear();
                 fetchedLanguages.add(locale);
                 renderSettings();
                 refreshLanguage();

@@ -196,7 +196,8 @@ void WifiConfigurationAp::StartAccessPoint()
         nvs_get_u8(nvs, "remember_bssid", &remember);
         remember_bssid_ = remember != 0;
         wifi_static_ip::StoredStaticIp stored;
-        if (wifi_static_ip::LoadFromNvs(nvs, stored)) {
+        if (wifi_static_ip::LoadFromNvs(nvs, stored) &&
+            (!stored.enabled || stored.config.IsValid())) {
             static_ip_enabled_ = stored.enabled;
             static_ip_ssid_ = std::move(stored.config.ssid);
             static_ip_ = std::move(stored.config.ip);
@@ -301,6 +302,9 @@ void WifiConfigurationAp::StartWebServer()
                 sscanf(&req->uri[pos+7], "%d", &index);
                 ESP_LOGI(TAG, "Delete saved list item %d", index);
                 SsidManager::GetInstance().RemoveSsid(index);
+                if (req->user_ctx) {
+                    static_cast<WifiConfigurationAp*>(req->user_ctx)->RefreshWifiStaticIpOptions();
+                }
             }
             // send {}
             httpd_resp_set_type(req, "application/json");
@@ -308,7 +312,7 @@ void WifiConfigurationAp::StartWebServer()
             httpd_resp_send(req, "{}", HTTPD_RESP_USE_STRLEN);
             return ESP_OK;
         },
-        .user_ctx = NULL
+        .user_ctx = this
     };
     ESP_ERROR_CHECK(httpd_register_uri_handler(server_, &saved_delete));
 

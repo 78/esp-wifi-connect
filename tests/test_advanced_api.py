@@ -48,6 +48,26 @@ class AdvancedApiTests(unittest.TestCase):
             ], check=True)
             subprocess.run([str(binary)], check=True)
 
+    def test_ssid_manager_clears_static_ip(self):
+        cjson = Path(os.environ.get("CJSON_DIR", "/nonexistent"))
+        if not shutil.which("c++") or not (cjson / "cJSON.c").exists():
+            self.skipTest("requires a host compiler and CJSON_DIR pointing to the cJSON source")
+        with tempfile.TemporaryDirectory() as temp:
+            build = Path(temp)
+            for name, text in SSID_MANAGER_FIXTURES.items():
+                target = build / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(text, encoding="utf-8")
+            subprocess.run(["cc", "-c", str(cjson / "cJSON.c"), "-o", str(build / "cjson.o")], check=True)
+            binary = build / "check_ssid_manager"
+            subprocess.run([
+                "c++", "-std=c++20", "-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers", "-Wno-sign-compare",
+                "-I", str(build), "-I", str(ROOT / "include"), "-I", str(ROOT), "-I", str(cjson),
+                str(build / "main.cc"), str(ROOT / "ssid_manager.cc"), str(build / "cjson.o"),
+                "-o", str(binary),
+            ], check=True)
+            subprocess.run([str(binary)], check=True)
+
 
 FIXTURES = {
     "wifi_configuration_ap.h": r'''
@@ -362,6 +382,26 @@ int main() {
     assert(!wifi_static_ip::LoadFromNvs(1, loaded));
     g_nvs_fail_key.clear();
 
+    // Malformed NVS record ({"en":true} with missing fields) must be treated as disabled so unrelated Wi-Fi settings still save.
+    g_nvs_strings[wifi_static_ip::kNvsKey] = R"({"en":true})";
+    request = {};
+    ap.GetAdvancedConfig(&request);
+    assert(request.status == 200);
+    assert(!ap.static_ip_enabled_ && request.response.find(R"("static_ip_enabled":false)") != std::string::npos);
+    send(R"({"id":"wifi","values":{"remember_bssid":false}})", 200);
+    assert(!ap.remember_bssid_);
+
+    // Deleting and immediately re-adding the same SSID must not resurrect an erased static_cfg from stale RAM.
+    ap.saved_ssids_ = {"HomeWiFi", "OfficeWiFi"};
+    send(R"({"id":"wifi","values":{"static_ip_enabled":true,"static_ip_ssid":"HomeWiFi","static_ip":"192.168.1.50","static_gateway":"192.168.1.1","static_netmask":"255.255.255.0"}})", 200);
+    assert(ap.static_ip_enabled_ && ap.static_ip_ssid_ == "HomeWiFi");
+    g_nvs_strings.erase(wifi_static_ip::kNvsKey); // Simulate SsidManager erasing static_cfg on delete before re-add.
+    request = {};
+    ap.GetAdvancedConfig(&request);
+    assert(request.status == 200);
+    assert(!ap.static_ip_enabled_ && ap.static_ip_ssid_.empty());
+    assert(request.response.find(R"("static_ip_enabled":false)") != std::string::npos);
+
     std::cout << "ESP portal HTTP/config backend accepts fragmented JSON, validates types, and returns only the requested locale.\n";
 }
 ''',
@@ -438,7 +478,7 @@ struct esp_netif_t {};
 struct esp_ip4_addr_t { uint32_t addr; };
 struct esp_netif_ip_info_t { esp_ip4_addr_t ip; esp_ip4_addr_t netmask; esp_ip4_addr_t gw; };
 enum { ESP_IPADDR_TYPE_V4 = 0 };
-enum { ESP_NETIF_DNS_MAIN = 0 };
+enum { ESP_NETIF_DNS_MAIN = 0, ESP_NETIF_DNS_BACKUP = 1 };
 enum esp_netif_dhcp_status_t { ESP_NETIF_DHCP_INIT = 0, ESP_NETIF_DHCP_STARTED = 1, ESP_NETIF_DHCP_STOPPED = 2 };
 constexpr int ESP_ERR_ESP_NETIF_DHCP_ALREADY_STARTED = 100;
 constexpr int ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED = 101;
@@ -450,6 +490,7 @@ struct NetifState {
     esp_netif_dhcp_status_t dhcp_status = ESP_NETIF_DHCP_INIT;
     esp_netif_ip_info_t ip_info = {};
     uint32_t dns_addr = 0;
+    uint32_t backup_dns_addr = 0;
     int dhcp_stop_calls = 0;
     int dhcp_start_calls = 0;
     int set_ip_calls = 0;
@@ -489,9 +530,10 @@ inline esp_err_t esp_netif_set_ip_info(esp_netif_t*, const esp_netif_ip_info_t* 
     g_netif.ip_info = *info;
     return ESP_OK;
 }
-inline esp_err_t esp_netif_set_dns_info(esp_netif_t*, int, esp_netif_dns_info_t* dns) {
+inline esp_err_t esp_netif_set_dns_info(esp_netif_t*, int type, esp_netif_dns_info_t* dns) {
     ++g_netif.set_dns_calls;
-    g_netif.dns_addr = dns->ip.u_addr.ip4.addr;
+    if (type == ESP_NETIF_DNS_MAIN) g_netif.dns_addr = dns->ip.u_addr.ip4.addr;
+    else if (type == ESP_NETIF_DNS_BACKUP) g_netif.backup_dns_addr = dns->ip.u_addr.ip4.addr;
     return ESP_OK;
 }
 ''',
@@ -553,11 +595,13 @@ int main() {
     assert(g_netif.dns_addr == 0);
     assert(g_netif.dhcp_start_calls == 1);
 
-    // 3. Switch back to HomeWiFi -> static IP re-applied cleanly.
+    // 3. Switch back to HomeWiFi with stale DHCP backup DNS -> backup DNS must be cleared.
+    g_netif.backup_dns_addr = ip4(10, 0, 0, 2);
     sta.StartConnect();
     assert(g_netif.dhcp_status == ESP_NETIF_DHCP_STOPPED);
     assert(g_netif.ip_info.ip.addr == ip4(192, 168, 1, 50));
     assert(g_netif.dns_addr == ip4(1, 1, 1, 1));
+    assert(g_netif.backup_dns_addr == 0);
 
     // 4. Invalid static IP (broadcast) on HomeWiFi -> reverts to DHCP.
     sta.SetStaticIp({
@@ -572,6 +616,96 @@ int main() {
     assert(g_netif.ip_info.ip.addr == 0);
 
     std::cout << "WifiStation per-SSID static IP <-> DHCP switching verified.\n";
+}
+''',
+}
+
+
+SSID_MANAGER_FIXTURES = {
+    "esp_err.h": "#pragma once\nusing esp_err_t = int;\nconstexpr int ESP_OK = 0;\nconstexpr int ESP_FAIL = -1;\n#define ESP_ERROR_CHECK(x) ((void)(x))\n",
+    "esp_log.h": "#pragma once\n#define ESP_LOGI(...) ((void)0)\n#define ESP_LOGW(...) ((void)0)\n#define ESP_LOGE(...) ((void)0)\n",
+    "esp_event.h": "#pragma once\nusing EventGroupHandle_t = void*;\nusing esp_event_base_t = const char*;\nusing esp_event_handler_instance_t = void*;\n",
+    "esp_timer.h": "#pragma once\nusing esp_timer_handle_t = void*;\n",
+    "esp_netif.h": "#pragma once\nstruct esp_netif_t;\n",
+    "esp_wifi_types_generic.h": "#pragma once\nusing wifi_auth_mode_t = int;\n",
+    "nvs.h": r'''
+#pragma once
+#include "esp_err.h"
+#include <cstdint>
+#include <cstring>
+#include <map>
+#include <string>
+using nvs_handle_t = int;
+constexpr int NVS_READONLY = 0;
+constexpr int NVS_READWRITE = 1;
+constexpr int ESP_ERR_NVS_NOT_FOUND = -2;
+inline std::map<std::string, std::string> g_nvs_strings;
+inline std::map<std::string, uint8_t> g_nvs_u8;
+inline esp_err_t nvs_open(const char*, int, nvs_handle_t* out) { *out = 1; return ESP_OK; }
+inline esp_err_t nvs_set_str(nvs_handle_t, const char* key, const char* val) { g_nvs_strings[key] = val; return ESP_OK; }
+inline esp_err_t nvs_set_u8(nvs_handle_t, const char* key, uint8_t val) { g_nvs_u8[key] = val; return ESP_OK; }
+inline esp_err_t nvs_get_u8(nvs_handle_t, const char* key, uint8_t* out) {
+    auto it = g_nvs_u8.find(key);
+    if (it == g_nvs_u8.end()) return ESP_ERR_NVS_NOT_FOUND;
+    *out = it->second;
+    return ESP_OK;
+}
+inline esp_err_t nvs_get_str(nvs_handle_t, const char* key, char* out, size_t* len) {
+    auto it = g_nvs_strings.find(key);
+    if (it == g_nvs_strings.end()) return ESP_ERR_NVS_NOT_FOUND;
+    const size_t needed = it->second.size() + 1;
+    if (!out) { *len = needed; return ESP_OK; }
+    if (*len < needed) return ESP_FAIL;
+    std::memcpy(out, it->second.c_str(), needed);
+    *len = needed;
+    return ESP_OK;
+}
+inline esp_err_t nvs_erase_key(nvs_handle_t, const char* key) {
+    g_nvs_strings.erase(key);
+    g_nvs_u8.erase(key);
+    return ESP_OK;
+}
+inline esp_err_t nvs_commit(nvs_handle_t) { return ESP_OK; }
+inline void nvs_close(nvs_handle_t) {}
+''',
+    "nvs_flash.h": "#pragma once\n#include \"nvs.h\"\n",
+    "main.cc": r'''
+#include "ssid_manager.h"
+#include "wifi_static_ip_storage.h"
+#include <cassert>
+#include <iostream>
+
+int main() {
+    auto& mgr = SsidManager::GetInstance();
+    mgr.AddSsid("OfficeWiFi", "pw2", 11);
+    mgr.AddSsid("HomeWiFi", "pw1", 6);
+    g_nvs_strings[wifi_static_ip::kNvsKey] = wifi_static_ip::EncodeRecord({
+        .enabled = true,
+        .config = {.ssid = "HomeWiFi", .ip = "192.168.1.50", .gateway = "192.168.1.1", .netmask = "255.255.255.0"},
+    });
+
+    // Deleting an unrelated SSID preserves HomeWiFi's static_cfg.
+    mgr.RemoveSsid(1); // OfficeWiFi
+    wifi_static_ip::StoredStaticIp loaded;
+    assert(wifi_static_ip::LoadFromNvs(1, loaded) && loaded.enabled && loaded.config.ssid == "HomeWiFi");
+
+    // Deleting the bound SSID immediately erases static_cfg in NVS.
+    mgr.RemoveSsid(0); // HomeWiFi
+    assert(!wifi_static_ip::LoadFromNvs(1, loaded));
+
+    // Re-adding HomeWiFi does not resurrect static_cfg.
+    mgr.AddSsid("HomeWiFi", "pw1", 6);
+    assert(!wifi_static_ip::LoadFromNvs(1, loaded));
+
+    // Clear() also erases static_cfg.
+    g_nvs_strings[wifi_static_ip::kNvsKey] = wifi_static_ip::EncodeRecord({
+        .enabled = true,
+        .config = {.ssid = "HomeWiFi", .ip = "192.168.1.50", .gateway = "192.168.1.1", .netmask = "255.255.255.0"},
+    });
+    mgr.Clear();
+    assert(!wifi_static_ip::LoadFromNvs(1, loaded));
+
+    std::cout << "SsidManager static_cfg cleanup on RemoveSsid/Clear verified.\n";
 }
 ''',
 }

@@ -332,6 +332,9 @@ void WifiStation::ConfigureIpForSsid(const std::string& ssid) {
         // The address itself is already applied; DNS failing is not fatal.
         ESP_LOGW(TAG, "Failed to set DNS: %s", esp_err_to_name(err));
     }
+    esp_netif_dns_info_t empty_dns = {};
+    empty_dns.ip.type = ESP_IPADDR_TYPE_V4;
+    esp_netif_set_dns_info(station_netif_, ESP_NETIF_DNS_BACKUP, &empty_dns);
     ESP_LOGI(TAG, "Static IP %s (gw %s) applied for %s, DHCP disabled",
              static_ip_.ip.c_str(), static_ip_.gateway.c_str(), ssid.c_str());
 }

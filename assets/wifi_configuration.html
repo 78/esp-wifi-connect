@@ -1834,6 +1834,9 @@
                 .then(response => response.json())
                 .then(data => {
                     portalAdvanced.invalidate();
+                    if (document.getElementById('advanced-tab').classList.contains('active')) {
+                        portalAdvanced.load();
+                    }
                     loadSavedList();
             });
         }

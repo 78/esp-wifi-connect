@@ -132,9 +132,10 @@ constexpr Translation kWifiTranslations[] = {
     {"zh-CN", "static_netmask.label", "子网掩码"},
     {"zh-CN", "static_dns.label", "DNS 服务器"},
     {"zh-CN", "static_dns.help", "可选，留空默认使用网关。"},
+    {"zh-CN", "static_dns.clear", "清除"},
     {"zh-CN", "static_ip_ssid.invalid", "请选择一个已保存的 Wi-Fi 网络。"},
-    {"zh-CN", "static_ip.invalid", "请输入有效的 IPv4 地址。"},
-    {"zh-CN", "static_gateway.invalid", "请输入有效的 IPv4 地址。"},
+    {"zh-CN", "static_ip.invalid", "请输入该子网内有效的 IPv4 主机地址。"},
+    {"zh-CN", "static_gateway.invalid", "请输入该子网内有效的 IPv4 网关地址。"},
     {"zh-CN", "static_netmask.invalid", "请输入有效的 IPv4 子网掩码。"},
     {"zh-CN", "static_dns.invalid", "请输入有效的 IPv4 地址。"},
     {"zh-CN", "static_ip_disabled", "请先启用静态 IP 再修改静态 IP 参数。"},
@@ -149,9 +150,10 @@ constexpr Translation kWifiTranslations[] = {
     {"zh-TW", "static_netmask.label", "子網路遮罩"},
     {"zh-TW", "static_dns.label", "DNS 伺服器"},
     {"zh-TW", "static_dns.help", "選填，留空預設使用閘道。"},
+    {"zh-TW", "static_dns.clear", "清除"},
     {"zh-TW", "static_ip_ssid.invalid", "請選擇一個已儲存的 Wi-Fi 網路。"},
-    {"zh-TW", "static_ip.invalid", "請輸入有效的 IPv4 位址。"},
-    {"zh-TW", "static_gateway.invalid", "請輸入有效的 IPv4 位址。"},
+    {"zh-TW", "static_ip.invalid", "請輸入該子網路內有效的 IPv4 主機位址。"},
+    {"zh-TW", "static_gateway.invalid", "請輸入該子網路內有效的 IPv4 閘道位址。"},
     {"zh-TW", "static_netmask.invalid", "請輸入有效的 IPv4 子網路遮罩。"},
     {"zh-TW", "static_dns.invalid", "請輸入有效的 IPv4 位址。"},
     {"zh-TW", "static_ip_disabled", "請先啟用靜態 IP 再修改靜態 IP 參數。"},
@@ -336,20 +338,42 @@ void WifiConfigurationAp::SetAdvancedGroups(const std::vector<wifi_config::Group
 
 void WifiConfigurationAp::RefreshWifiStaticIpOptions() {
     const auto ssids = GetSavedSsids();
-    if (!static_ip_ssid_.empty() &&
-        std::find(ssids.begin(), ssids.end(), static_ip_ssid_) == ssids.end()) {
+    wifi_static_ip::StoredStaticIp stored;
+    bool has_nvs_record = false;
+    nvs_handle_t nvs;
+    if (nvs_open("wifi", NVS_READONLY, &nvs) == ESP_OK) {
+        has_nvs_record = wifi_static_ip::LoadFromNvs(nvs, stored);
+        nvs_close(nvs);
+    }
+    auto clear_static = [&]() {
         static_ip_enabled_ = false;
         static_ip_ssid_.clear();
         static_ip_.clear();
         static_gateway_.clear();
         static_netmask_.clear();
         static_dns_.clear();
-        nvs_handle_t nvs;
-        if (nvs_open("wifi", NVS_READWRITE, &nvs) == ESP_OK) {
-            if (nvs_erase_key(nvs, wifi_static_ip::kNvsKey) == ESP_OK) {
-                nvs_commit(nvs);
+    };
+    if (!has_nvs_record) {
+        clear_static();
+    } else {
+        const bool valid_if_enabled = !stored.enabled || stored.config.IsValid();
+        const bool bound_missing = !stored.config.ssid.empty() &&
+            std::find(ssids.begin(), ssids.end(), stored.config.ssid) == ssids.end();
+        if (!valid_if_enabled || bound_missing) {
+            clear_static();
+            if (bound_missing && nvs_open("wifi", NVS_READWRITE, &nvs) == ESP_OK) {
+                if (nvs_erase_key(nvs, wifi_static_ip::kNvsKey) == ESP_OK) {
+                    nvs_commit(nvs);
+                }
+                nvs_close(nvs);
             }
-            nvs_close(nvs);
+        } else {
+            static_ip_enabled_ = stored.enabled;
+            static_ip_ssid_ = std::move(stored.config.ssid);
+            static_ip_ = std::move(stored.config.ip);
+            static_gateway_ = std::move(stored.config.gateway);
+            static_netmask_ = std::move(stored.config.netmask);
+            static_dns_ = std::move(stored.config.dns);
         }
     }
     auto group = std::find_if(advanced_groups_.begin(), advanced_groups_.end(),
