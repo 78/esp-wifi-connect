@@ -5,15 +5,38 @@
 #include "wifi_manager.h"
 #include "wifi_station.h"
 #include "wifi_configuration_ap.h"
+#include "wifi_static_ip_storage.h"
 
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
 #include <esp_event.h>
 #include <esp_mac.h>
+#include <nvs.h>
 #include <nvs_flash.h>
 
 #define TAG "WifiManager"
+
+// The config portal persists static IP settings as a single JSON record under
+// the "wifi" namespace. WifiStation itself takes the values through
+// SetStaticIp(), so this is the single place that reads them back.
+static WifiStaticIpConfig LoadStaticIpFromNvs() {
+    nvs_handle_t nvs;
+    if (nvs_open("wifi", NVS_READONLY, &nvs) != ESP_OK) {
+        return {};
+    }
+    wifi_static_ip::StoredStaticIp stored;
+    const bool loaded = wifi_static_ip::LoadFromNvs(nvs, stored);
+    nvs_close(nvs);
+    if (!loaded || !stored.enabled) {
+        return {};
+    }
+    if (!stored.config.IsValid()) {
+        ESP_LOGW(TAG, "Stored static IP config is invalid, staying on DHCP");
+        return {};
+    }
+    return stored.config;
+}
 
 WifiManager& WifiManager::GetInstance() {
     static WifiManager instance;
@@ -138,6 +161,20 @@ void WifiManager::StartStation() {
                                    config_.station_scan_max_interval_seconds);
     station_->SetFailureRetryCnt(config_.station_failure_retry_cnt);
     station_->SetHostname(config_.station_hostname);
+
+    // A config from the caller wins. Only a completely empty one falls back to
+    // the config portal's stored settings: a partially filled config is a
+    // mistake, and silently using different values would hide it.
+    WifiStaticIpConfig static_ip = config_.station_static_ip;
+    if (static_ip.IsEmpty() && config_.station_static_ip_from_nvs) {
+        static_ip = LoadStaticIpFromNvs();
+    }
+    if (!static_ip.IsEmpty() && !static_ip.IsValid()) {
+        ESP_LOGE(TAG, "Static IP config is invalid (valid ssid/ip/gateway/netmask "
+                      "are required), staying on DHCP");
+        static_ip = WifiStaticIpConfig{};
+    }
+    station_->SetStaticIp(static_ip);
 
     // Setup callbacks
     station_->OnScanBegin([this]() {

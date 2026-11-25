@@ -71,8 +71,16 @@ private:
 
     int8_t max_tx_power_ = 0;
     bool remember_bssid_ = false;
+    bool static_ip_enabled_ = false;
+    std::string static_ip_ssid_;
+    std::string static_ip_;
+    std::string static_gateway_;
+    std::string static_netmask_;
+    std::string static_dns_;
     std::vector<wifi_config::Group> advanced_groups_;
 
+    std::vector<std::string> GetSavedSsids() const;
+    void RefreshWifiStaticIpOptions();
     void BuildAdvancedGroups();
     esp_err_t GetAdvancedConfig(httpd_req_t* req);
     esp_err_t SaveAdvancedConfig(httpd_req_t* req);

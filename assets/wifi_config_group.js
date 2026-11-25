@@ -5,6 +5,9 @@ const portalAdvanced = (() => {
     const owned = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
     let textUpdates = [];
     let loaded = false;
+    let loadGeneration = 0;
+    let submitBound = false;
+    let handleSubmit = null;
     let groups = [];
     const fetchedLanguages = new Set();
     const selectedLanguage = () => document.getElementById('language').value;
@@ -273,7 +276,7 @@ const portalAdvanced = (() => {
                 updateButton();
             });
         });
-        form.addEventListener('submit', async event => {
+        handleSubmit = async event => {
             event.preventDefault();
             if (saving) return;
             const edits = sections.map(section => ({section, values: section.changes()}))
@@ -295,7 +298,11 @@ const portalAdvanced = (() => {
             else if (!hasChanges()) feedback = 'settings_saved';
             showFeedback();
             updateButton();
-        });
+        };
+        if (!submitBound) {
+            submitBound = true;
+            form.addEventListener('submit', event => handleSubmit?.(event));
+        }
         updateButton();
         form.hidden = false;
     }
@@ -324,18 +331,33 @@ const portalAdvanced = (() => {
 
     return {
         refreshLanguage,
+        invalidate() {
+            loaded = false;
+            ++loadGeneration;
+            groups = [];
+            textUpdates = [];
+            handleSubmit = null;
+            fetchedLanguages.clear();
+            const form = document.getElementById('advanced-form');
+            if (form) form.hidden = true;
+        },
         async load() {
             if (loaded) return;
             loaded = true;
+            const generation = ++loadGeneration;
             const error = document.getElementById('advanced-load-error');
             error.textContent = '';
             try {
                 const locale = selectedLanguage();
-                groups = await getGroups(locale);
+                const fetched = await getGroups(locale);
+                if (generation !== loadGeneration) return;
+                groups = fetched;
+                fetchedLanguages.clear();
                 fetchedLanguages.add(locale);
                 renderSettings();
                 refreshLanguage();
             } catch (_) {
+                if (generation !== loadGeneration) return;
                 loaded = false;
                 error.textContent = translate('save_failed');
             }

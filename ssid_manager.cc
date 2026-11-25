@@ -1,4 +1,5 @@
 #include "ssid_manager.h"
+#include "wifi_static_ip_storage.h"
 
 #include <algorithm>
 #include <esp_log.h>
@@ -79,6 +80,16 @@ void SsidManager::SaveToNvs() {
             nvs_erase_key(nvs_handle, ssid_key.c_str());
             nvs_erase_key(nvs_handle, password_key.c_str());
             nvs_erase_key(nvs_handle, channel_key.c_str());
+        }
+    }
+    wifi_static_ip::StoredStaticIp stored_static;
+    if (wifi_static_ip::LoadFromNvs(nvs_handle, stored_static) && !stored_static.config.ssid.empty()) {
+        const bool still_saved = std::any_of(
+            ssid_list_.begin(), ssid_list_.end(),
+            [&](const SsidItem& item) { return item.ssid == stored_static.config.ssid; });
+        if (!still_saved) {
+            ESP_LOGI(TAG, "Clearing static IP binding for removed SSID %s", stored_static.config.ssid.c_str());
+            nvs_erase_key(nvs_handle, wifi_static_ip::kNvsKey);
         }
     }
     nvs_commit(nvs_handle);
